@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project, Document, Column } from '@prisma/client';
-import { Button } from '@/components/ui';
+import { Button, Select, SelectItem } from '@/components/ui';
 import { KnowledgeTable } from '@/components/documents/KnowledgeTable';
 import { AddDocumentModal } from '@/components/documents/AddDocumentModal';
 import { AddColumnModal } from '@/components/documents/AddColumnModal';
@@ -32,6 +32,7 @@ export function ProjectPageClient({
   const [showAddDocument, setShowAddDocument] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [bulkRunningColumn, setBulkRunningColumn] = useState<string | null>(null);
+  const [selectedBulkColumn, setSelectedBulkColumn] = useState<string>('');
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
 
@@ -67,6 +68,20 @@ export function ProjectPageClient({
 
   const processorColumns = columns.filter((c) => c.mode === 'processor');
 
+  useEffect(() => {
+    if (!processorColumns.length) {
+      setSelectedBulkColumn('');
+      return;
+    }
+
+    const stillValid = processorColumns.some(
+      (column) => column.id === selectedBulkColumn
+    );
+    if (!stillValid) {
+      setSelectedBulkColumn(processorColumns[0]?.id ?? '');
+    }
+  }, [processorColumns, selectedBulkColumn]);
+
   return (
     <div className="page">
       <div className="page__header">
@@ -99,17 +114,28 @@ export function ProjectPageClient({
             <h3 className="section__title">Bulk Actions</h3>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {processorColumns.map((column) => (
-              <Button
-                key={column.id}
-                variant="secondary"
-                size="sm"
-                isLoading={bulkRunningColumn === column.id}
-                onClick={() => handleBulkRun(column.id)}
+            <div style={{ minWidth: '220px' }}>
+              <Select
+                value={selectedBulkColumn}
+                onValueChange={setSelectedBulkColumn}
+                placeholder="Select processor column"
               >
-                Run &quot;{column.name}&quot; on all docs
-              </Button>
-            ))}
+                {processorColumns.map((column) => (
+                  <SelectItem key={column.id} value={column.id}>
+                    {column.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!selectedBulkColumn}
+              isLoading={bulkRunningColumn === selectedBulkColumn}
+              onClick={() => handleBulkRun(selectedBulkColumn)}
+            >
+              Run processor on all docs
+            </Button>
           </div>
         </div>
       )}
