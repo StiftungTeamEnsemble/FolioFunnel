@@ -34,8 +34,8 @@ services:
     environment:
       NODE_ENV: development
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
-      MARKER_API_URL: http://marker-api:8080
-      MARKER_API_KEY: ${MARKER_API_KEY:-marker_secret_key}
+      DOCUMENT_CONVERTER_API_URL: http://document-converter:8080
+      DOCUMENT_CONVERTER_API_KEY: ${DOCUMENT_CONVERTER_API_KEY:-converter_secret_key}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       DATA_DIR: /data
     volumes:
@@ -51,4 +51,3 @@ services:
 
 volumes:
   node_modules:
-
