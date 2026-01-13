@@ -35,6 +35,14 @@ export function ProjectPageClient({
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
 
+  useEffect(() => {
+    setDocuments(initialDocuments);
+  }, [initialDocuments]);
+
+  useEffect(() => {
+    setColumns(initialColumns);
+  }, [initialColumns]);
+
   const handleRefresh = useCallback(() => {
     router.refresh();
   }, [router]);
