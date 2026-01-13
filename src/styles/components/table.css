@@ -128,6 +128,64 @@
 /* Processor cell */
 .table__cell--processor {
   position: relative;
+  min-width: 200px;
+}
+
+.table__cell--queued {
+  background-color: rgba(var(--color-warning-rgb), 0.05);
+}
+
+.table__cell--running {
+  background-color: rgba(var(--color-warning-rgb), 0.1);
+}
+
+.table__cell--error {
+  background-color: rgba(var(--color-error-rgb), 0.05);
+}
+
+.table__cell__processor-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.table__cell__status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.table__cell__status-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table__cell--queued .table__cell__status-label {
+  color: var(--color-warning);
+}
+
+.table__cell--running .table__cell__status-label {
+  color: var(--color-warning);
+}
+
+.table__cell--success .table__cell__status-label {
+  color: var(--color-success);
+}
+
+.table__cell--error .table__cell__status-label {
+  color: var(--color-error);
+}
+
+.table__cell__value-container {
+  min-height: 20px;
+}
+
+.table__cell__error {
+  color: var(--color-error);
+  font-size: 12px;
+  font-style: italic;
 }
 
 .table__cell__processor-status {
@@ -142,13 +200,25 @@
   height: 16px;
 }
 
+.table__cell__status-icon--pending {
+  color: var(--color-gray-300);
+}
+
 .table__cell__status-icon--queued {
-  color: var(--color-gray-400);
+  color: var(--color-warning);
 }
 
 .table__cell__status-icon--running {
   color: var(--color-warning);
-  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.table__cell__status-icon--running .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .table__cell__status-icon--success {
@@ -174,12 +244,26 @@
 .table__cell__actions {
   display: flex;
   gap: 4px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.table__cell--editable .table__cell__actions {
   opacity: 0;
   transition: opacity 0.1s ease;
 }
 
-.table__row:hover .table__cell__actions {
+.table__row:hover .table__cell--editable .table__cell__actions {
   opacity: 1;
+}
+
+/* Processor actions always visible */
+.table__cell--processor .table__cell__actions {
+  position: static;
+  transform: none;
+  margin-top: 4px;
 }
 
 /* Empty state */

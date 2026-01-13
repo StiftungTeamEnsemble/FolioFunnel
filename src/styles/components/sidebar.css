@@ -204,6 +204,30 @@
   background-color: var(--color-gray-800);
 }
 
+/* Tasks link */
+.sidebar__tasks-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--color-gray-300);
+  text-decoration: none;
+  transition: all 0.1s ease;
+}
+
+.sidebar__tasks-link:hover {
+  background-color: var(--color-gray-800);
+  color: white;
+}
+
+.sidebar__tasks-link--active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
 /* User menu */
 .sidebar__footer {
   padding: 16px;

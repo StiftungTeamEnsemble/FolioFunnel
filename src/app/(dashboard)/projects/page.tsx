@@ -83,7 +83,7 @@ export default async function ProjectsPage() {
                     {project.role}
                   </span>
                   <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>
-                    {new Date(project.updatedAt).toLocaleDateString()}
+                    {new Date(project.updatedAt).toLocaleDateString('de-CH', {year:"numeric",month:"2-digit", day:"2-digit"})}
                   </span>
                 </div>
               </div>

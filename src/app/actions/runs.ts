@@ -154,3 +154,19 @@ export async function getRunStatus(runId: string) {
   
   return run;
 }
+
+export async function clearPendingTasks() {
+  try {
+    // Delete all queued and running tasks
+    const result = await prisma.processorRun.deleteMany({
+      where: {
+        status: { in: [RunStatus.queued, RunStatus.running] },
+      },
+    });
+    
+    return { success: true, count: result.count };
+  } catch (error) {
+    console.error('Clear pending tasks error:', error);
+    return { error: 'Failed to clear pending tasks' };
+  }
+}

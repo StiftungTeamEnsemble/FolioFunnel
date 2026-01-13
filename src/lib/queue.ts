@@ -38,9 +38,21 @@ export interface BulkProcessJobData {
   columnId: string;
 }
 
+// Track if boss has been started for sending
+const bossStarted = { value: false };
+
+async function ensureBossStarted(): Promise<PgBoss> {
+  const boss = getBoss();
+  if (!bossStarted.value) {
+    await boss.start();
+    bossStarted.value = true;
+  }
+  return boss;
+}
+
 // Enqueue functions
 export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
-  const boss = getBoss();
+  const boss = await ensureBossStarted();
   await boss.send(QUEUE_NAMES.PROCESS_DOCUMENT, data, {
     retryLimit: 2,
     retryDelay: 10,
@@ -48,7 +60,7 @@ export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
 }
 
 export async function enqueueBulkProcess(data: BulkProcessJobData) {
-  const boss = getBoss();
+  const boss = await ensureBossStarted();
   await boss.send(QUEUE_NAMES.BULK_PROCESS, data, {
     retryLimit: 1,
     retryDelay: 30,

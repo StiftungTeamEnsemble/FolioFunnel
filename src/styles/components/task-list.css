@@ -1,0 +1,123 @@
+.task-list {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.task-list__empty {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.task-list__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.task-list__table th {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.task-list__table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+.task-list__table tr:last-child td {
+  border-bottom: none;
+}
+
+.task-list__row--running {
+  background: rgba(var(--color-warning-rgb), 0.05);
+}
+
+.task-list__row--queued {
+  background: rgba(var(--color-primary-rgb), 0.05);
+}
+
+.task-list__row--error {
+  background: rgba(var(--color-error-rgb), 0.05);
+}
+
+.task-list__status {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.task-list__status--pending,
+.task-list__status--queued {
+  background: rgba(var(--color-primary-rgb), 0.1);
+  color: var(--color-primary);
+}
+
+.task-list__status--running {
+  background: rgba(var(--color-warning-rgb), 0.1);
+  color: var(--color-warning);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.task-list__status--success {
+  background: rgba(var(--color-success-rgb), 0.1);
+  color: var(--color-success);
+}
+
+.task-list__status--error {
+  background: rgba(var(--color-error-rgb), 0.1);
+  color: var(--color-error);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.task-list__link {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.task-list__link:hover {
+  text-decoration: underline;
+}
+
+.task-list__document {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-list__column {
+  color: var(--color-text-muted);
+}
+
+.task-list__time {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.task-list__duration {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.task-list__error-text {
+  color: var(--color-error);
+  font-size: var(--text-xs);
+}

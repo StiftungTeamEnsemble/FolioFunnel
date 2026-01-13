@@ -47,14 +47,14 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
         <div className="sidebar__section">
           <div className="sidebar__section-title">Projects</div>
           <ul className="sidebar__projects">
-            {projects.map((project) => (
+            {projects.map((project) => {
+              const isActive = pathname === `/projects/${project.id}` || pathname?.startsWith(`/projects/${project.id}/`);
+              return (
               <li key={project.id} className="sidebar__project-item">
                 <Link
                   href={`/projects/${project.id}`}
                   className={`sidebar__project-link ${
-                    currentProjectId === project.id
-                      ? 'sidebar__project-link--active'
-                      : ''
+                    isActive ? 'sidebar__project-link--active' : ''
                   }`}
                 >
                   <div className="sidebar__project-icon">
@@ -63,7 +63,8 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
                   <span className="sidebar__project-name">{project.name}</span>
                 </Link>
               </li>
-            ))}
+              );
+            })}
           </ul>
           <div className="sidebar__new-project">
             <Link href="/projects/new" className="sidebar__new-project-btn">
@@ -78,6 +79,25 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
               New Project
             </Link>
           </div>
+        </div>
+
+        <div className="sidebar__section">
+          <Link
+            href="/tasks"
+            className={`sidebar__tasks-link ${
+              pathname === '/tasks' ? 'sidebar__tasks-link--active' : ''
+            }`}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M2 4h12M2 8h12M2 12h8"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            Task Queue
+          </Link>
         </div>
       </div>
 

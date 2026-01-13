@@ -222,27 +222,51 @@ export function KnowledgeTable({
                 }
 
                 // Processor column
+                const displayStatus = isRunning ? 'running' : runInfo?.status;
+                const cellValue = getCellValue(doc, column.key);
+                
                 return (
-                  <td key={column.id} className="table__cell table__cell--processor">
-                    <div className="table__cell__processor-status">
-                      {runInfo && (
-                        <StatusIcon status={isRunning ? 'running' : runInfo.status} />
-                      )}
-                      <span className="table__cell__value">
-                        {getCellValue(doc, column.key) || (
-                          <span style={{ color: 'var(--color-gray-400)' }}>
-                            {runInfo?.error || 'Not processed'}
+                  <td key={column.id} className={`table__cell table__cell--processor ${displayStatus ? `table__cell--${displayStatus}` : ''}`}>
+                    <div className="table__cell__processor-content">
+                      {/* Status indicator */}
+                      <div className="table__cell__status">
+                        <StatusIcon status={displayStatus || 'pending'} />
+                        <span className="table__cell__status-label">
+                          {displayStatus === 'running' && 'Processing...'}
+                          {displayStatus === 'queued' && 'Queued'}
+                          {displayStatus === 'success' && !cellValue && 'Done'}
+                          {displayStatus === 'error' && 'Error'}
+                          {!displayStatus && 'Not run'}
+                        </span>
+                      </div>
+                      
+                      {/* Value or error */}
+                      <div className="table__cell__value-container">
+                        {cellValue ? (
+                          <span className="table__cell__value" title={cellValue}>
+                            {cellValue.length > 100 ? cellValue.slice(0, 100) + '...' : cellValue}
                           </span>
-                        )}
-                      </span>
+                        ) : runInfo?.error ? (
+                          <span className="table__cell__error" title={runInfo.error}>
+                            {runInfo.error.length > 50 ? runInfo.error.slice(0, 50) + '...' : runInfo.error}
+                          </span>
+                        ) : null}
+                      </div>
+                      
+                      {/* Action button */}
                       <div className="table__cell__actions">
                         <Button
                           size="sm"
                           variant="ghost"
                           isLoading={isRunning}
-                          onClick={() => handleRunProcessor(doc.id, column.id)}
+                          disabled={displayStatus === 'queued' || displayStatus === 'running'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRunProcessor(doc.id, column.id);
+                          }}
+                          title={runInfo ? `Rerun ${column.name}` : `Run ${column.name}`}
                         >
-                          {runInfo ? 'Rerun' : 'Run'}
+                          {displayStatus === 'queued' ? '⏳' : displayStatus === 'running' ? '⚙️' : runInfo ? '🔄' : '▶️'}
                         </Button>
                       </div>
                     </div>
@@ -257,7 +281,7 @@ export function KnowledgeTable({
   );
 }
 
-function StatusIcon({ status }: { status: RunStatus | 'running' }) {
+function StatusIcon({ status }: { status: RunStatus | 'running' | 'pending' }) {
   const getClassName = () => {
     switch (status) {
       case 'queued':
@@ -268,6 +292,8 @@ function StatusIcon({ status }: { status: RunStatus | 'running' }) {
         return 'table__cell__status-icon table__cell__status-icon--success';
       case 'error':
         return 'table__cell__status-icon table__cell__status-icon--error';
+      case 'pending':
+        return 'table__cell__status-icon table__cell__status-icon--pending';
       default:
         return 'table__cell__status-icon';
     }
@@ -275,15 +301,22 @@ function StatusIcon({ status }: { status: RunStatus | 'running' }) {
 
   const getIcon = () => {
     switch (status) {
+      case 'pending':
+        return (
+          <svg viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeDasharray="4 2" />
+          </svg>
+        );
       case 'queued':
         return (
           <svg viewBox="0 0 16 16" fill="none">
             <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" />
+            <circle cx="8" cy="8" r="2" fill="currentColor" />
           </svg>
         );
       case 'running':
         return (
-          <svg viewBox="0 0 16 16" fill="none">
+          <svg viewBox="0 0 16 16" fill="none" className="spinning">
             <circle
               cx="8"
               cy="8"
