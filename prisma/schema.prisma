@@ -1,0 +1,298 @@
+// Prisma schema for FolioFunnel - Document Processing Web App
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector"), uuidOssp(map: "uuid-ossp")]
+}
+
+// ============================================================================
+// Users & Authentication
+// ============================================================================
+
+model User {
+  id             String   @id @default(uuid()) @db.Uuid
+  email          String   @unique
+  name           String?
+  passwordHash   String?  @map("password_hash")
+  emailVerified  DateTime? @map("email_verified")
+  image          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  memberships    ProjectMembership[]
+  createdProjects Project[]          @relation("ProjectCreator")
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// Projects & Access Control
+// ============================================================================
+
+enum MemberRole {
+  owner
+  admin
+  member
+}
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  createdBy   User                @relation("ProjectCreator", fields: [createdById], references: [id])
+  memberships ProjectMembership[]
+  invites     ProjectInvite[]
+  documents   Document[]
+  columns     Column[]
+  processorRuns ProcessorRun[]
+  chunks      Chunk[]
+  embeddings  Embedding[]
+
+  @@map("projects")
+}
+
+model ProjectMembership {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  projectId String     @map("project_id") @db.Uuid
+  role      MemberRole @default(member)
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+  @@map("project_memberships")
+}
+
+model ProjectInvite {
+  id         String    @id @default(uuid()) @db.Uuid
+  projectId  String    @map("project_id") @db.Uuid
+  email      String
+  role       MemberRole @default(member)
+  token      String    @unique
+  expiresAt  DateTime  @map("expires_at")
+  acceptedAt DateTime? @map("accepted_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@map("project_invites")
+}
+
+// ============================================================================
+// Documents
+// ============================================================================
+
+enum SourceType {
+  upload
+  url
+}
+
+model Document {
+  id         String     @id @default(uuid()) @db.Uuid
+  projectId  String     @map("project_id") @db.Uuid
+  title      String
+  sourceType SourceType @map("source_type")
+  sourceUrl  String?    @map("source_url")
+  filePath   String?    @map("file_path")
+  mimeType   String?    @map("mime_type")
+  values     Json       @default("{}") @db.JsonB
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  processorRuns ProcessorRun[]
+  chunks        Chunk[]
+  embeddings    Embedding[]
+
+  @@index([projectId])
+  @@map("documents")
+}
+
+// ============================================================================
+// Dynamic Columns
+// ============================================================================
+
+enum ColumnType {
+  text
+  number
+  text_array
+  number_array
+}
+
+enum ColumnMode {
+  manual
+  processor
+}
+
+enum ProcessorType {
+  pdf_to_markdown
+  url_to_text
+  chunk_text
+  create_embeddings
+  openai_transform
+}
+
+model Column {
+  id              String        @id @default(uuid()) @db.Uuid
+  projectId       String        @map("project_id") @db.Uuid
+  key             String
+  name            String
+  type            ColumnType    @default(text)
+  mode            ColumnMode    @default(manual)
+  processorType   ProcessorType? @map("processor_type")
+  processorConfig Json?         @map("processor_config") @db.JsonB
+  position        Int           @default(0)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  processorRuns ProcessorRun[]
+
+  @@unique([projectId, key])
+  @@index([projectId])
+  @@map("columns")
+}
+
+// ============================================================================
+// Processor Runs (Job Tracking)
+// ============================================================================
+
+enum RunStatus {
+  queued
+  running
+  success
+  error
+}
+
+model ProcessorRun {
+  id         String    @id @default(uuid()) @db.Uuid
+  projectId  String    @map("project_id") @db.Uuid
+  documentId String    @map("document_id") @db.Uuid
+  columnId   String    @map("column_id") @db.Uuid
+  status     RunStatus @default(queued)
+  startedAt  DateTime? @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+  error      String?
+  meta       Json?     @db.JsonB
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  column   Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([documentId])
+  @@index([columnId])
+  @@index([status])
+  @@map("processor_runs")
+}
+
+// ============================================================================
+// Chunks (for text chunking)
+// ============================================================================
+
+model Chunk {
+  id              String  @id @default(uuid()) @db.Uuid
+  projectId       String  @map("project_id") @db.Uuid
+  documentId      String  @map("document_id") @db.Uuid
+  sourceColumnKey String  @map("source_column_key")
+  chunkIndex      Int     @map("chunk_index")
+  text            String
+  meta            Json?   @db.JsonB
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  document   Document    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  embeddings Embedding[]
+
+  @@index([projectId])
+  @@index([documentId])
+  @@index([sourceColumnKey])
+  @@map("chunks")
+}
+
+// ============================================================================
+// Embeddings (pgvector)
+// ============================================================================
+
+model Embedding {
+  id              String                      @id @default(uuid()) @db.Uuid
+  projectId       String                      @map("project_id") @db.Uuid
+  documentId      String                      @map("document_id") @db.Uuid
+  chunkId         String?                     @map("chunk_id") @db.Uuid
+  sourceColumnKey String                      @map("source_column_key")
+  embedding       Unsupported("vector(1536)")
+  model           String                      @default("text-embedding-3-small")
+  meta            Json?                       @db.JsonB
+  createdAt       DateTime                    @default(now()) @map("created_at")
+
+  // Relations
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunk    Chunk?   @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([documentId])
+  @@index([chunkId])
+  @@map("embeddings")
+}
