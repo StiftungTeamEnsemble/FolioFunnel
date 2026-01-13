@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { Button } from '@/components/ui';
+import { ClearPendingTasksButton } from '@/components/tasks/ClearPendingTasksButton';
 import '@/styles/components/tasks.css';
 
 const statusLabels: Record<string, string> = {
@@ -80,6 +81,7 @@ export default async function TasksPage() {
           </p>
         </div>
         <div className="page__actions">
+          <ClearPendingTasksButton />
           <Button asChild variant="secondary">
             <Link href="/projects">View Projects</Link>
           </Button>

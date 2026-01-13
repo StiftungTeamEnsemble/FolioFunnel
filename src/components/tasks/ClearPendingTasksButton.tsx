@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { clearPendingTasks } from '@/app/actions/runs';
+import { Button } from '@/components/ui';
 
 export function ClearPendingTasksButton() {
   const router = useRouter();
@@ -29,13 +30,13 @@ export function ClearPendingTasksButton() {
   };
 
   return (
-    <button
+    <Button
       type="button"
       onClick={handleClear}
       disabled={isClearing}
-      className="tasks-page__clear-btn"
+      variant="secondary"
     >
       {isClearing ? 'Clearing...' : 'Clear All Pending'}
-    </button>
+    </Button>
   );
 }

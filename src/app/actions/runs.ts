@@ -1,10 +1,35 @@
 'use server';
 
 import prisma from '@/lib/db';
-import { requireProjectAccess } from '@/lib/session';
+import { requireProjectAccess, requireAuth } from '@/lib/session';
 import { enqueueProcessDocument, enqueueBulkProcess } from '@/lib/queue';
 import { createProcessorRun } from '@/lib/processors';
 import { RunStatus } from '@prisma/client';
+
+export async function clearPendingTasks() {
+  const user = await requireAuth();
+
+  try {
+    // Delete all queued runs for projects the user has access to
+    const result = await prisma.processorRun.deleteMany({
+      where: {
+        status: RunStatus.queued,
+        project: {
+          memberships: {
+            some: {
+              userId: user.id,
+            },
+          },
+        },
+      },
+    });
+
+    return { success: true, deletedCount: result.count };
+  } catch (error) {
+    console.error('Clear pending tasks error:', error);
+    return { error: 'Failed to clear pending tasks' };
+  }
+}
 
 export async function triggerProcessorRun(
   projectId: string,
@@ -158,20 +183,4 @@ export async function getRunStatus(runId: string) {
   });
   
   return run;
-}
-
-export async function clearPendingTasks() {
-  try {
-    // Delete all queued and running tasks
-    const result = await prisma.processorRun.deleteMany({
-      where: {
-        status: { in: [RunStatus.queued, RunStatus.running] },
-      },
-    });
-    
-    return { success: true, count: result.count };
-  } catch (error) {
-    console.error('Clear pending tasks error:', error);
-    return { error: 'Failed to clear pending tasks' };
-  }
 }
