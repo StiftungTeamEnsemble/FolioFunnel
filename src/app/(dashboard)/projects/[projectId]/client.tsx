@@ -6,8 +6,7 @@ import { Project, Document, Column } from '@prisma/client';
 import { Button } from '@/components/ui';
 import { KnowledgeTable } from '@/components/documents/KnowledgeTable';
 import { AddDocumentModal } from '@/components/documents/AddDocumentModal';
-import { AddColumnModal } from '@/components/documents/AddColumnModal';
-import { EditColumnModal } from '@/components/documents/EditColumnModal';
+import { ColumnModal } from '@/components/documents/ColumnModal';
 import { DeleteColumnModal } from '@/components/documents/DeleteColumnModal';
 import { triggerBulkProcessorRun } from '@/app/actions/runs';
 
@@ -142,14 +141,16 @@ export function ProjectPageClient({
         onSuccess={handleRefresh}
       />
 
-      <AddColumnModal
+      {/* Add Column Modal */}
+      <ColumnModal
         projectId={project.id}
         open={showAddColumn}
         onOpenChange={setShowAddColumn}
         onSuccess={handleRefresh}
       />
 
-      <EditColumnModal
+      {/* Edit Column Modal */}
+      <ColumnModal
         projectId={project.id}
         column={columnToEdit}
         open={Boolean(columnToEdit)}
