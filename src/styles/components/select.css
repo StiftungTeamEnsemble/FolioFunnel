@@ -59,12 +59,8 @@
 }
 
 .select__content {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  margin-top: 4px;
+  position: relative;
+  z-index: 10000;
   background-color: white;
   border: 1px solid var(--color-gray-200);
   border-radius: 8px;

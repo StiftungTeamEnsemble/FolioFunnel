@@ -150,7 +150,7 @@ export function KnowledgeTable({
                 )}
               </td>
               <td className="table__cell">
-                {new Date(doc.createdAt).toLocaleDateString()}
+                {new Date(doc.createdAt).toISOString().split('T')[0]}
               </td>
               {columns.map((column) => {
                 const isEditing =
