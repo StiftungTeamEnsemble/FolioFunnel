@@ -14,9 +14,13 @@ interface Project {
 interface SidebarProps {
   projects: Project[];
   currentProjectId?: string;
+  user: {
+    name?: string | null;
+    email?: string | null;
+  };
 }
 
-export function Sidebar({ projects, currentProjectId }: SidebarProps) {
+export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
 
@@ -76,19 +80,28 @@ export function Sidebar({ projects, currentProjectId }: SidebarProps) {
       </div>
 
       <div className="sidebar__footer">
-        <div
-          className="sidebar__user"
-          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-        >
+        <div className="sidebar__user">
           <div className="sidebar__user-avatar">
-            {getInitials(session?.user?.name || session?.user?.email)}
+            {getInitials(user?.name || user?.email || session?.user?.name || session?.user?.email)}
           </div>
           <div className="sidebar__user-info">
             <div className="sidebar__user-name">
-              {session?.user?.name || 'User'}
+              {user?.name || session?.user?.name || 'User'}
             </div>
-            <div className="sidebar__user-email">{session?.user?.email}</div>
+            <div className="sidebar__user-email">{user?.email || session?.user?.email}</div>
           </div>
+        </div>
+        <div className="sidebar__user-actions">
+          <Link className="sidebar__user-link" href="/profile">
+            Edit profile
+          </Link>
+          <button
+            type="button"
+            className="sidebar__user-link sidebar__user-link--button"
+            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </aside>
