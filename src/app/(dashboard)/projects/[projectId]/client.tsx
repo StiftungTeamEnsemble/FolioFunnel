@@ -77,6 +77,12 @@ export function ProjectPageClient({
           )}
         </div>
         <div className="page__actions">
+          <Button
+            variant="secondary"
+            onClick={() => router.push(`/projects/${project.id}/edit`)}
+          >
+            Project Settings
+          </Button>
           <Button variant="secondary" onClick={() => setShowAddColumn(true)}>
             Add Column
           </Button>
