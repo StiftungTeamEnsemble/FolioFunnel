@@ -56,8 +56,12 @@ export async function deleteFile(filePath: string): Promise<void> {
 
 export async function deleteDir(dir: string): Promise<void> {
   try {
-    await fs.rm(dir, { recursive: true, force: true });
+    await fs.rm(dir, { recursive: true, force: false });
   } catch (error) {
-    // Ignore if dir doesn't exist
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return;
+    }
+
+    throw error;
   }
 }

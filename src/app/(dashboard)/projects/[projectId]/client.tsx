@@ -3,11 +3,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project, Document, Column } from '@prisma/client';
-import { Button } from '@/components/ui';
+import { Button, Select, SelectItem } from '@/components/ui';
 import { KnowledgeTable } from '@/components/documents/KnowledgeTable';
 import { AddDocumentModal } from '@/components/documents/AddDocumentModal';
 import { ColumnModal } from '@/components/documents/ColumnModal';
 import { DeleteColumnModal } from '@/components/documents/DeleteColumnModal';
+import { DeleteDocumentModal } from '@/components/documents/DeleteDocumentModal';
 import { triggerBulkProcessorRun } from '@/app/actions/runs';
 
 interface DocumentWithRuns extends Document {
@@ -31,8 +32,10 @@ export function ProjectPageClient({
   const [showAddDocument, setShowAddDocument] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [bulkRunningColumn, setBulkRunningColumn] = useState<string | null>(null);
+  const [selectedBulkColumn, setSelectedBulkColumn] = useState<string>('');
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
 
   useEffect(() => {
     setDocuments(initialDocuments);
@@ -66,6 +69,22 @@ export function ProjectPageClient({
 
   const processorColumns = columns.filter((c) => c.mode === 'processor');
 
+  useEffect(() => {
+    if (!processorColumns.length) {
+      if (selectedBulkColumn) {
+        setSelectedBulkColumn('');
+      }
+      return;
+    }
+
+    const stillValid = processorColumns.some(
+      (column) => column.id === selectedBulkColumn
+    );
+    if (!stillValid && selectedBulkColumn) {
+      setSelectedBulkColumn('');
+    }
+  }, [processorColumns, selectedBulkColumn]);
+
   return (
     <div className="page">
       <div className="page__header">
@@ -98,17 +117,28 @@ export function ProjectPageClient({
             <h3 className="section__title">Bulk Actions</h3>
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {processorColumns.map((column) => (
-              <Button
-                key={column.id}
-                variant="secondary"
-                size="sm"
-                isLoading={bulkRunningColumn === column.id}
-                onClick={() => handleBulkRun(column.id)}
+            <div style={{ minWidth: '220px' }}>
+              <Select
+                value={selectedBulkColumn}
+                onValueChange={setSelectedBulkColumn}
+                placeholder="Select processor column"
               >
-                Run &quot;{column.name}&quot; on all docs
-              </Button>
-            ))}
+                {processorColumns.map((column) => (
+                  <SelectItem key={column.id} value={column.id}>
+                    {column.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={!selectedBulkColumn}
+              isLoading={bulkRunningColumn === selectedBulkColumn}
+              onClick={() => handleBulkRun(selectedBulkColumn)}
+            >
+              Run processor on all docs
+            </Button>
           </div>
         </div>
       )}
@@ -130,6 +160,7 @@ export function ProjectPageClient({
           onRefresh={handleRefresh}
           onEditColumn={setColumnToEdit}
           onDeleteColumn={setColumnToDelete}
+          onDeleteDocument={setDocumentToDelete}
         />
       </div>
 
@@ -166,6 +197,16 @@ export function ProjectPageClient({
         open={Boolean(columnToDelete)}
         onOpenChange={(open) => {
           if (!open) setColumnToDelete(null);
+        }}
+        onSuccess={handleRefresh}
+      />
+
+      <DeleteDocumentModal
+        projectId={project.id}
+        document={documentToDelete}
+        open={Boolean(documentToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setDocumentToDelete(null);
         }}
         onSuccess={handleRefresh}
       />

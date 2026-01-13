@@ -104,6 +104,13 @@
   text-overflow: ellipsis;
 }
 
+.table__cell__content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
 .table__cell--editable {
   cursor: text;
 }
@@ -253,6 +260,26 @@
 .table__cell--editable .table__cell__actions {
   opacity: 0;
   transition: opacity 0.1s ease;
+}
+
+.table__cell__copy {
+  border: none;
+  background: none;
+  color: var(--color-gray-400);
+  font-size: 12px;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.table__cell__copy:hover {
+  background-color: var(--color-gray-200);
+  color: var(--color-gray-600);
+}
+
+.table__row:hover .table__cell__actions {
+  opacity: 1;
 }
 
 .table__row:hover .table__cell--editable .table__cell__actions {
