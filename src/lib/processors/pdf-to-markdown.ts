@@ -1,8 +1,10 @@
 import { ProcessorContext, ProcessorResult } from './index';
 import { readFile } from '@/lib/storage';
 
-const MARKER_API_URL = process.env.MARKER_API_URL || 'http://marker-api:8080';
-const MARKER_API_KEY = process.env.MARKER_API_KEY || 'marker_secret_key';
+const DOCUMENT_CONVERTER_API_URL =
+  process.env.DOCUMENT_CONVERTER_API_URL || 'http://document-converter:8080';
+const DOCUMENT_CONVERTER_API_KEY =
+  process.env.DOCUMENT_CONVERTER_API_KEY || 'converter_secret_key';
 
 export async function pdfToMarkdown(ctx: ProcessorContext): Promise<ProcessorResult> {
   const { document } = ctx;
@@ -34,11 +36,11 @@ export async function pdfToMarkdown(ctx: ProcessorContext): Promise<ProcessorRes
     const blob = new Blob([fileBuffer], { type: 'application/pdf' });
     formData.append('file', blob, 'document.pdf');
     
-    // Call marker API
-    const response = await fetch(`${MARKER_API_URL}/convert`, {
+    // Call document converter API
+    const response = await fetch(`${DOCUMENT_CONVERTER_API_URL}/convert`, {
       method: 'POST',
       headers: {
-        'X-API-Key': MARKER_API_KEY,
+        'X-API-Key': DOCUMENT_CONVERTER_API_KEY,
       },
       body: formData,
     });
@@ -47,7 +49,7 @@ export async function pdfToMarkdown(ctx: ProcessorContext): Promise<ProcessorRes
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
       return { 
         success: false, 
-        error: `Marker API error: ${error.error || response.statusText}` 
+        error: `Document converter API error: ${error.error || response.statusText}` 
       };
     }
     

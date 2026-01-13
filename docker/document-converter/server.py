@@ -1,39 +1,19 @@
 """
-Marker API Server
-Wraps datalab-to/marker with an HTTP endpoint protected by X-API-Key
+Document Converter API Server
+Wraps microsoft/markitdown with an HTTP endpoint protected by X-API-Key
 """
 
 import os
 import tempfile
 import logging
-import gc
 from flask import Flask, request, jsonify
 from functools import wraps
-
-# Force CPU-only mode and reduce memory usage
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
-os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '0'
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-API_KEY = os.environ.get('MARKER_API_KEY', 'marker_secret_key')
-
-# Global model cache - load once
-_models = None
-
-def get_models():
-    """Lazy load models once and cache them"""
-    global _models
-    if _models is None:
-        logger.info("Loading marker models (first request)...")
-        from marker.models import create_model_dict
-        _models = create_model_dict()
-        logger.info("Models loaded successfully")
-        # Force garbage collection after loading
-        gc.collect()
-    return _models
+API_KEY = os.environ.get('DOCUMENT_CONVERTER_API_KEY', 'converter_secret_key')
 
 
 def require_api_key(f):
@@ -50,7 +30,7 @@ def require_api_key(f):
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'service': 'marker-api'})
+    return jsonify({'status': 'healthy', 'service': 'document-converter'})
 
 
 @app.route('/convert', methods=['POST'])
@@ -83,23 +63,15 @@ def convert_pdf():
         
         logger.info(f"Processing PDF: {file.filename}")
         
-        # Use marker to convert PDF to markdown
-        from marker.converters.pdf import PdfConverter
-        from marker.output import text_from_rendered
-        
-        # Get cached models
-        models = get_models()
-        
-        # Convert PDF
-        converter = PdfConverter(artifact_dict=models)
-        rendered = converter(input_path)
-        markdown_text, _, _ = text_from_rendered(rendered)
+        # Use markitdown to convert PDF to markdown
+        from markitdown import MarkItDown
+
+        converter = MarkItDown()
+        result = converter.convert(input_path)
+        markdown_text = result.text_content
         
         # Clean up temp file
         os.unlink(input_path)
-        
-        # Force garbage collection after conversion
-        gc.collect()
         
         logger.info(f"Successfully converted {file.filename}")
         
@@ -144,14 +116,11 @@ def convert_pdf_from_path():
     try:
         logger.info(f"Processing PDF from path: {file_path}")
         
-        from marker.converters.pdf import PdfConverter
-        from marker.models import create_model_dict
-        from marker.output import text_from_rendered
-        
-        models = create_model_dict()
-        converter = PdfConverter(artifact_dict=models)
-        rendered = converter(file_path)
-        markdown_text, _, _ = text_from_rendered(rendered)
+        from markitdown import MarkItDown
+
+        converter = MarkItDown()
+        result = converter.convert(file_path)
+        markdown_text = result.text_content
         
         logger.info(f"Successfully converted {file_path}")
         

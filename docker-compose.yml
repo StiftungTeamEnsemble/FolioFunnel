@@ -20,14 +20,14 @@ services:
       timeout: 5s
       retries: 5
 
-  marker-api:
+  document-converter:
     build:
-      context: ./docker/marker-api
+      context: ./docker/document-converter
       dockerfile: Dockerfile
-    container_name: foliofunnel-marker
+    container_name: foliofunnel-document-converter
     restart: unless-stopped
     environment:
-      MARKER_API_KEY: ${MARKER_API_KEY:-marker_secret_key}
+      DOCUMENT_CONVERTER_API_KEY: ${DOCUMENT_CONVERTER_API_KEY:-converter_secret_key}
     volumes:
       - ./data/documents:/data
       - marker_cache:/root/.cache
@@ -55,8 +55,8 @@ services:
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your_nextauth_secret_here}
-      MARKER_API_URL: http://marker-api:8080
-      MARKER_API_KEY: ${MARKER_API_KEY:-marker_secret_key}
+      DOCUMENT_CONVERTER_API_URL: http://document-converter:8080
+      DOCUMENT_CONVERTER_API_KEY: ${DOCUMENT_CONVERTER_API_KEY:-converter_secret_key}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       DATA_DIR: /data
     volumes:
@@ -66,7 +66,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      marker-api:
+      document-converter:
         condition: service_healthy
 
 volumes:
