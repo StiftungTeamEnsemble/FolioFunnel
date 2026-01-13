@@ -8,8 +8,8 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Install marker-pdf
-RUN pip install --no-cache-dir marker-pdf flask gunicorn
+# Install markitdown
+RUN pip install --no-cache-dir markitdown flask gunicorn
 
 # Create the API wrapper
 COPY server.py /app/server.py
