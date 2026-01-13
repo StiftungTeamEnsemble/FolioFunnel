@@ -218,10 +218,15 @@ export async function updateDocumentValue(
 
 export async function deleteDocument(projectId: string, documentId: string) {
   await requireProjectAccess(projectId);
-  
+
   try {
     await deleteDir(getDocumentDir(projectId, documentId));
+  } catch (error) {
+    console.error('Delete document storage error:', error);
+    return { error: 'Failed to delete document files. Please try again.' };
+  }
 
+  try {
     await prisma.document.delete({
       where: { id: documentId, projectId },
     });
