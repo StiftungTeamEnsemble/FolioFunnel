@@ -70,15 +70,17 @@ export function ProjectPageClient({
 
   useEffect(() => {
     if (!processorColumns.length) {
-      setSelectedBulkColumn('');
+      if (selectedBulkColumn) {
+        setSelectedBulkColumn('');
+      }
       return;
     }
 
     const stillValid = processorColumns.some(
       (column) => column.id === selectedBulkColumn
     );
-    if (!stillValid) {
-      setSelectedBulkColumn(processorColumns[0]?.id ?? '');
+    if (!stillValid && selectedBulkColumn) {
+      setSelectedBulkColumn('');
     }
   }, [processorColumns, selectedBulkColumn]);
 
