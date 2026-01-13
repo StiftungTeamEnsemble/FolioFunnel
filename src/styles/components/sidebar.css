@@ -205,12 +205,7 @@
   gap: 12px;
   padding: 8px;
   border-radius: 6px;
-  cursor: pointer;
   transition: background-color 0.1s ease;
-}
-
-.sidebar__user:hover {
-  background-color: var(--color-gray-800);
 }
 
 .sidebar__user-avatar {
@@ -244,4 +239,34 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sidebar__user-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.sidebar__user-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-gray-700);
+  background: transparent;
+  color: var(--color-gray-200);
+  font-size: 12px;
+  text-decoration: none;
+  transition: all 0.1s ease;
+}
+
+.sidebar__user-link:hover {
+  border-color: var(--color-gray-500);
+  color: white;
+  background-color: var(--color-gray-800);
+}
+
+.sidebar__user-link--button {
+  cursor: pointer;
 }
