@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireProjectAccess } from '@/lib/session';
 import { writeFile, getDocumentSourcePath } from '@/lib/storage';
-import { enqueueProcessDocument } from '@/lib/queue';
-import { createProcessorRun, getProcessorColumns } from '@/lib/processors';
 import prisma from '@/lib/db';
 import { SourceType } from '@prisma/client';
 
@@ -45,19 +43,6 @@ export async function POST(
       where: { id: document.id },
       data: { filePath },
     });
-    
-    // Trigger processor jobs for all processor columns
-    const processorColumns = await getProcessorColumns(params.projectId);
-    
-    for (const column of processorColumns) {
-      const runId = await createProcessorRun(params.projectId, document.id, column.id);
-      await enqueueProcessDocument({
-        projectId: params.projectId,
-        documentId: document.id,
-        columnId: column.id,
-        runId,
-      });
-    }
     
     return NextResponse.json({ success: true, document: { ...document, filePath } });
   } catch (error) {

@@ -40,6 +40,23 @@ export function KnowledgeTable({
   const [editValue, setEditValue] = useState('');
   const [runningCells, setRunningCells] = useState<Set<string>>(new Set());
 
+  const handleCopy = async (value: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (error) {
+      const textarea = document.createElement('textarea');
+      textarea.value = value;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+  };
+
   const handleEditStart = (doc: Document, columnKey: string) => {
     const values = (doc.values as Record<string, unknown>) || {};
     const value = values[columnKey];
@@ -164,20 +181,66 @@ export function KnowledgeTable({
         <tbody className="table__body">
           {documents.map((doc) => (
             <tr key={doc.id} className="table__row">
-              <td className="table__cell">{doc.title}</td>
               <td className="table__cell">
-                {doc.sourceType === 'url' ? (
-                  <a href={doc.sourceUrl || '#'} target="_blank" rel="noopener">
-                    {doc.sourceUrl
-                      ? new URL(doc.sourceUrl).hostname
-                      : 'URL'}
-                  </a>
-                ) : (
-                  'Upload'
-                )}
+                <div className="table__cell__content">
+                  <span className="table__cell__value">{doc.title}</span>
+                  <div className="table__cell__actions">
+                    <button
+                      type="button"
+                      className="table__cell__copy"
+                      onClick={() => handleCopy(doc.title)}
+                      aria-label="Copy title"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
               </td>
               <td className="table__cell">
-                {new Date(doc.createdAt).toISOString().split('T')[0]}
+                <div className="table__cell__content">
+                  <span className="table__cell__value">
+                    {doc.sourceType === 'url' ? (
+                      <a href={doc.sourceUrl || '#'} target="_blank" rel="noopener">
+                        {doc.sourceUrl
+                          ? new URL(doc.sourceUrl).hostname
+                          : 'URL'}
+                      </a>
+                    ) : (
+                      'Upload'
+                    )}
+                  </span>
+                  <div className="table__cell__actions">
+                    <button
+                      type="button"
+                      className="table__cell__copy"
+                      onClick={() =>
+                        handleCopy(doc.sourceUrl || (doc.sourceType === 'url' ? 'URL' : 'Upload'))
+                      }
+                      aria-label="Copy source"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </td>
+              <td className="table__cell">
+                <div className="table__cell__content">
+                  <span className="table__cell__value">
+                    {new Date(doc.createdAt).toISOString().split('T')[0]}
+                  </span>
+                  <div className="table__cell__actions">
+                    <button
+                      type="button"
+                      className="table__cell__copy"
+                      onClick={() =>
+                        handleCopy(new Date(doc.createdAt).toISOString().split('T')[0])
+                      }
+                      aria-label="Copy created date"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
               </td>
               {columns.map((column) => {
                 const isEditing =
@@ -186,6 +249,7 @@ export function KnowledgeTable({
                 const cellKey = `${doc.id}-${column.id}`;
                 const isRunning = runningCells.has(cellKey);
                 const runInfo = getRunStatus(doc, column.key);
+                const cellValue = getCellValue(doc, column.key);
 
                 if (column.mode === 'manual') {
                   return (
@@ -216,9 +280,24 @@ export function KnowledgeTable({
                           </Button>
                         </div>
                       ) : (
-                        <span className="table__cell__value">
-                          {getCellValue(doc, column.key) || '—'}
-                        </span>
+                        <div className="table__cell__content">
+                          <span className="table__cell__value">
+                            {cellValue || '—'}
+                          </span>
+                          <div className="table__cell__actions">
+                            <button
+                              type="button"
+                              className="table__cell__copy"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleCopy(cellValue);
+                              }}
+                              aria-label={`Copy ${column.name}`}
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </div>
                       )}
                     </td>
                   );
@@ -232,13 +311,21 @@ export function KnowledgeTable({
                         <StatusIcon status={isRunning ? 'running' : runInfo.status} />
                       )}
                       <span className="table__cell__value">
-                        {getCellValue(doc, column.key) || (
+                        {cellValue || (
                           <span style={{ color: 'var(--color-gray-400)' }}>
                             {runInfo?.error || 'Not processed'}
                           </span>
                         )}
                       </span>
                       <div className="table__cell__actions">
+                        <button
+                          type="button"
+                          className="table__cell__copy"
+                          onClick={() => handleCopy(cellValue)}
+                          aria-label={`Copy ${column.name}`}
+                        >
+                          Copy
+                        </button>
                         <Button
                           size="sm"
                           variant="ghost"
