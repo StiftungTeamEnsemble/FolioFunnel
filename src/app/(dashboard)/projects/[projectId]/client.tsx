@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project, Document, Column } from '@prisma/client';
 import { Button } from '@/components/ui';
 import { KnowledgeTable } from '@/components/documents/KnowledgeTable';
 import { AddDocumentModal } from '@/components/documents/AddDocumentModal';
 import { AddColumnModal } from '@/components/documents/AddColumnModal';
+import { EditColumnModal } from '@/components/documents/EditColumnModal';
+import { DeleteColumnModal } from '@/components/documents/DeleteColumnModal';
 import { triggerBulkProcessorRun } from '@/app/actions/runs';
 
 interface DocumentWithRuns extends Document {
@@ -30,10 +32,28 @@ export function ProjectPageClient({
   const [showAddDocument, setShowAddDocument] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [bulkRunningColumn, setBulkRunningColumn] = useState<string | null>(null);
+  const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
+  const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
+
+  useEffect(() => {
+    setDocuments(initialDocuments);
+  }, [initialDocuments]);
+
+  useEffect(() => {
+    setColumns(initialColumns);
+  }, [initialColumns]);
 
   const handleRefresh = useCallback(() => {
     router.refresh();
   }, [router]);
+
+  useEffect(() => {
+    setDocuments(initialDocuments);
+  }, [initialDocuments]);
+
+  useEffect(() => {
+    setColumns(initialColumns);
+  }, [initialColumns]);
 
   const handleBulkRun = async (columnId: string) => {
     setBulkRunningColumn(columnId);
@@ -103,6 +123,8 @@ export function ProjectPageClient({
           documents={documents as any}
           columns={columns}
           onRefresh={handleRefresh}
+          onEditColumn={setColumnToEdit}
+          onDeleteColumn={setColumnToDelete}
         />
       </div>
 
@@ -118,6 +140,26 @@ export function ProjectPageClient({
         projectId={project.id}
         open={showAddColumn}
         onOpenChange={setShowAddColumn}
+        onSuccess={handleRefresh}
+      />
+
+      <EditColumnModal
+        projectId={project.id}
+        column={columnToEdit}
+        open={Boolean(columnToEdit)}
+        onOpenChange={(open) => {
+          if (!open) setColumnToEdit(null);
+        }}
+        onSuccess={handleRefresh}
+      />
+
+      <DeleteColumnModal
+        projectId={project.id}
+        column={columnToDelete}
+        open={Boolean(columnToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setColumnToDelete(null);
+        }}
         onSuccess={handleRefresh}
       />
     </div>
