@@ -5,6 +5,20 @@ import { Button, Input, InputGroup, Modal, ModalContent, ModalFooter, Select, Se
 import { createColumn } from '@/app/actions/columns';
 import { ColumnType, ColumnMode, ProcessorType } from '@prisma/client';
 
+// Available PDF metadata fields
+const PDF_METADATA_FIELDS = [
+  { key: 'title', label: 'Title' },
+  { key: 'author', label: 'Author' },
+  { key: 'subject', label: 'Subject' },
+  { key: 'keywords', label: 'Keywords' },
+  { key: 'creator', label: 'Creator' },
+  { key: 'producer', label: 'Producer' },
+  { key: 'creationDate', label: 'Creation Date' },
+  { key: 'modDate', label: 'Modification Date' },
+  { key: 'pageCount', label: 'Page Count' },
+  { key: 'format', label: 'Format' },
+];
+
 interface AddColumnModalProps {
   projectId: string;
   open: boolean;
@@ -22,6 +36,7 @@ export function AddColumnModal({
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<ColumnMode>('manual');
   const [processorType, setProcessorType] = useState<ProcessorType>('pdf_to_markdown');
+  const [metadataField, setMetadataField] = useState('title');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -57,6 +72,10 @@ export function AddColumnModal({
         config.promptTemplate = formData.get('promptTemplate');
         config.model = formData.get('model') || 'gpt-4o-mini';
         config.temperature = parseFloat(formData.get('temperature') as string) || 0.7;
+      }
+
+      if (processorType === 'pdf_to_metadata') {
+        config.metadataField = metadataField;
       }
       
       formData.set('processorConfig', JSON.stringify(config));
@@ -131,13 +150,30 @@ export function AddColumnModal({
                   value={processorType}
                   onValueChange={(v) => setProcessorType(v as ProcessorType)}
                 >
-                  <SelectItem value="pdf_to_markdown">PDF → Markdown</SelectItem>
+                  <SelectItem value="pdf_to_markdown">PDF → Markdown (MarkItDown)</SelectItem>
+                  <SelectItem value="pdf_to_markdown_mupdf">PDF → Markdown (MuPDF)</SelectItem>
+                  <SelectItem value="pdf_to_metadata">PDF → Metadata</SelectItem>
                   <SelectItem value="url_to_text">URL → Text</SelectItem>
                   <SelectItem value="chunk_text">Chunk Text</SelectItem>
                   <SelectItem value="create_embeddings">Create Embeddings</SelectItem>
                   <SelectItem value="openai_transform">OpenAI Transform</SelectItem>
                 </Select>
               </InputGroup>
+
+              {processorType === 'pdf_to_metadata' && (
+                <InputGroup label="Metadata Field" htmlFor="metadataField" required>
+                  <Select
+                    value={metadataField}
+                    onValueChange={setMetadataField}
+                  >
+                    {PDF_METADATA_FIELDS.map((field) => (
+                      <SelectItem key={field.key} value={field.key}>
+                        {field.label}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </InputGroup>
+              )}
 
               {(processorType === 'chunk_text' || processorType === 'create_embeddings') && (
                 <InputGroup label="Source Column Key" htmlFor="sourceColumnKey" required>

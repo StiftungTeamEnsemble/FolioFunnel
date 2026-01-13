@@ -7,8 +7,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install markitdown (lightweight, no ML dependencies)
-RUN pip install --no-cache-dir markitdown flask gunicorn
+# Install markitdown with PDF support and pymupdf4llm
+RUN pip install --no-cache-dir "markitdown[pdf]" pymupdf4llm flask gunicorn
 
 COPY server.py /app/server.py
 

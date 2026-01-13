@@ -10,7 +10,7 @@ const createColumnSchema = z.object({
   name: z.string().min(1).max(100),
   type: z.enum(['text', 'number', 'text_array', 'number_array']),
   mode: z.enum(['manual', 'processor']),
-  processorType: z.enum(['pdf_to_markdown', 'url_to_text', 'chunk_text', 'create_embeddings', 'openai_transform']).optional(),
+  processorType: z.enum(['pdf_to_markdown', 'pdf_to_markdown_mupdf', 'pdf_to_metadata', 'url_to_text', 'chunk_text', 'create_embeddings', 'openai_transform']).optional(),
   processorConfig: z.record(z.unknown()).optional(),
 });
 

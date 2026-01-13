@@ -31,4 +31,4 @@ npm run docker:dev
 
 ---
 
- cd "/Users/DATA/TEAM ENSEMBLE/CODE/FolioFunnel" && docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache marker-api
+ cd "/Users/DATA/TEAM ENSEMBLE/CODE/FolioFunnel" && docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache document-converter
