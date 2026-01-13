@@ -305,7 +305,6 @@ export function KnowledgeTable({
 
                 // Processor column
                 const displayStatus = isRunning ? 'running' : runInfo?.status;
-                const cellValue = getCellValue(doc, column.key);
                 
                 return (
                   <td key={column.id} className={`table__cell table__cell--processor ${displayStatus ? `table__cell--${displayStatus}` : ''}`}>
