@@ -2,7 +2,12 @@
 
 import prisma from '@/lib/db';
 import { requireProjectAccess } from '@/lib/session';
-import { writeFile, getDocumentSourcePath, ensureDir, getDocumentDir } from '@/lib/storage';
+import {
+  writeFile,
+  getDocumentSourcePath,
+  getDocumentDir,
+  deleteDir,
+} from '@/lib/storage';
 import { enqueueProcessDocument, getBoss, QUEUE_NAMES } from '@/lib/queue';
 import { createProcessorRun, getProcessorColumns } from '@/lib/processors';
 import { SourceType } from '@prisma/client';
@@ -219,8 +224,7 @@ export async function deleteDocument(projectId: string, documentId: string) {
       where: { id: documentId, projectId },
     });
     
-    // Optionally delete files from disk
-    // await deleteDir(getDocumentDir(projectId, documentId));
+    await deleteDir(getDocumentDir(projectId, documentId));
     
     return { success: true };
   } catch (error) {
