@@ -133,13 +133,16 @@
   transition: all 0.1s ease;
 }
 
-.sidebar__project-link:hover {
-  background-color: var(--color-gray-800);
+.sidebar__project-link:hover,
+.sidebar__project-link--active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.05));
   color: white;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
 }
 
-.sidebar__project-link--active {
-  background-color: var(--color-gray-800);
+.sidebar__project-link--active .sidebar__project-icon {
+  background-color: rgba(99, 102, 241, 0.35);
   color: white;
 }
 
