@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Column, Document, ProcessorRun, RunStatus } from '@prisma/client';
 import { Button } from '@/components/ui';
 import { updateDocumentValue } from '@/app/actions/documents';
@@ -19,6 +19,8 @@ interface KnowledgeTableProps {
   documents: DocumentWithRuns[];
   columns: Column[];
   onRefresh: () => void;
+  onEditColumn?: (column: Column) => void;
+  onDeleteColumn?: (column: Column) => void;
 }
 
 export function KnowledgeTable({
@@ -26,6 +28,8 @@ export function KnowledgeTable({
   documents,
   columns,
   onRefresh,
+  onEditColumn,
+  onDeleteColumn,
 }: KnowledgeTableProps) {
   const [editingCell, setEditingCell] = useState<{
     docId: string;
@@ -123,7 +127,27 @@ export function KnowledgeTable({
             {columns.map((column) => (
               <th key={column.id} className="table__header-cell">
                 <div className="table__header-cell__content">
-                  <span>{column.name}</span>
+                  <div className="table__column-menu">
+                    <span>{column.name}</span>
+                    {onEditColumn && (
+                      <button
+                        type="button"
+                        className="table__column-menu__trigger"
+                        onClick={() => onEditColumn(column)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {onDeleteColumn && (
+                      <button
+                        type="button"
+                        className="table__column-menu__trigger"
+                        onClick={() => onDeleteColumn(column)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                   <span
                     className={`table__header-cell__badge table__header-cell__badge--${column.mode}`}
                   >
