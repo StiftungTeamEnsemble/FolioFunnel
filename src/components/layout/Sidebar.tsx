@@ -37,8 +37,10 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="sidebar__header">
-        <div className="sidebar__logo">FF</div>
-        <div className="sidebar__brand">FolioFunnel</div>
+        <Link href="/" className="sidebar__brand-link" aria-label="Go to home">
+          <div className="sidebar__logo">FF</div>
+          <div className="sidebar__brand">FolioFunnel</div>
+        </Link>
       </div>
 
       <div className="sidebar__content">

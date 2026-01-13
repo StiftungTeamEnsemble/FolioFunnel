@@ -15,9 +15,20 @@
 .sidebar__header {
   display: flex;
   align-items: center;
-  gap: 12px;
   padding: 20px;
   border-bottom: 1px solid var(--color-gray-700);
+}
+
+.sidebar__brand-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sidebar__brand-link:hover {
+  color: inherit;
 }
 
 .sidebar__logo {
