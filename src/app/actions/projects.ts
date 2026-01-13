@@ -118,6 +118,67 @@ const inviteSchema = z.object({
   role: z.enum(['admin', 'member']),
 });
 
+const addMemberSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  role: z.enum(['admin', 'member']),
+});
+
+export async function addProjectMember(projectId: string, formData: FormData) {
+  await requireProjectAccess(projectId, [MemberRole.owner, MemberRole.admin]);
+
+  const email = formData.get('email') as string;
+  const role = formData.get('role') as 'admin' | 'member';
+
+  const result = addMemberSchema.safeParse({ email, role });
+  if (!result.success) {
+    return { error: result.error.errors[0].message };
+  }
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      return { error: 'No existing user found with that email' };
+    }
+
+    const existingMembership = await prisma.projectMembership.findUnique({
+      where: {
+        userId_projectId: {
+          userId: user.id,
+          projectId,
+        },
+      },
+    });
+
+    if (existingMembership) {
+      return { error: 'User is already a member of this project' };
+    }
+
+    const membership = await prisma.projectMembership.create({
+      data: {
+        userId: user.id,
+        projectId,
+        role: role as MemberRole,
+      },
+    });
+
+    await prisma.projectInvite.deleteMany({
+      where: {
+        projectId,
+        email,
+        acceptedAt: null,
+      },
+    });
+
+    return { success: true, membership };
+  } catch (error) {
+    console.error('Add member error:', error);
+    return { error: 'Failed to add project member' };
+  }
+}
+
 export async function inviteToProject(projectId: string, formData: FormData) {
   await requireProjectAccess(projectId, [MemberRole.owner, MemberRole.admin]);
   
