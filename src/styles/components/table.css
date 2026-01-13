@@ -102,6 +102,7 @@
   max-width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
 }
 
 .table__cell__content {
