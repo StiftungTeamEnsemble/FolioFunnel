@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project, Document, Column } from '@prisma/client';
 import { Button } from '@/components/ui';
@@ -30,6 +30,14 @@ export function ProjectPageClient({
   const [showAddDocument, setShowAddDocument] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [bulkRunningColumn, setBulkRunningColumn] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDocuments(initialDocuments);
+  }, [initialDocuments]);
+
+  useEffect(() => {
+    setColumns(initialColumns);
+  }, [initialColumns]);
 
   const handleRefresh = useCallback(() => {
     router.refresh();
