@@ -133,11 +133,7 @@
   transition: all 0.1s ease;
 }
 
-.sidebar__project-link:hover {
-  background-color: var(--color-gray-800);
-  color: white;
-}
-
+.sidebar__project-link:hover,
 .sidebar__project-link--active {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.05));
   color: white;
