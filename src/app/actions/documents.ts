@@ -220,12 +220,12 @@ export async function deleteDocument(projectId: string, documentId: string) {
   await requireProjectAccess(projectId);
   
   try {
+    await deleteDir(getDocumentDir(projectId, documentId));
+
     await prisma.document.delete({
       where: { id: documentId, projectId },
     });
-    
-    await deleteDir(getDocumentDir(projectId, documentId));
-    
+
     return { success: true };
   } catch (error) {
     console.error('Delete document error:', error);
