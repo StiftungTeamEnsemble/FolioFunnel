@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Column, Document, ProcessorRun, RunStatus } from '@prisma/client';
+import { useEffect, useMemo, useState } from 'react';
+import { Column, Document, RunStatus } from '@prisma/client';
 import { Button } from '@/components/ui';
 import { updateDocumentValue } from '@/app/actions/documents';
 import { triggerProcessorRun } from '@/app/actions/runs';
+import { DocumentDetailModal } from '@/components/documents/DocumentDetailModal';
 import '@/styles/components/table.css';
 
 interface DocumentWithRuns extends Document {
@@ -39,6 +40,60 @@ export function KnowledgeTable({
   } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [runningCells, setRunningCells] = useState<Set<string>>(new Set());
+  const [hiddenColumnIds, setHiddenColumnIds] = useState<Set<string>>(new Set());
+  const [detailDocument, setDetailDocument] = useState<Document | null>(null);
+
+  const storageKey = `project:${projectId}:hidden-columns`;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(storageKey);
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        setHiddenColumnIds(new Set(parsed));
+      }
+    } catch {
+      setHiddenColumnIds(new Set());
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(storageKey, JSON.stringify(Array.from(hiddenColumnIds)));
+  }, [hiddenColumnIds, storageKey]);
+
+  useEffect(() => {
+    setHiddenColumnIds((prev) => {
+      const columnIds = new Set(columns.map((column) => column.id));
+      const next = new Set(Array.from(prev).filter((id) => columnIds.has(id)));
+      if (next.size === prev.size) return prev;
+      return next;
+    });
+  }, [columns]);
+
+  const visibleColumns = useMemo(
+    () => columns.filter((column) => !hiddenColumnIds.has(column.id)),
+    [columns, hiddenColumnIds]
+  );
+
+  const hiddenColumns = useMemo(
+    () => columns.filter((column) => hiddenColumnIds.has(column.id)),
+    [columns, hiddenColumnIds]
+  );
+
+  const handleHideColumn = (columnId: string) => {
+    setHiddenColumnIds((prev) => new Set(prev).add(columnId));
+  };
+
+  const handleShowColumn = (columnId: string) => {
+    setHiddenColumnIds((prev) => {
+      const next = new Set(prev);
+      next.delete(columnId);
+      return next;
+    });
+  };
 
   const handleCopy = async (value: string) => {
     if (!value) return;
@@ -137,13 +192,30 @@ export function KnowledgeTable({
 
   return (
     <div className="table-wrapper">
+      {hiddenColumns.length > 0 && (
+        <div className="table__hidden-columns">
+          <span className="table__hidden-columns__label">Hidden columns:</span>
+          <div className="table__hidden-columns__list">
+            {hiddenColumns.map((column) => (
+              <button
+                key={column.id}
+                type="button"
+                className="table__hidden-columns__chip"
+                onClick={() => handleShowColumn(column.id)}
+              >
+                Show {column.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <table className="table">
         <thead className="table__header">
           <tr className="table__header-row">
             <th className="table__header-cell">Title</th>
             <th className="table__header-cell">Source</th>
             <th className="table__header-cell">Created</th>
-            {columns.map((column) => (
+            {visibleColumns.map((column) => (
               <th key={column.id} className="table__header-cell">
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
@@ -166,6 +238,13 @@ export function KnowledgeTable({
                         Delete
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className="table__column-menu__trigger"
+                      onClick={() => handleHideColumn(column.id)}
+                    >
+                      Hide
+                    </button>
                   </div>
                   <span
                     className={`table__header-cell__badge table__header-cell__badge--${column.mode}`}
@@ -242,7 +321,7 @@ export function KnowledgeTable({
                   </div>
                 </div>
               </td>
-              {columns.map((column) => {
+              {visibleColumns.map((column) => {
                 const isEditing =
                   editingCell?.docId === doc.id &&
                   editingCell?.columnKey === column.key;
@@ -371,6 +450,13 @@ export function KnowledgeTable({
                   <Button
                     size="sm"
                     variant="ghost"
+                    onClick={() => setDetailDocument(doc)}
+                  >
+                    View
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={() => onDeleteDocument?.(doc)}
                   >
                     Delete
@@ -381,6 +467,14 @@ export function KnowledgeTable({
           ))}
         </tbody>
       </table>
+      <DocumentDetailModal
+        document={detailDocument}
+        columns={columns}
+        open={Boolean(detailDocument)}
+        onOpenChange={(open) => {
+          if (!open) setDetailDocument(null);
+        }}
+      />
     </div>
   );
 }

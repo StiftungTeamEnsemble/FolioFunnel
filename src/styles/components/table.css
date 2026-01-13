@@ -327,6 +327,48 @@
   border-radius: 8px;
 }
 
+/* Hidden columns */
+.table__hidden-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--color-gray-200);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background: var(--color-gray-50);
+  font-size: 13px;
+  color: var(--color-gray-500);
+}
+
+.table__hidden-columns__label {
+  font-weight: 500;
+  color: var(--color-gray-600);
+}
+
+.table__hidden-columns__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.table__hidden-columns__chip {
+  border: 1px solid var(--color-gray-200);
+  background: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--color-gray-600);
+  transition: all 0.1s ease;
+}
+
+.table__hidden-columns__chip:hover {
+  border-color: var(--color-gray-300);
+  color: var(--color-gray-800);
+}
+
 /* Column actions */
 .table__column-menu {
   display: flex;
@@ -348,4 +390,59 @@
 .table__column-menu__trigger:hover {
   background-color: var(--color-gray-200);
   color: var(--color-gray-600);
+}
+
+/* Document detail modal */
+.document-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.document-detail__section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-gray-700);
+  margin-bottom: 8px;
+}
+
+.document-detail__list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.document-detail__row {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) 1fr;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--color-gray-700);
+}
+
+.document-detail__row dt {
+  font-weight: 500;
+  color: var(--color-gray-600);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.document-detail__row dd {
+  margin: 0;
+  color: var(--color-gray-800);
+}
+
+.document-detail__row pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--color-gray-800);
+}
+
+.document-detail__key {
+  font-size: 11px;
+  color: var(--color-gray-400);
 }
