@@ -2,9 +2,7 @@
 
 import prisma from '@/lib/db';
 import { requireProjectAccess } from '@/lib/session';
-import { writeFile, getDocumentSourcePath, ensureDir, getDocumentDir } from '@/lib/storage';
-import { enqueueProcessDocument, getBoss, QUEUE_NAMES } from '@/lib/queue';
-import { createProcessorRun, getProcessorColumns } from '@/lib/processors';
+import { writeFile, getDocumentSourcePath, getDocumentDir } from '@/lib/storage';
 import { SourceType } from '@prisma/client';
 import { z } from 'zod';
 
@@ -52,9 +50,6 @@ export async function createDocumentFromUpload(
       data: { filePath },
     });
     
-    // Trigger processor jobs for all processor columns
-    await triggerProcessorsForDocument(projectId, document.id);
-    
     return { success: true, document: { ...document, filePath } };
   } catch (error) {
     console.error('Upload error:', error);
@@ -95,27 +90,10 @@ export async function createDocumentFromUrl(projectId: string, formData: FormDat
       data: { filePath },
     });
     
-    // Trigger processor jobs for all processor columns
-    await triggerProcessorsForDocument(projectId, document.id);
-    
     return { success: true, document: { ...document, filePath } };
   } catch (error) {
     console.error('Create from URL error:', error);
     return { error: 'Failed to create document' };
-  }
-}
-
-async function triggerProcessorsForDocument(projectId: string, documentId: string) {
-  const processorColumns = await getProcessorColumns(projectId);
-  
-  for (const column of processorColumns) {
-    const runId = await createProcessorRun(projectId, documentId, column.id);
-    await enqueueProcessDocument({
-      projectId,
-      documentId,
-      columnId: column.id,
-      runId,
-    });
   }
 }
 
