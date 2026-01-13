@@ -2,7 +2,14 @@
 
 import prisma from '@/lib/db';
 import { requireProjectAccess } from '@/lib/session';
-import { writeFile, getDocumentSourcePath, getDocumentDir } from '@/lib/storage';
+import {
+  writeFile,
+  getDocumentSourcePath,
+  getDocumentDir,
+  deleteDir,
+} from '@/lib/storage';
+import { enqueueProcessDocument, getBoss, QUEUE_NAMES } from '@/lib/queue';
+import { createProcessorRun, getProcessorColumns } from '@/lib/processors';
 import { SourceType } from '@prisma/client';
 import { z } from 'zod';
 
@@ -191,15 +198,19 @@ export async function updateDocumentValue(
 
 export async function deleteDocument(projectId: string, documentId: string) {
   await requireProjectAccess(projectId);
-  
+
+  try {
+    await deleteDir(getDocumentDir(projectId, documentId));
+  } catch (error) {
+    console.error('Delete document storage error:', error);
+    return { error: 'Failed to delete document files. Please try again.' };
+  }
+
   try {
     await prisma.document.delete({
       where: { id: documentId, projectId },
     });
-    
-    // Optionally delete files from disk
-    // await deleteDir(getDocumentDir(projectId, documentId));
-    
+
     return { success: true };
   } catch (error) {
     console.error('Delete document error:', error);

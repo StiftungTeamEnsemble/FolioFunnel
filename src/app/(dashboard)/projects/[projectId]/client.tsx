@@ -9,6 +9,7 @@ import { AddDocumentModal } from '@/components/documents/AddDocumentModal';
 import { AddColumnModal } from '@/components/documents/AddColumnModal';
 import { EditColumnModal } from '@/components/documents/EditColumnModal';
 import { DeleteColumnModal } from '@/components/documents/DeleteColumnModal';
+import { DeleteDocumentModal } from '@/components/documents/DeleteDocumentModal';
 import { triggerBulkProcessorRun } from '@/app/actions/runs';
 
 interface DocumentWithRuns extends Document {
@@ -35,6 +36,7 @@ export function ProjectPageClient({
   const [selectedBulkColumn, setSelectedBulkColumn] = useState<string>('');
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
 
   useEffect(() => {
     setDocuments(initialDocuments);
@@ -159,6 +161,7 @@ export function ProjectPageClient({
           onRefresh={handleRefresh}
           onEditColumn={setColumnToEdit}
           onDeleteColumn={setColumnToDelete}
+          onDeleteDocument={setDocumentToDelete}
         />
       </div>
 
@@ -193,6 +196,16 @@ export function ProjectPageClient({
         open={Boolean(columnToDelete)}
         onOpenChange={(open) => {
           if (!open) setColumnToDelete(null);
+        }}
+        onSuccess={handleRefresh}
+      />
+
+      <DeleteDocumentModal
+        projectId={project.id}
+        document={documentToDelete}
+        open={Boolean(documentToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setDocumentToDelete(null);
         }}
         onSuccess={handleRefresh}
       />

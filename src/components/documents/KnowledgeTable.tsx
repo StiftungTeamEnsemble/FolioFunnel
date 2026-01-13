@@ -21,6 +21,7 @@ interface KnowledgeTableProps {
   onRefresh: () => void;
   onEditColumn?: (column: Column) => void;
   onDeleteColumn?: (column: Column) => void;
+  onDeleteDocument?: (document: Document) => void;
 }
 
 export function KnowledgeTable({
@@ -30,6 +31,7 @@ export function KnowledgeTable({
   onRefresh,
   onEditColumn,
   onDeleteColumn,
+  onDeleteDocument,
 }: KnowledgeTableProps) {
   const [editingCell, setEditingCell] = useState<{
     docId: string;
@@ -173,6 +175,7 @@ export function KnowledgeTable({
                 </div>
               </th>
             ))}
+            <th className="table__header-cell">Actions</th>
           </tr>
         </thead>
         <tbody className="table__body">
@@ -336,6 +339,17 @@ export function KnowledgeTable({
                   </td>
                 );
               })}
+              <td className="table__cell">
+                <div className="table__cell__actions">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onDeleteDocument?.(doc)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
