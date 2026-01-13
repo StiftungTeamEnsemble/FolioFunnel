@@ -1,5 +1,6 @@
 'use server';
 
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import prisma from '@/lib/db';
 import { requireAuth } from '@/lib/session';
@@ -34,14 +35,27 @@ export async function updateProfile(formData: FormData) {
     return { error: 'That email is already in use.' };
   }
 
-  const updatedUser = await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      name: cleanedName ? cleanedName : null,
-      email: result.data.email,
-    },
-    select: { name: true, email: true },
-  });
+  let updatedUser;
+
+  try {
+    updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        name: cleanedName ? cleanedName : null,
+        email: result.data.email,
+      },
+      select: { name: true, email: true },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      return { error: 'That email is already in use.' };
+    }
+
+    throw error;
+  }
 
   return { success: true, user: updatedUser };
 }
