@@ -14,6 +14,19 @@ RUN pip install --no-cache-dir marker-pdf flask gunicorn
 # Create the API wrapper
 COPY server.py /app/server.py
 
+# Optimize memory usage for ML models
+ENV PYTORCH_ENABLE_MPS_FALLBACK=0
+ENV OMP_NUM_THREADS=1
+ENV MKL_NUM_THREADS=1
+ENV PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:128
+# Force CPU mode and reduce memory
+ENV CUDA_VISIBLE_DEVICES=""
+ENV TORCH_HOME=/root/.cache/torch
+# Reduce marker batch sizes
+ENV MARKER_BATCH_SIZE=1
+ENV RECOGNITION_BATCH_SIZE=1
+
 EXPOSE 8080
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "300", "--workers", "2", "server:app"]
+# Use only 1 worker to avoid loading models multiple times (each ~4GB)
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "600", "--workers", "1", "server:app"]

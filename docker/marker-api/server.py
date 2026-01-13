@@ -6,14 +6,34 @@ Wraps datalab-to/marker with an HTTP endpoint protected by X-API-Key
 import os
 import tempfile
 import logging
+import gc
 from flask import Flask, request, jsonify
 from functools import wraps
+
+# Force CPU-only mode and reduce memory usage
+os.environ['CUDA_VISIBLE_DEVICES'] = ''
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '0'
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 API_KEY = os.environ.get('MARKER_API_KEY', 'marker_secret_key')
+
+# Global model cache - load once
+_models = None
+
+def get_models():
+    """Lazy load models once and cache them"""
+    global _models
+    if _models is None:
+        logger.info("Loading marker models (first request)...")
+        from marker.models import create_model_dict
+        _models = create_model_dict()
+        logger.info("Models loaded successfully")
+        # Force garbage collection after loading
+        gc.collect()
+    return _models
 
 
 def require_api_key(f):
@@ -65,11 +85,10 @@ def convert_pdf():
         
         # Use marker to convert PDF to markdown
         from marker.converters.pdf import PdfConverter
-        from marker.models import create_model_dict
         from marker.output import text_from_rendered
         
-        # Create models (this caches after first call)
-        models = create_model_dict()
+        # Get cached models
+        models = get_models()
         
         # Convert PDF
         converter = PdfConverter(artifact_dict=models)
@@ -78,6 +97,9 @@ def convert_pdf():
         
         # Clean up temp file
         os.unlink(input_path)
+        
+        # Force garbage collection after conversion
+        gc.collect()
         
         logger.info(f"Successfully converted {file.filename}")
         
