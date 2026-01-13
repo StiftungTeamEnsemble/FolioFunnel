@@ -41,6 +41,8 @@ export function ProjectEditClient({
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const currentMemberRole =
+    members.find((member) => member.user.id === currentUserId)?.role ?? MemberRole.member;
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -228,7 +230,11 @@ export function ProjectEditClient({
             <tbody className="table__body">
               {members.map((member) => {
                 const isCurrentUser = member.user.id === currentUserId;
-                const canRemove = member.role !== MemberRole.owner && !isCurrentUser;
+                const canRemove =
+                  member.role !== MemberRole.owner &&
+                  !isCurrentUser &&
+                  (currentMemberRole === MemberRole.owner ||
+                    member.role !== MemberRole.admin);
                 return (
                   <tr key={member.id} className="table__row">
                     <td className="table__cell">
