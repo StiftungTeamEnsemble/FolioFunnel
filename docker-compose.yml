@@ -30,8 +30,15 @@ services:
       MARKER_API_KEY: ${MARKER_API_KEY:-marker_secret_key}
     volumes:
       - ./data/documents:/data
+      - marker_cache:/root/.cache
     ports:
       - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
@@ -61,3 +68,6 @@ services:
         condition: service_healthy
       marker-api:
         condition: service_healthy
+
+volumes:
+  marker_cache:

@@ -42,6 +42,7 @@ services:
       - ./src:/app/src
       - ./prisma:/app/prisma
       - ./tsconfig.json:/app/tsconfig.json
+      - ./data/documents:/data
       - node_modules:/app/node_modules
     command: ["sh", "-c", "npx prisma generate && npm run worker"]
     depends_on:

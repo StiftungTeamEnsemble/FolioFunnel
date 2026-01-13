@@ -1,4 +1,5 @@
 import PgBoss from 'pg-boss';
+import prisma from '@/lib/db';
 
 const connectionString = process.env.DATABASE_URL!;
 
@@ -38,31 +39,48 @@ export interface BulkProcessJobData {
   columnId: string;
 }
 
-// Track if boss has been started for sending
-const bossStarted = { value: false };
-
-async function ensureBossStarted(): Promise<PgBoss> {
-  const boss = getBoss();
-  if (!bossStarted.value) {
-    await boss.start();
-    bossStarted.value = true;
-  }
-  return boss;
-}
-
-// Enqueue functions
+// Enqueue functions - use raw SQL to insert directly into pgboss.job table
+// This avoids the need to start pg-boss in the Next.js app
 export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
-  const boss = await ensureBossStarted();
-  await boss.send(QUEUE_NAMES.PROCESS_DOCUMENT, data, {
-    retryLimit: 2,
-    retryDelay: 10,
-  });
+  console.log('[Queue] Enqueueing process-document job:', data);
+  try {
+    const result = await prisma.$executeRaw`
+      INSERT INTO pgboss.job (name, data, state, retry_limit, retry_delay, expire_in)
+      VALUES (
+        ${QUEUE_NAMES.PROCESS_DOCUMENT},
+        ${JSON.stringify(data)}::jsonb,
+        'created',
+        2,
+        10,
+        interval '1 hour'
+      )
+    `;
+    console.log('[Queue] Job inserted into pgboss.job');
+    return result;
+  } catch (error) {
+    console.error('[Queue] Error enqueueing job:', error);
+    throw error;
+  }
 }
 
 export async function enqueueBulkProcess(data: BulkProcessJobData) {
-  const boss = await ensureBossStarted();
-  await boss.send(QUEUE_NAMES.BULK_PROCESS, data, {
-    retryLimit: 1,
-    retryDelay: 30,
-  });
+  console.log('[Queue] Enqueueing bulk-process job:', data);
+  try {
+    const result = await prisma.$executeRaw`
+      INSERT INTO pgboss.job (name, data, state, retry_limit, retry_delay, expire_in)
+      VALUES (
+        ${QUEUE_NAMES.BULK_PROCESS},
+        ${JSON.stringify(data)}::jsonb,
+        'created',
+        1,
+        30,
+        interval '1 hour'
+      )
+    `;
+    console.log('[Queue] Job inserted into pgboss.job');
+    return result;
+  } catch (error) {
+    console.error('[Queue] Error enqueueing job:', error);
+    throw error;
+  }
 }

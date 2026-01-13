@@ -46,13 +46,18 @@ export async function triggerProcessorRun(
     }
     
     // Create run and enqueue job
+    console.log('[Action] Creating processor run for document', documentId, 'column', columnId);
     const runId = await createProcessorRun(projectId, documentId, columnId);
+    console.log('[Action] Created processor run:', runId);
+    
+    console.log('[Action] Enqueueing job...');
     await enqueueProcessDocument({
       projectId,
       documentId,
       columnId,
       runId,
     });
+    console.log('[Action] Job enqueued successfully');
     
     return { success: true, runId };
   } catch (error) {
