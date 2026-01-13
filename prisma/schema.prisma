@@ -3,6 +3,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -26,6 +27,8 @@ model User {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   // Relations
+  accounts       Account[]
+  sessions       Session[]
   memberships    ProjectMembership[]
   createdProjects Project[]          @relation("ProjectCreator")
 

@@ -11,7 +11,12 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "worker": "tsx src/lib/worker/index.ts"
+    "worker": "tsx src/lib/worker/index.ts",
+    "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build",
+    "docker:dev:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
+    "docker:dev:logs": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f",
+    "docker:prod": "docker compose up -d --build",
+    "docker:prod:down": "docker compose down"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
