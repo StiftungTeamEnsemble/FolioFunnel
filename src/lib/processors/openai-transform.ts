@@ -1,5 +1,6 @@
 import { ProcessorContext, ProcessorResult, expandTemplate } from './index';
 import OpenAI from 'openai';
+import { isValidChatModel, DEFAULT_CHAT_MODEL } from '@/lib/models';
 
 interface OpenAIConfig {
   model: string;
@@ -9,7 +10,6 @@ interface OpenAIConfig {
   systemPrompt?: string;
 }
 
-const DEFAULT_MODEL = 'gpt-4o-mini';
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 2000;
 
@@ -17,7 +17,10 @@ export async function openaiTransform(ctx: ProcessorContext): Promise<ProcessorR
   const { document, column } = ctx;
   
   const config = (column.processorConfig as OpenAIConfig) || {};
-  const model = config.model || DEFAULT_MODEL;
+  
+  // Validate model against allowed list, fallback to default if invalid
+  const requestedModel = config.model || DEFAULT_CHAT_MODEL;
+  const model = isValidChatModel(requestedModel) ? requestedModel : DEFAULT_CHAT_MODEL;
   const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
   const promptTemplate = config.promptTemplate;
   const maxTokens = config.maxTokens || DEFAULT_MAX_TOKENS;

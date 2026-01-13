@@ -7,6 +7,7 @@ import { urlToText } from './url-to-text';
 import { chunkText } from './chunk-text';
 import { createEmbeddings } from './create-embeddings';
 import { openaiTransform } from './openai-transform';
+import { countTokens } from './count-tokens';
 
 export interface ProcessorContext {
   document: Document;
@@ -31,6 +32,7 @@ const processors: Record<ProcessorType, ProcessorFunction> = {
   chunk_text: chunkText,
   create_embeddings: createEmbeddings,
   openai_transform: openaiTransform,
+  count_tokens: countTokens,
 };
 
 export async function runProcessor(ctx: ProcessorContext): Promise<ProcessorResult> {

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button, Input, InputGroup, Modal, ModalContent, ModalFooter, Select, SelectItem, Textarea } from '@/components/ui';
 import { createColumn } from '@/app/actions/columns';
 import { ColumnType, ColumnMode, ProcessorType } from '@prisma/client';
+import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from '@/lib/models';
 
 // Available PDF metadata fields
 const PDF_METADATA_FIELDS = [
@@ -37,6 +38,7 @@ export function AddColumnModal({
   const [mode, setMode] = useState<ColumnMode>('manual');
   const [processorType, setProcessorType] = useState<ProcessorType>('pdf_to_markdown');
   const [metadataField, setMetadataField] = useState('title');
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,7 +54,7 @@ export function AddColumnModal({
       // Build processor config based on type
       const config: Record<string, unknown> = {};
       
-      if (processorType === 'chunk_text' || processorType === 'create_embeddings') {
+      if (processorType === 'chunk_text' || processorType === 'create_embeddings' || processorType === 'count_tokens') {
         const sourceColumn = formData.get('sourceColumnKey');
         if (sourceColumn) config.sourceColumnKey = sourceColumn;
       }
@@ -70,8 +72,12 @@ export function AddColumnModal({
       
       if (processorType === 'openai_transform') {
         config.promptTemplate = formData.get('promptTemplate');
-        config.model = formData.get('model') || 'gpt-4o-mini';
+        config.model = selectedModel;
         config.temperature = parseFloat(formData.get('temperature') as string) || 0.7;
+      }
+
+      if (processorType === 'count_tokens') {
+        config.model = selectedModel;
       }
 
       if (processorType === 'pdf_to_metadata') {
@@ -157,6 +163,7 @@ export function AddColumnModal({
                   <SelectItem value="chunk_text">Chunk Text</SelectItem>
                   <SelectItem value="create_embeddings">Create Embeddings</SelectItem>
                   <SelectItem value="openai_transform">OpenAI Transform</SelectItem>
+                  <SelectItem value="count_tokens">Count Tokens (OpenAI)</SelectItem>
                 </Select>
               </InputGroup>
 
@@ -175,7 +182,7 @@ export function AddColumnModal({
                 </InputGroup>
               )}
 
-              {(processorType === 'chunk_text' || processorType === 'create_embeddings') && (
+              {(processorType === 'chunk_text' || processorType === 'create_embeddings' || processorType === 'count_tokens') && (
                 <InputGroup label="Source Column Key" htmlFor="sourceColumnKey" required>
                   <Input
                     id="sourceColumnKey"
@@ -183,6 +190,18 @@ export function AddColumnModal({
                     placeholder="e.g., markdown, content"
                     required
                   />
+                </InputGroup>
+              )}
+
+              {processorType === 'count_tokens' && (
+                <InputGroup label="Model (for tokenization)" htmlFor="countTokensModel">
+                  <Select value={selectedModel} onValueChange={setSelectedModel}>
+                    {CHAT_MODELS.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </Select>
                 </InputGroup>
               )}
 
@@ -240,12 +259,13 @@ export function AddColumnModal({
                   </InputGroup>
                   <div className="form__row">
                     <InputGroup label="Model" htmlFor="model">
-                      <Select value="gpt-4o-mini" onValueChange={() => {}}>
-                        <SelectItem value="gpt-4o-mini">GPT-4o Mini</SelectItem>
-                        <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                        <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                      <Select value={selectedModel} onValueChange={setSelectedModel}>
+                        {CHAT_MODELS.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            {model.name}
+                          </SelectItem>
+                        ))}
                       </Select>
-                      <input type="hidden" name="model" value="gpt-4o-mini" />
                     </InputGroup>
                     <InputGroup label="Temperature" htmlFor="temperature">
                       <Input

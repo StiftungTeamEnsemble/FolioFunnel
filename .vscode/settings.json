@@ -3,6 +3,8 @@
         "docker compose": true,
         "docker logs": true,
         "docker exec": true,
-        "docker inspect": true
+        "docker inspect": true,
+        "docker volume": true,
+        "true": true
     }
 }

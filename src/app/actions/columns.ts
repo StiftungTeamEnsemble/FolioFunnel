@@ -4,13 +4,14 @@ import prisma from '@/lib/db';
 import { requireProjectAccess } from '@/lib/session';
 import { MemberRole, ColumnType, ColumnMode, ProcessorType } from '@prisma/client';
 import { z } from 'zod';
+import { isValidChatModel, isValidEmbeddingModel, DEFAULT_CHAT_MODEL, DEFAULT_EMBEDDING_MODEL } from '@/lib/models';
 
 const createColumnSchema = z.object({
   key: z.string().min(1).max(50).regex(/^[a-z][a-z0-9_]*$/, 'Key must be lowercase, start with a letter, and contain only letters, numbers, and underscores'),
   name: z.string().min(1).max(100),
   type: z.enum(['text', 'number', 'text_array', 'number_array']),
   mode: z.enum(['manual', 'processor']),
-  processorType: z.enum(['pdf_to_markdown', 'pdf_to_markdown_mupdf', 'pdf_to_metadata', 'url_to_text', 'chunk_text', 'create_embeddings', 'openai_transform']).optional(),
+  processorType: z.enum(['pdf_to_markdown', 'pdf_to_markdown_mupdf', 'pdf_to_metadata', 'url_to_text', 'chunk_text', 'create_embeddings', 'openai_transform', 'count_tokens']).optional(),
   processorConfig: z.record(z.unknown()).optional(),
 });
 
@@ -28,6 +29,22 @@ export async function createColumn(projectId: string, formData: FormData) {
   if (processorConfigStr) {
     try {
       processorConfig = JSON.parse(processorConfigStr);
+      
+      // Validate and sanitize model in processor config
+      if (processorConfig.model && typeof processorConfig.model === 'string') {
+        // For chat-based processors (openai_transform, count_tokens)
+        if (processorType === 'openai_transform' || processorType === 'count_tokens') {
+          if (!isValidChatModel(processorConfig.model)) {
+            processorConfig.model = DEFAULT_CHAT_MODEL;
+          }
+        }
+        // For embedding processors
+        if (processorType === 'create_embeddings') {
+          if (!isValidEmbeddingModel(processorConfig.model)) {
+            processorConfig.model = DEFAULT_EMBEDDING_MODEL;
+          }
+        }
+      }
     } catch {
       return { error: 'Invalid processor config JSON' };
     }

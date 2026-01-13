@@ -192,6 +192,7 @@ enum ProcessorType {
   chunk_text
   create_embeddings
   openai_transform
+  count_tokens
 }
 
 model Column {
