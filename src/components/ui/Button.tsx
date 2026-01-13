@@ -44,8 +44,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       .filter(Boolean)
       .join(' ');
 
+    // When using asChild with Slot, we can't have multiple children
+    // So we render loading state differently
+    if (asChild) {
+      return (
+        <Slot ref={ref} className={classes} {...props}>
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         ref={ref}
         className={classes}
         disabled={disabled || isLoading}
@@ -53,7 +63,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading && <span className="button__spinner" />}
         {children}
-      </Comp>
+      </button>
     );
   }
 );
