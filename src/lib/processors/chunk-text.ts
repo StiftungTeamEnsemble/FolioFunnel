@@ -1,42 +1,38 @@
 import { ProcessorContext, ProcessorResult } from './index';
+import { encodingForModel, TiktokenModel } from 'js-tiktoken';
 import prisma from '@/lib/db';
+import { DEFAULT_CHAT_MODEL, getTiktokenModel, isValidChatModel } from '@/lib/models';
 
 interface ChunkConfig {
   sourceColumnKey: string;
   chunkSize: number;
   chunkOverlap: number;
   storeInChunksTable: boolean;
+  model?: string;
 }
 
 const DEFAULT_CHUNK_SIZE = 1000;
 const DEFAULT_CHUNK_OVERLAP = 200;
 
-function splitIntoChunks(text: string, chunkSize: number, overlap: number): string[] {
-  if (!text || text.length === 0) {
+function splitTokensIntoChunks(tokens: number[], chunkSize: number, overlap: number): number[][] {
+  if (!tokens || tokens.length === 0) {
     return [];
   }
   
-  const chunks: string[] = [];
+  const chunks: number[][] = [];
   let start = 0;
   
-  while (start < text.length) {
-    const end = Math.min(start + chunkSize, text.length);
-    const chunk = text.slice(start, end).trim();
+  while (start < tokens.length) {
+    const end = Math.min(start + chunkSize, tokens.length);
+    const chunk = tokens.slice(start, end);
     
-    if (chunk.length > 0) {
-      chunks.push(chunk);
-    }
+    chunks.push(chunk);
     
     // Move start position considering overlap
     start = end - overlap;
-    if (start >= text.length - overlap) {
+    if (start >= tokens.length - overlap) {
       break; // Avoid infinite loop
     }
-  }
-  
-  // Handle case where we end exactly at text length
-  if (chunks.length === 0 && text.trim().length > 0) {
-    chunks.push(text.trim());
   }
   
   return chunks;
@@ -50,6 +46,9 @@ export async function chunkText(ctx: ProcessorContext): Promise<ProcessorResult>
   const chunkSize = config.chunkSize || DEFAULT_CHUNK_SIZE;
   const chunkOverlap = config.chunkOverlap || DEFAULT_CHUNK_OVERLAP;
   const storeInChunksTable = config.storeInChunksTable !== false;
+  const requestedModel = config.model || DEFAULT_CHAT_MODEL;
+  const validatedModel = isValidChatModel(requestedModel) ? requestedModel : DEFAULT_CHAT_MODEL;
+  const tiktokenModel = getTiktokenModel(validatedModel) as TiktokenModel;
   
   if (!sourceColumnKey) {
     return { 
@@ -58,29 +57,50 @@ export async function chunkText(ctx: ProcessorContext): Promise<ProcessorResult>
     };
   }
   
+  const startTime = Date.now();
+  
   // Get source text from document values
   const values = (document.values as Record<string, unknown>) || {};
   const sourceText = values[sourceColumnKey];
   
+  if (sourceText === undefined || sourceText === null) {
+    return { 
+      success: true, 
+      value: [],
+      meta: {
+        duration: Date.now() - startTime,
+        model: validatedModel,
+        note: 'Source column is empty',
+      },
+    };
+  }
+  
   if (typeof sourceText !== 'string') {
     return { 
       success: false, 
-      error: `Source column '${sourceColumnKey}' does not contain text` 
+      error: `Source column "${sourceColumnKey}" is not a string` 
     };
   }
   
   if (!sourceText || sourceText.trim().length === 0) {
     return { 
-      success: false, 
-      error: `Source column '${sourceColumnKey}' is empty` 
+      success: true, 
+      value: [],
+      meta: {
+        duration: Date.now() - startTime,
+        model: validatedModel,
+        note: 'Source column is empty',
+      },
     };
   }
   
-  const startTime = Date.now();
-  
   try {
-    // Split text into chunks
-    const chunks = splitIntoChunks(sourceText, chunkSize, chunkOverlap);
+    const encoder = encodingForModel(tiktokenModel);
+    const tokens = encoder.encode(sourceText);
+    const tokenChunks = splitTokensIntoChunks(tokens, chunkSize, chunkOverlap);
+    const chunks = tokenChunks
+      .map((chunkTokens) => encoder.decode(chunkTokens).trim())
+      .filter((chunk) => chunk.length > 0);
     
     if (chunks.length === 0) {
       return { 
@@ -110,7 +130,10 @@ export async function chunkText(ctx: ProcessorContext): Promise<ProcessorResult>
           meta: {
             chunkSize,
             chunkOverlap,
-            originalLength: sourceText.length,
+            originalLength: tokens.length,
+            originalTextLength: sourceText.length,
+            model: validatedModel,
+            tiktokenModel,
           },
         })),
       });
@@ -126,7 +149,10 @@ export async function chunkText(ctx: ProcessorContext): Promise<ProcessorResult>
         chunkCount: chunks.length,
         chunkSize,
         chunkOverlap,
-        sourceLength: sourceText.length,
+        sourceLength: tokens.length,
+        sourceTextLength: sourceText.length,
+        model: validatedModel,
+        tiktokenModel,
         storedInTable: storeInChunksTable,
       },
     };
