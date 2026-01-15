@@ -16,18 +16,18 @@ import { createColumn, updateColumn } from "@/app/actions/columns";
 import { Column, ColumnMode, ProcessorType } from "@prisma/client";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 
-// Available PDF metadata fields
-const PDF_METADATA_FIELDS = [
-  { key: "title", label: "Title" },
-  { key: "author", label: "Author" },
-  { key: "subject", label: "Subject" },
-  { key: "keywords", label: "Keywords" },
-  { key: "creator", label: "Creator" },
-  { key: "producer", label: "Producer" },
-  { key: "creationDate", label: "Creation Date" },
-  { key: "modDate", label: "Modification Date" },
-  { key: "pageCount", label: "Page Count" },
-  { key: "format", label: "Format" },
+// Available metadata fields
+const METADATA_FIELDS = [
+  { key: "title", label: "Title (PDF/URL)" },
+  { key: "author", label: "Author (PDF/URL meta tag)" },
+  { key: "subject", label: "Subject (PDF) / Description meta (URL)" },
+  { key: "keywords", label: "Keywords (PDF/URL meta tags)" },
+  { key: "creator", label: "Creator (PDF/URL meta tag)" },
+  { key: "producer", label: "Producer (PDF/URL meta tag)" },
+  { key: "creationDate", label: "Creation Date (PDF/URL meta tag)" },
+  { key: "modDate", label: "Modification Date (PDF/URL meta tag)" },
+  { key: "pageCount", label: "Page Count (PDF only)" },
+  { key: "format", label: "Format (PDF/URL meta tag)" },
 ];
 
 interface ColumnModalProps {
@@ -59,7 +59,7 @@ export function ColumnModal({
   >("text");
   const [mode, setMode] = useState<ColumnMode>("manual");
   const [processorType, setProcessorType] =
-    useState<ProcessorType>("pdf_to_markdown");
+    useState<ProcessorType>("document_to_markdown");
 
   // Processor config state
   const [metadataField, setMetadataField] = useState("title");
@@ -117,7 +117,7 @@ export function ColumnModal({
       setName("");
       setDataType("text");
       setMode("manual");
-      setProcessorType("pdf_to_markdown");
+      setProcessorType("document_to_markdown");
       setMetadataField("title");
       setSourceColumnKey("");
       setChunkSize(1000);
@@ -189,7 +189,10 @@ export function ColumnModal({
       }
 
       // PDF Metadata config
-      if (processorType === "pdf_to_metadata") {
+      if (
+        processorType === "pdf_to_metadata" ||
+        processorType === "document_to_metadata"
+      ) {
         config.metadataField = metadataField;
       }
 
@@ -234,6 +237,8 @@ export function ColumnModal({
     switch (dataType) {
       case "text":
         return [
+          { value: "document_to_markdown", label: "Document → Markdown" },
+          { value: "document_to_metadata", label: "Document → Metadata" },
           { value: "pdf_to_markdown", label: "PDF → Markdown (MarkItDown)" },
           { value: "pdf_to_markdown_mupdf", label: "PDF → Markdown (MuPDF)" },
           { value: "pdf_to_metadata", label: "PDF → Metadata" },
@@ -347,7 +352,8 @@ export function ColumnModal({
                 </Select>
               </InputGroup>
 
-              {processorType === "pdf_to_metadata" && (
+              {(processorType === "pdf_to_metadata" ||
+                processorType === "document_to_metadata") && (
                 <InputGroup
                   label="Metadata Field"
                   htmlFor="metadataField"
@@ -357,7 +363,7 @@ export function ColumnModal({
                     value={metadataField}
                     onValueChange={setMetadataField}
                   >
-                    {PDF_METADATA_FIELDS.map((field) => (
+                    {METADATA_FIELDS.map((field) => (
                       <SelectItem key={field.key} value={field.key}>
                         {field.label}
                       </SelectItem>

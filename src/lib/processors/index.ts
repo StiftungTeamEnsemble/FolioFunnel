@@ -3,6 +3,8 @@ import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
 import { pdfToMarkdown } from './pdf-to-markdown';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
+import { documentToMarkdown } from './document-to-markdown';
+import { documentToMetadata } from './document-to-metadata';
 import { urlToText } from './url-to-text';
 import { urlToMarkdown } from './url-to-markdown';
 import { chunkText } from './chunk-text';
@@ -26,6 +28,8 @@ export interface ProcessorResult {
 type ProcessorFunction = (ctx: ProcessorContext) => Promise<ProcessorResult>;
 
 const processors: Record<ProcessorType, ProcessorFunction> = {
+  document_to_markdown: documentToMarkdown,
+  document_to_metadata: documentToMetadata,
   pdf_to_markdown: pdfToMarkdown,
   pdf_to_markdown_mupdf: pdfToMarkdownMupdf,
   pdf_to_metadata: pdfToMetadata,

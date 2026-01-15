@@ -11,7 +11,19 @@ const createColumnSchema = z.object({
   name: z.string().min(1).max(100),
   type: z.enum(['text', 'number', 'text_array', 'number_array']),
   mode: z.enum(['manual', 'processor']),
-  processorType: z.enum(['pdf_to_markdown', 'pdf_to_markdown_mupdf', 'pdf_to_metadata', 'url_to_text', 'chunk_text', 'create_embeddings', 'openai_transform', 'count_tokens']).optional(),
+  processorType: z.enum([
+    'document_to_markdown',
+    'document_to_metadata',
+    'pdf_to_markdown',
+    'pdf_to_markdown_mupdf',
+    'pdf_to_metadata',
+    'url_to_text',
+    'url_to_markdown',
+    'chunk_text',
+    'create_embeddings',
+    'ai_transform',
+    'count_tokens',
+  ]).optional(),
   processorConfig: z.record(z.unknown()).optional(),
 });
 
@@ -32,8 +44,8 @@ export async function createColumn(projectId: string, formData: FormData) {
       
       // Validate and sanitize model in processor config
       if (processorConfig.model && typeof processorConfig.model === 'string') {
-        // For chat-based processors (openai_transform, count_tokens)
-        if (processorType === 'openai_transform' || processorType === 'count_tokens') {
+        // For chat-based processors (ai_transform, count_tokens)
+        if (processorType === 'ai_transform' || processorType === 'count_tokens') {
           if (!isValidChatModel(processorConfig.model)) {
             processorConfig.model = DEFAULT_CHAT_MODEL;
           }

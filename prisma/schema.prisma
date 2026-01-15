@@ -185,6 +185,8 @@ enum ColumnMode {
 }
 
 enum ProcessorType {
+  document_to_markdown
+  document_to_metadata
   pdf_to_markdown
   pdf_to_markdown_mupdf
   pdf_to_metadata
