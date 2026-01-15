@@ -53,7 +53,7 @@ export function ProjectPageClient({
     return documents.filter((doc) => {
       const values = (doc.values as Record<string, unknown>) || {};
       const createdDate = new Date(doc.createdAt).toISOString().split('T')[0];
-      const sourceText = `${doc.sourceType} ${doc.sourceUrl || ''}`.trim();
+      const sourceText = `${doc.sourceType}${doc.sourceUrl ? ' ' + doc.sourceUrl : ''}`;
 
       if (searchField === 'title') {
         return matchesValue(doc.title);
