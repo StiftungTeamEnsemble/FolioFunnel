@@ -6,7 +6,7 @@ Provides MuPDF-based PDF conversion and metadata extraction endpoints.
 import os
 import tempfile
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file, after_this_request
 from functools import wraps
 
 app = Flask(__name__)
@@ -173,6 +173,71 @@ def extract_pdf_metadata():
         # Clean up on error
         if 'input_path' in locals() and os.path.exists(input_path):
             os.unlink(input_path)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-thumbnail', methods=['POST'])
+@require_api_key
+def generate_thumbnail():
+    """
+    Generate a PNG thumbnail from the first page of a PDF using PyMuPDF.
+
+    Expects multipart/form-data with:
+    - file: PDF file
+
+    Returns:
+    - image/png response body with the rendered thumbnail
+    """
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({'error': 'Only PDF files are supported'}), 400
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_input:
+            file.save(tmp_input.name)
+            input_path = tmp_input.name
+
+        logger.info(f"Generating thumbnail for PDF: {file.filename}")
+
+        import fitz  # PyMuPDF
+
+        doc = fitz.open(input_path)
+        page = doc.load_page(0)
+
+        zoom = 0.5
+        matrix = fitz.Matrix(zoom, zoom)
+        pix = page.get_pixmap(matrix=matrix, alpha=False)
+
+        doc.close()
+
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_output:
+            output_path = tmp_output.name
+            pix.save(output_path)
+
+        @after_this_request
+        def cleanup(response):
+            if os.path.exists(input_path):
+                os.unlink(input_path)
+            if os.path.exists(output_path):
+                os.unlink(output_path)
+            return response
+
+        logger.info(f"Successfully generated thumbnail for {file.filename}")
+
+        return send_file(output_path, mimetype='image/png')
+
+    except Exception as e:
+        logger.error(f"Error generating thumbnail: {str(e)}")
+        if 'input_path' in locals() and os.path.exists(input_path):
+            os.unlink(input_path)
+        if 'output_path' in locals() and os.path.exists(output_path):
+            os.unlink(output_path)
         return jsonify({'error': str(e)}), 500
 
 

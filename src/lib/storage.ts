@@ -19,6 +19,14 @@ export function getDocumentSourcePath(
   return path.join(getDocumentDir(projectId, documentId), `source.${extension}`);
 }
 
+export function getDocumentThumbnailPath(
+  projectId: string,
+  documentId: string,
+  extension = 'png'
+): string {
+  return path.join(getDocumentDir(projectId, documentId), `thumbnail.${extension}`);
+}
+
 export async function ensureDir(dir: string): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
 }

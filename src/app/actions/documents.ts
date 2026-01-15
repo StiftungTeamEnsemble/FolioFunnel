@@ -8,8 +8,7 @@ import {
   getDocumentDir,
   deleteDir,
 } from '@/lib/storage';
-import { enqueueProcessDocument, getBoss, QUEUE_NAMES } from '@/lib/queue';
-import { createProcessorRun, getProcessorColumns } from '@/lib/processors';
+import { enqueuePdfThumbnailRun } from '@/lib/thumbnail-processing';
 import { SourceType } from '@prisma/client';
 import { z } from 'zod';
 
@@ -56,6 +55,16 @@ export async function createDocumentFromUpload(
       where: { id: document.id },
       data: { filePath },
     });
+
+    const isPdf =
+      file.type === 'application/pdf' || extension.toLowerCase() === 'pdf';
+    if (isPdf) {
+      try {
+        await enqueuePdfThumbnailRun(projectId, document.id);
+      } catch (error) {
+        console.error('Thumbnail enqueue error:', error);
+      }
+    }
     
     return { success: true, document: { ...document, filePath } };
   } catch (error) {

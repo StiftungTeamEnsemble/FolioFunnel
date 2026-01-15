@@ -2,6 +2,7 @@ import prisma from '@/lib/db';
 import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
+import { pdfToThumbnailMupdf } from './pdf-to-thumbnail-mupdf';
 import { urlToText } from './url-to-text';
 import { urlToMarkdown } from './url-to-markdown';
 import { chunkText } from './chunk-text';
@@ -27,6 +28,7 @@ type ProcessorFunction = (ctx: ProcessorContext) => Promise<ProcessorResult>;
 const processors: Record<ProcessorType, ProcessorFunction> = {
   pdf_to_markdown_mupdf: pdfToMarkdownMupdf,
   pdf_to_metadata: pdfToMetadata,
+  pdf_to_thumbnail_mupdf: pdfToThumbnailMupdf,
   url_to_text: urlToText,
   url_to_markdown: urlToMarkdown,
   chunk_text: chunkText,

@@ -7,6 +7,7 @@ import { updateDocumentValue } from '@/app/actions/documents';
 import { updateColumnVisibility } from '@/app/actions/columns';
 import { triggerProcessorRun } from '@/app/actions/runs';
 import { DocumentDetailModal } from '@/components/documents/DocumentDetailModal';
+import { getDocumentThumbnailUrl, PDF_THUMBNAIL_COLUMN_KEY } from '@/lib/thumbnails';
 import '@/styles/components/table.css';
 
 interface DocumentWithRuns extends Document {
@@ -241,6 +242,26 @@ export function KnowledgeTable({
             <tr key={doc.id} className="table__row">
               <td className="table__cell">
                 <div className="table__cell__content">
+                  {(() => {
+                    const values = (doc.values as Record<string, unknown>) || {};
+                    const thumbnailValue = values[PDF_THUMBNAIL_COLUMN_KEY];
+                    const hasThumbnail =
+                      typeof thumbnailValue === 'string' && thumbnailValue.length > 0;
+
+                    if (!hasThumbnail) {
+                      return null;
+                    }
+
+                    return (
+                      <img
+                        src={getDocumentThumbnailUrl(projectId, doc.id)}
+                        alt=""
+                        className="table__cell__thumbnail"
+                        loading="lazy"
+                        aria-hidden="true"
+                      />
+                    );
+                  })()}
                   <span className="table__cell__value">{doc.title}</span>
                   <div className="table__cell__actions">
                     <button
