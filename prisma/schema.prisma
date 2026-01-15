@@ -189,9 +189,10 @@ enum ProcessorType {
   pdf_to_markdown_mupdf
   pdf_to_metadata
   url_to_text
+  url_to_markdown
   chunk_text
   create_embeddings
-  openai_transform
+  ai_transform
   count_tokens
 }
 

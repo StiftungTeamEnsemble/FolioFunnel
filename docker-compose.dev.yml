@@ -1,5 +1,4 @@
 # Development overrides - use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-version: "3.8"
 
 services:
   next-app:
@@ -17,10 +16,11 @@ services:
       - ./public:/app/public
       - ./prisma:/app/prisma
       - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
       - ./tsconfig.json:/app/tsconfig.json
       - ./next.config.js:/app/next.config.js
-      # Persist node_modules in a named volume (don't overwrite)
-      - node_modules:/app/node_modules
+      # Persist node_modules in a named volume (don't overwrite with host)
+      - app_node_modules:/app/node_modules
     tty: true
     stdin_open: true
 
@@ -41,9 +41,12 @@ services:
     volumes:
       - ./src:/app/src
       - ./prisma:/app/prisma
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
       - ./tsconfig.json:/app/tsconfig.json
       - ./data/documents:/data
-      - node_modules:/app/node_modules
+      # Use separate node_modules volume for worker to avoid Prisma race condition
+      - worker_node_modules:/app/node_modules
     command: ["sh", "-c", "npx prisma generate && npm run worker"]
     depends_on:
       postgres:
@@ -51,4 +54,5 @@ services:
     tty: true
 
 volumes:
-  node_modules:
+  app_node_modules:
+  worker_node_modules:

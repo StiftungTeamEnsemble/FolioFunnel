@@ -4,9 +4,10 @@ import { pdfToMarkdown } from './pdf-to-markdown';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
 import { urlToText } from './url-to-text';
+import { urlToMarkdown } from './url-to-markdown';
 import { chunkText } from './chunk-text';
 import { createEmbeddings } from './create-embeddings';
-import { openaiTransform } from './openai-transform';
+import { aiTransform } from './ai-transform';
 import { countTokens } from './count-tokens';
 
 export interface ProcessorContext {
@@ -29,9 +30,10 @@ const processors: Record<ProcessorType, ProcessorFunction> = {
   pdf_to_markdown_mupdf: pdfToMarkdownMupdf,
   pdf_to_metadata: pdfToMetadata,
   url_to_text: urlToText,
+  url_to_markdown: urlToMarkdown,
   chunk_text: chunkText,
   create_embeddings: createEmbeddings,
-  openai_transform: openaiTransform,
+  ai_transform: aiTransform,
   count_tokens: countTokens,
 };
 
