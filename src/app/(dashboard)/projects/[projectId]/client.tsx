@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Project, Document, Column } from '@prisma/client';
-import { Button, Select, SelectItem } from '@/components/ui';
+import { Button, Input, Select, SelectItem } from '@/components/ui';
 import { KnowledgeTable } from '@/components/documents/KnowledgeTable';
 import { AddDocumentModal } from '@/components/documents/AddDocumentModal';
 import { ColumnModal } from '@/components/documents/ColumnModal';
@@ -36,6 +36,50 @@ export function ProjectPageClient({
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchField, setSearchField] = useState('all');
+
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+  const filteredDocuments = useMemo(() => {
+    if (!normalizedSearchTerm) return documents;
+
+    const matchesValue = (value: unknown) => {
+      if (value === undefined || value === null) return false;
+      const text = typeof value === 'string' ? value : JSON.stringify(value);
+      return text.toLowerCase().includes(normalizedSearchTerm);
+    };
+
+    return documents.filter((doc) => {
+      const values = (doc.values as Record<string, unknown>) || {};
+      const createdDate = new Date(doc.createdAt).toISOString().split('T')[0];
+      const sourceText = `${doc.sourceType} ${doc.sourceUrl || ''}`.trim();
+
+      if (searchField === 'title') {
+        return matchesValue(doc.title);
+      }
+
+      if (searchField === 'source') {
+        return matchesValue(sourceText);
+      }
+
+      if (searchField === 'created') {
+        return matchesValue(createdDate);
+      }
+
+      if (searchField.startsWith('column:')) {
+        const key = searchField.replace('column:', '');
+        return matchesValue(values[key]);
+      }
+
+      return (
+        matchesValue(doc.title) ||
+        matchesValue(sourceText) ||
+        matchesValue(createdDate) ||
+        Object.values(values).some(matchesValue)
+      );
+    });
+  }, [documents, normalizedSearchTerm, searchField]);
 
   useEffect(() => {
     setDocuments(initialDocuments);
@@ -56,6 +100,15 @@ export function ProjectPageClient({
   useEffect(() => {
     setColumns(initialColumns);
   }, [initialColumns]);
+
+  useEffect(() => {
+    if (!searchField.startsWith('column:')) return;
+    const key = searchField.replace('column:', '');
+    const columnExists = columns.some((column) => column.key === key);
+    if (!columnExists) {
+      setSearchField('all');
+    }
+  }, [columns, searchField]);
 
   const handleBulkRun = async (columnId: string) => {
     setBulkRunningColumn(columnId);
@@ -146,16 +199,47 @@ export function ProjectPageClient({
       {/* Knowledge Table */}
       <div className="section">
         <div className="section__header">
-          <h3 className="section__title">Documents</h3>
-          <span style={{ fontSize: '14px', color: 'var(--color-gray-500)' }}>
-            {documents.length} document{documents.length !== 1 ? 's' : ''},{' '}
-            {columns.length} column{columns.length !== 1 ? 's' : ''}
-          </span>
+          <div>
+            <h3 className="section__title">Documents</h3>
+            <span style={{ fontSize: '14px', color: 'var(--color-gray-500)' }}>
+              {filteredDocuments.length} document
+              {filteredDocuments.length !== 1 ? 's' : ''}
+              {filteredDocuments.length !== documents.length && (
+                <> of {documents.length}</>
+              )}
+              , {columns.length} column{columns.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="table__filters">
+            <Input
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search documents"
+              aria-label="Search documents"
+            />
+            <div className="table__filters__field">
+              <Select
+                value={searchField}
+                onValueChange={setSearchField}
+                placeholder="All fields"
+              >
+                <SelectItem value="all">All fields</SelectItem>
+                <SelectItem value="title">Title</SelectItem>
+                <SelectItem value="source">Source</SelectItem>
+                <SelectItem value="created">Created date</SelectItem>
+                {columns.map((column) => (
+                  <SelectItem key={column.id} value={`column:${column.key}`}>
+                    {column.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          </div>
         </div>
 
         <KnowledgeTable
           projectId={project.id}
-          documents={documents as any}
+          documents={filteredDocuments as any}
           columns={columns}
           onRefresh={handleRefresh}
           onEditColumn={setColumnToEdit}
