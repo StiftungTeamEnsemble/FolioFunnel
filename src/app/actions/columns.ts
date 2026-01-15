@@ -199,3 +199,31 @@ export async function reorderColumns(projectId: string, columnIds: string[]) {
     return { error: 'Failed to reorder columns' };
   }
 }
+
+export async function updateColumnVisibility(
+  projectId: string,
+  columnId: string,
+  hidden: boolean
+) {
+  await requireProjectAccess(projectId, [MemberRole.owner, MemberRole.admin]);
+
+  try {
+    const column = await prisma.column.findFirst({
+      where: { id: columnId, projectId },
+    });
+
+    if (!column) {
+      return { error: 'Column not found' };
+    }
+
+    const updated = await prisma.column.update({
+      where: { id: columnId },
+      data: { hidden },
+    });
+
+    return { success: true, column: updated };
+  } catch (error) {
+    console.error('Update column visibility error:', error);
+    return { error: 'Failed to update column visibility' };
+  }
+}
