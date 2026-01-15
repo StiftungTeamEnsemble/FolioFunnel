@@ -1,6 +1,5 @@
 import prisma from '@/lib/db';
 import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
-import { pdfToMarkdown } from './pdf-to-markdown';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
 import { urlToText } from './url-to-text';
@@ -26,7 +25,6 @@ export interface ProcessorResult {
 type ProcessorFunction = (ctx: ProcessorContext) => Promise<ProcessorResult>;
 
 const processors: Record<ProcessorType, ProcessorFunction> = {
-  pdf_to_markdown: pdfToMarkdown,
   pdf_to_markdown_mupdf: pdfToMarkdownMupdf,
   pdf_to_metadata: pdfToMetadata,
   url_to_text: urlToText,

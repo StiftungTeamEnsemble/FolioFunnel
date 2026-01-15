@@ -59,7 +59,7 @@ export function ColumnModal({
   >("text");
   const [mode, setMode] = useState<ColumnMode>("manual");
   const [processorType, setProcessorType] =
-    useState<ProcessorType>("pdf_to_markdown");
+    useState<ProcessorType>("pdf_to_markdown_mupdf");
 
   // Processor config state
   const [metadataField, setMetadataField] = useState("title");
@@ -117,7 +117,7 @@ export function ColumnModal({
       setName("");
       setDataType("text");
       setMode("manual");
-      setProcessorType("pdf_to_markdown");
+      setProcessorType("pdf_to_markdown_mupdf");
       setMetadataField("title");
       setSourceColumnKey("");
       setChunkSize(1000);
@@ -234,7 +234,6 @@ export function ColumnModal({
     switch (dataType) {
       case "text":
         return [
-          { value: "pdf_to_markdown", label: "PDF → Markdown (MarkItDown)" },
           { value: "pdf_to_markdown_mupdf", label: "PDF → Markdown (MuPDF)" },
           { value: "pdf_to_metadata", label: "PDF → Metadata" },
           { value: "url_to_text", label: "URL → Text" },
