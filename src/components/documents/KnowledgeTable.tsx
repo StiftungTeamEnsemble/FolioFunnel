@@ -166,7 +166,7 @@ export function KnowledgeTable({
           <div className="table__hidden-columns__list">
             {hiddenColumns.map((column) => (
               <div key={column.id} className="table__hidden-columns__chip">
-                <span>Hidden {column.name}</span>
+                <span>{column.name}</span>
                 {onEditColumn && (
                   <button
                     type="button"
