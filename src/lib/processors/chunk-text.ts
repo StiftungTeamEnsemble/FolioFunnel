@@ -64,6 +64,15 @@ export async function chunkText(ctx: ProcessorContext): Promise<ProcessorResult>
   const sourceText = values[sourceColumnKey];
   
   if (sourceText === undefined || sourceText === null) {
+    if (storeInChunksTable) {
+      await prisma.chunk.deleteMany({
+        where: {
+          documentId: document.id,
+          sourceColumnKey: column.key,
+        },
+      });
+    }
+
     return { 
       success: true, 
       value: [],
@@ -83,6 +92,15 @@ export async function chunkText(ctx: ProcessorContext): Promise<ProcessorResult>
   }
   
   if (!sourceText || sourceText.trim().length === 0) {
+    if (storeInChunksTable) {
+      await prisma.chunk.deleteMany({
+        where: {
+          documentId: document.id,
+          sourceColumnKey: column.key,
+        },
+      });
+    }
+
     return { 
       success: true, 
       value: [],
