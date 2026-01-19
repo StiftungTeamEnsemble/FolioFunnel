@@ -137,10 +137,92 @@ export function expandTemplate(
   template: string,
   values: Record<string, unknown>
 ): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
-    const value = values[key];
-    if (value === undefined || value === null) return '';
-    if (typeof value === 'string') return value;
-    return JSON.stringify(value);
-  });
+  const resolveValue = (context: Record<string, unknown>, path: string) => {
+    if (path === 'this') return context.this ?? context;
+    if (path === '@index') return context['@index'];
+
+    return path.split('.').reduce<unknown>((current, key) => {
+      if (current === null || current === undefined) return undefined;
+      if (typeof current !== 'object') return undefined;
+      return (current as Record<string, unknown>)[key];
+    }, context);
+  };
+
+  const renderTemplate = (
+    input: string,
+    context: Record<string, unknown>
+  ): string => {
+    let output = input;
+
+    output = output.replace(
+      /{{#each\s+([^}]+)}}([\s\S]*?){{\/each}}/g,
+      (_, rawPath, inner) => {
+        const path = rawPath.trim();
+        const value = resolveValue(context, path);
+        if (!Array.isArray(value)) return '';
+
+        return value
+          .map((item, index) => {
+            const childContext =
+              item && typeof item === 'object'
+                ? { ...context, ...(item as Record<string, unknown>) }
+                : { ...context };
+
+            childContext.this = item;
+            childContext['@index'] = index;
+
+            return renderTemplate(inner, childContext);
+          })
+          .join('');
+      }
+    );
+
+    output = output.replace(
+      /{{#if\s+([^}]+)}}([\s\S]*?)(?:{{else}}([\s\S]*?))?{{\/if}}/g,
+      (_, rawPath, truthyBlock, falsyBlock) => {
+        const path = rawPath.trim();
+        const value = resolveValue(context, path);
+        if (value) {
+          return renderTemplate(truthyBlock, context);
+        }
+        return falsyBlock ? renderTemplate(falsyBlock, context) : '';
+      }
+    );
+
+    output = output.replace(
+      /{{{?\s*truncate\s+([^}\s]+)\s+(\d+)\s*}}}?/g,
+      (_, rawPath, rawLength) => {
+        const path = rawPath.trim();
+        const value = resolveValue(context, path);
+        if (value === undefined || value === null) return '';
+        const length = Number(rawLength);
+        if (!Number.isFinite(length) || length <= 0) return '';
+
+        const text =
+          typeof value === 'string' ? value : JSON.stringify(value);
+        if (text.length <= length) return text;
+        return text.slice(0, length);
+      }
+    );
+
+    output = output.replace(/{{{\s*([^}]+)\s*}}}/g, (_, rawPath) => {
+      const path = rawPath.trim();
+      const value = resolveValue(context, path);
+      if (value === undefined || value === null) return '';
+      if (typeof value === 'string') return value;
+      return JSON.stringify(value);
+    });
+
+    output = output.replace(/{{\s*([^#/{][^}]*)}}/g, (_, rawPath) => {
+      const path = rawPath.trim();
+      const value = resolveValue(context, path);
+      if (value === undefined || value === null) return '';
+      if (typeof value === 'string') return value;
+      return JSON.stringify(value);
+    });
+
+    return output;
+  };
+
+  return renderTemplate(template, values);
 }

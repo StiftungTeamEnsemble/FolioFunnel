@@ -55,11 +55,17 @@ export async function aiTransform(ctx: ProcessorContext): Promise<ProcessorResul
   try {
     // Build context values from document
     const values = (document.values as Record<string, unknown>) || {};
-    const contextValues: Record<string, unknown> = {
+    const documentContext: Record<string, unknown> = {
+      id: document.id,
       title: document.title,
       sourceType: document.sourceType,
       sourceUrl: document.sourceUrl,
       ...values,
+    };
+
+    const contextValues: Record<string, unknown> = {
+      document: documentContext,
+      ...documentContext,
     };
     
     // Expand template
