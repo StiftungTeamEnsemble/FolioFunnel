@@ -43,33 +43,40 @@ export function DeleteProjectButton({ projectId, projectName, isOwner }: DeleteP
     setOpen(true);
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    setError(null);
+  };
+
   return (
     <>
-      <button
-        onClick={handleClick}
-        style={{
-          padding: '4px 8px',
-          fontSize: '13px',
-          color: 'var(--color-red-600)',
-          backgroundColor: 'transparent',
-          border: '1px solid var(--color-red-200)',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = 'var(--color-red-50)';
-          e.currentTarget.style.borderColor = 'var(--color-red-300)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = 'transparent';
-          e.currentTarget.style.borderColor = 'var(--color-red-200)';
-        }}
-      >
-        Delete
-      </button>
+      <div onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={handleClick}
+          style={{
+            padding: '4px 8px',
+            fontSize: '13px',
+            color: 'var(--color-red-600)',
+            backgroundColor: 'transparent',
+            border: '1px solid var(--color-red-200)',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--color-red-50)';
+            e.currentTarget.style.borderColor = 'var(--color-red-300)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.borderColor = 'var(--color-red-200)';
+          }}
+        >
+          Delete
+        </button>
+      </div>
 
-      <Modal open={open} onOpenChange={setOpen}>
+      <Modal open={open} onOpenChange={handleOpenChange}>
         <ModalContent title="Delete Project" size="sm">
           <div className="form">
             {error && (
@@ -85,11 +92,21 @@ export function DeleteProjectButton({ projectId, projectName, isOwner }: DeleteP
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(false);
+                }}
               >
                 Cancel
               </Button>
-              <Button variant="danger" isLoading={loading} onClick={handleDelete}>
+              <Button 
+                variant="danger" 
+                isLoading={loading} 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete();
+                }}
+              >
                 Delete Project
               </Button>
             </ModalFooter>
