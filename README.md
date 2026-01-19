@@ -53,3 +53,10 @@ rm -rf ./prisma/migrations
 # then 
 npm run db:migrate:docker -- --name init
 ```
+
+
+
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npx prisma migrate dev --name "add pdf thumbnail processor"
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npx prisma migrate status
