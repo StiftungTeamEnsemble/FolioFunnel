@@ -20,40 +20,47 @@ export interface ModelConfig {
 // Chat/Completion models
 export const CHAT_MODELS: ModelConfig[] = [
   {
+    id: 'gpt-5-nano',
+    name: 'GPT-5 nano',
+    tiktokenModel: 'gpt-5',
+    category: 'chat',
+    contextWindow: 400000,
+  },
+  {
     id: 'gpt-4o-mini',
     name: 'GPT-4o Mini',
     tiktokenModel: 'gpt-4o',
     category: 'chat',
     contextWindow: 128000,
   },
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    tiktokenModel: 'gpt-4o',
-    category: 'chat',
-    contextWindow: 128000,
-  },
-  {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    tiktokenModel: 'gpt-4-turbo',
-    category: 'chat',
-    contextWindow: 128000,
-  },
-  {
-    id: 'gpt-4',
-    name: 'GPT-4',
-    tiktokenModel: 'gpt-4',
-    category: 'chat',
-    contextWindow: 8192,
-  },
-  {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    tiktokenModel: 'gpt-3.5-turbo',
-    category: 'chat',
-    contextWindow: 16385,
-  },
+  // {
+  //   id: 'gpt-4o',
+  //   name: 'GPT-4o',
+  //   tiktokenModel: 'gpt-4o',
+  //   category: 'chat',
+  //   contextWindow: 128000,
+  // },
+  // {
+  //   id: 'gpt-4-turbo',
+  //   name: 'GPT-4 Turbo',
+  //   tiktokenModel: 'gpt-4-turbo',
+  //   category: 'chat',
+  //   contextWindow: 128000,
+  // },
+  // {
+  //   id: 'gpt-4',
+  //   name: 'GPT-4',
+  //   tiktokenModel: 'gpt-4',
+  //   category: 'chat',
+  //   contextWindow: 8192,
+  // },
+  // {
+  //   id: 'gpt-3.5-turbo',
+  //   name: 'GPT-3.5 Turbo',
+  //   tiktokenModel: 'gpt-3.5-turbo',
+  //   category: 'chat',
+  //   contextWindow: 16385,
+  // },
 ];
 
 // Embedding models
@@ -122,5 +129,5 @@ export function getTiktokenModel(modelId: string): string {
 /**
  * Default models
  */
-export const DEFAULT_CHAT_MODEL = 'gpt-4o-mini';
+export const DEFAULT_CHAT_MODEL = 'gpt-5-nano';
 export const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small';
