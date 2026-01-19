@@ -29,6 +29,14 @@
   position: relative;
 }
 
+.table__header-cell--sticky-right {
+  position: sticky;
+  right: 0;
+  background-color: var(--color-gray-50);
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
 .table__header-cell--sortable {
   cursor: pointer;
   user-select: none;
@@ -103,6 +111,19 @@
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative;
+}
+
+.table__cell--sticky-right {
+  position: sticky;
+  right: 0;
+  background-color: white;
+  box-shadow: -2px 0 4px rgba(0, 0, 0, 0.05);
+  z-index: 9;
+  min-width: 100px;
+}
+
+.table__row:hover .table__cell--sticky-right {
+  background-color: var(--color-gray-50);
 }
 
 .table__cell__content {
@@ -266,6 +287,13 @@
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
+}
+
+.table__cell__actions--vertical {
+  position: static;
+  flex-direction: column;
+  transform: none;
+  gap: 8px;
 }
 
 .table__cell--editable .table__cell__actions {

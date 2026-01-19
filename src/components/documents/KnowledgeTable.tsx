@@ -234,7 +234,7 @@ export function KnowledgeTable({
                 </div>
               </th>
             ))}
-            <th className="table__header-cell">Actions</th>
+            <th className="table__header-cell table__header-cell--sticky-right">Actions</th>
           </tr>
         </thead>
         <tbody className="table__body">
@@ -445,8 +445,8 @@ export function KnowledgeTable({
                   </td>
                 );
               })}
-              <td className="table__cell">
-                <div className="table__cell__actions">
+              <td className="table__cell table__cell--sticky-right">
+                <div className="table__cell__actions table__cell__actions--vertical">
                   <Button
                     size="sm"
                     variant="ghost"
