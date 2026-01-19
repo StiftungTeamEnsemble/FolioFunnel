@@ -79,6 +79,7 @@ body {
   line-height: 1.5;
   color: var(--color-gray-900);
   background-color: var(--color-gray-50);
+  overflow-x: hidden;
 }
 
 /* Focus styles */
@@ -142,16 +143,21 @@ h4 {
 .app-layout {
   display: flex;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .app-layout__main {
   flex: 1;
   margin-left: 260px;
   min-height: 100vh;
+  max-width: calc(100vw - 260px);
+  overflow-x: hidden;
 }
 
 .page {
   padding: 32px;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .page__header {
