@@ -433,7 +433,7 @@ export function ColumnModal({
                   label="Prompt Template"
                   htmlFor="promptTemplate"
                   required
-                  hint="Use {{columnKey}} to reference other columns"
+                  hint="Use {{document.columnKey}} to reference other columns. Use {{truncate document.columnKey 200}} to truncate."
                 >
                   <Textarea
                     id="promptTemplate"
