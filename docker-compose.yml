@@ -82,7 +82,7 @@ services:
       DATA_DIR: /data
     volumes:
       - ./data/documents:/data
-    command: ["sh", "-c", "npx prisma db push --skip-generate && tsx src/lib/worker/index.ts"]
+    command: ["sh", "-c", "npx prisma migrate deploy && tsx src/lib/worker/index.ts"]
     depends_on:
       postgres:
         condition: service_healthy
