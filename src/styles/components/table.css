@@ -134,12 +134,11 @@
 }
 
 .table__cell__thumbnail {
-  width: 40px;
-  height: 56px;
+  width: 3.5rem;
+  height: auto;
   flex-shrink: 0;
   border-radius: 4px;
   border: 1px solid var(--color-gray-200);
-  object-fit: cover;
   background-color: var(--color-gray-50);
 }
 
