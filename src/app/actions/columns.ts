@@ -21,9 +21,12 @@ const createColumnSchema = z.object({
     'create_embeddings',
     'ai_transform',
     'count_tokens',
-  ]).optional(),
+  ]).nullable().optional(),
   processorConfig: z.record(z.unknown()).optional(),
-});
+}).refine(
+  (data) => data.mode === 'manual' || data.processorType,
+  { message: 'Processor type is required when mode is processor', path: ['processorType'] }
+);
 
 export async function createColumn(projectId: string, formData: FormData) {
   await requireProjectAccess(projectId, [MemberRole.owner, MemberRole.admin]);

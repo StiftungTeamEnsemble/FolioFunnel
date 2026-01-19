@@ -10,6 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:docker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npx prisma migrate dev",
     "db:migrate:resolve:docker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npx prisma migrate resolve --rolled-back 20250115120000_add_column_hidden",
+    "db:push:docker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npx prisma db push",
+    "db:generate:docker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npm run db:generate",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
