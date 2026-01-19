@@ -15,7 +15,7 @@ import { z } from 'zod';
 
 const createDocumentFromUrlSchema = z.object({
   url: z.string().url('Invalid URL'),
-  title: z.string().min(1).optional(),
+  title: z.string().min(1).optional().or(z.literal('')),
 });
 
 export async function createDocumentFromUpload(

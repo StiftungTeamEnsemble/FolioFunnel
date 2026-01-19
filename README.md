@@ -32,3 +32,15 @@ npm run docker:dev
 ---
 
  cd "/Users/DATA/TEAM ENSEMBLE/CODE/FolioFunnel" && docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache document-converter
+
+
+---
+
+Reset db:
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npx prisma migrate reset --force
+
+---
+
+init migration:
+npm run db:migrate:docker -- --name init
