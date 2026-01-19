@@ -17,7 +17,7 @@ CREATE TYPE "ColumnType" AS ENUM ('text', 'number', 'text_array', 'number_array'
 CREATE TYPE "ColumnMode" AS ENUM ('manual', 'processor');
 
 -- CreateEnum
-CREATE TYPE "ProcessorType" AS ENUM ('pdf_to_markdown_mupdf', 'pdf_to_metadata', 'url_to_text', 'url_to_markdown', 'chunk_text', 'create_embeddings', 'ai_transform', 'count_tokens');
+CREATE TYPE "ProcessorType" AS ENUM ('document_to_markdown', 'document_to_metadata', 'pdf_to_markdown_mupdf', 'pdf_to_metadata', 'url_to_markdown', 'chunk_text', 'create_embeddings', 'ai_transform', 'count_tokens');
 
 -- CreateEnum
 CREATE TYPE "RunStatus" AS ENUM ('queued', 'running', 'success', 'error');

@@ -44,3 +44,12 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npx
 
 init migration:
 npm run db:migrate:docker -- --name init
+
+--- reset migration:
+
+```sh
+# delete migration folder
+rm -rf ./prisma/migrations 
+# then 
+npm run db:migrate:docker -- --name init
+```

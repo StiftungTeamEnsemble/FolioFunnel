@@ -14,17 +14,14 @@ const createColumnSchema = z.object({
   processorType: z.enum([
     'document_to_markdown',
     'document_to_metadata',
-    'pdf_to_markdown',
     'pdf_to_markdown_mupdf',
     'pdf_to_metadata',
-    'url_to_text',
     'url_to_markdown',
     'chunk_text',
     'create_embeddings',
     'ai_transform',
     'count_tokens',
   ]).optional(),
-  processorType: z.enum(['pdf_to_markdown_mupdf', 'pdf_to_metadata', 'url_to_text', 'chunk_text', 'create_embeddings', 'openai_transform', 'count_tokens']).optional(),
   processorConfig: z.record(z.unknown()).optional(),
 });
 

@@ -239,10 +239,8 @@ export function ColumnModal({
         return [
           { value: "document_to_markdown", label: "Document → Markdown" },
           { value: "document_to_metadata", label: "Document → Metadata" },
-          { value: "pdf_to_markdown", label: "PDF → Markdown (MarkItDown)" },
           { value: "pdf_to_markdown_mupdf", label: "PDF → Markdown (MuPDF)" },
           { value: "pdf_to_metadata", label: "PDF → Metadata" },
-          { value: "url_to_text", label: "URL → Text" },
           { value: "url_to_markdown", label: "URL → Markdown" },
           { value: "ai_transform", label: "AI Transform" },
         ];
