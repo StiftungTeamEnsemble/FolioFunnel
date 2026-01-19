@@ -1,4 +1,5 @@
 import prisma from '@/lib/db';
+import Handlebars from 'handlebars';
 import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
@@ -139,10 +140,17 @@ export function expandTemplate(
   template: string,
   values: Record<string, unknown>
 ): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
-    const value = values[key];
+  const handlebars = Handlebars.create();
+  handlebars.registerHelper('truncate', (value: unknown, length: number) => {
     if (value === undefined || value === null) return '';
-    if (typeof value === 'string') return value;
-    return JSON.stringify(value);
+    const safeLength = Number(length);
+    if (!Number.isFinite(safeLength) || safeLength <= 0) return '';
+
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    if (text.length <= safeLength) return text;
+    return text.slice(0, safeLength);
   });
+
+  const compiledTemplate = handlebars.compile(template, { noEscape: true });
+  return compiledTemplate(values);
 }
