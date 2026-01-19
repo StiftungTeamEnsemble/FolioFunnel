@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getUserProjects } from '@/lib/session';
 import { Button } from '@/components/ui';
+import { DeleteProjectButton } from '@/components/projects/DeleteProjectButton';
 
 export default async function ProjectsPage() {
   const session = await getServerSession(authOptions);
@@ -82,9 +83,16 @@ export default async function ProjectsPage() {
                   <span className={`badge badge--${project.role === 'owner' ? 'primary' : 'default'}`}>
                     {project.role}
                   </span>
-                  <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>
-                    {new Date(project.updatedAt).toLocaleDateString('de-CH', {year:"numeric",month:"2-digit", day:"2-digit"})}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>
+                      {new Date(project.updatedAt).toLocaleDateString('de-CH', {year:"numeric",month:"2-digit", day:"2-digit"})}
+                    </span>
+                    <DeleteProjectButton 
+                      projectId={project.id} 
+                      projectName={project.name}
+                      isOwner={project.role === 'owner'}
+                    />
+                  </div>
                 </div>
               </div>
             </Link>

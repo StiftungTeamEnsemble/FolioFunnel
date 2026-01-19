@@ -5,6 +5,7 @@ import { requireAuth, getUserProjects, requireProjectAccess } from '@/lib/sessio
 import { MemberRole } from '@prisma/client';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
+import { getProjectDir, deleteDir } from '@/lib/storage';
 
 const createProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(100),
@@ -101,9 +102,14 @@ export async function deleteProject(projectId: string) {
   await requireProjectAccess(projectId, [MemberRole.owner]);
   
   try {
+    // Delete project from database
     await prisma.project.delete({
       where: { id: projectId },
     });
+    
+    // Delete project folder from file system
+    const projectDir = getProjectDir(projectId);
+    await deleteDir(projectDir);
     
     return { success: true };
   } catch (error) {
