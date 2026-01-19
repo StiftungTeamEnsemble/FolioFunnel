@@ -189,6 +189,7 @@ enum ProcessorType {
   document_to_metadata
   pdf_to_markdown_mupdf
   pdf_to_metadata
+  pdf_to_thumbnail_mupdf
   url_to_markdown
   chunk_text
   create_embeddings

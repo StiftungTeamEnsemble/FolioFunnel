@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireProjectAccess } from '@/lib/session';
 import { writeFile, getDocumentSourcePath } from '@/lib/storage';
+import { enqueuePdfThumbnailRun } from '@/lib/thumbnail-processing';
 import prisma from '@/lib/db';
 import { SourceType } from '@prisma/client';
 
@@ -43,6 +44,16 @@ export async function POST(
       where: { id: document.id },
       data: { filePath },
     });
+
+    const isPdf =
+      file.type === 'application/pdf' || extension.toLowerCase() === 'pdf';
+    if (isPdf) {
+      try {
+        await enqueuePdfThumbnailRun(params.projectId, document.id);
+      } catch (error) {
+        console.error('Thumbnail enqueue error:', error);
+      }
+    }
     
     return NextResponse.json({ success: true, document: { ...document, filePath } });
   } catch (error) {

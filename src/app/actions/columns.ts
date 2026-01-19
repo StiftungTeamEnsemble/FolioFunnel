@@ -15,6 +15,7 @@ const createColumnSchema = z.object({
     'document_to_markdown',
     'document_to_metadata',
     'pdf_to_markdown_mupdf',
+    'pdf_to_thumbnail_mupdf', 
     'pdf_to_metadata',
     'url_to_markdown',
     'chunk_text',
