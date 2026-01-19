@@ -241,29 +241,31 @@ export function KnowledgeTable({
           {documents.map((doc) => (
             <tr key={doc.id} className="table__row">
               <td className="table__cell">
-                <div className="table__cell__content">
-                  {(() => {
-                    const values = (doc.values as Record<string, unknown>) || {};
-                    const thumbnailValue = values[PDF_THUMBNAIL_COLUMN_KEY];
-                    const hasThumbnail =
-                      typeof thumbnailValue === 'string' && thumbnailValue.length > 0;
+                <div className="table__cell__layout">
+                  <div className="table__cell__main">
+                    {(() => {
+                      const values = (doc.values as Record<string, unknown>) || {};
+                      const thumbnailValue = values[PDF_THUMBNAIL_COLUMN_KEY];
+                      const hasThumbnail =
+                        typeof thumbnailValue === 'string' && thumbnailValue.length > 0;
 
-                    if (!hasThumbnail) {
-                      return null;
-                    }
+                      if (!hasThumbnail) {
+                        return null;
+                      }
 
-                    return (
-                      <img
-                        src={getDocumentThumbnailUrl(projectId, doc.id)}
-                        alt=""
-                        className="table__cell__thumbnail"
-                        loading="lazy"
-                        aria-hidden="true"
-                      />
-                    );
-                  })()}
-                  <span className="table__cell__value">{doc.title}</span>
-                  <div className="table__cell__actions">
+                      return (
+                        <img
+                          src={getDocumentThumbnailUrl(projectId, doc.id)}
+                          alt=""
+                          className="table__cell__thumbnail"
+                          loading="lazy"
+                          aria-hidden="true"
+                        />
+                      );
+                    })()}
+                    <span className="table__cell__value">{doc.title}</span>
+                  </div>
+                  <div className="table__cell__footer">
                     <button
                       type="button"
                       className="table__cell__copy"
@@ -276,19 +278,21 @@ export function KnowledgeTable({
                 </div>
               </td>
               <td className="table__cell">
-                <div className="table__cell__content">
-                  <span className="table__cell__value">
-                    {doc.sourceType === 'url' ? (
-                      <a href={doc.sourceUrl || '#'} target="_blank" rel="noopener">
-                        {doc.sourceUrl
-                          ? new URL(doc.sourceUrl).hostname
-                          : 'URL'}
-                      </a>
-                    ) : (
-                      'Upload'
-                    )}
-                  </span>
-                  <div className="table__cell__actions">
+                <div className="table__cell__layout">
+                  <div className="table__cell__main">
+                    <span className="table__cell__value">
+                      {doc.sourceType === 'url' ? (
+                        <a href={doc.sourceUrl || '#'} target="_blank" rel="noopener">
+                          {doc.sourceUrl
+                            ? new URL(doc.sourceUrl).hostname
+                            : 'URL'}
+                        </a>
+                      ) : (
+                        'Upload'
+                      )}
+                    </span>
+                  </div>
+                  <div className="table__cell__footer">
                     <button
                       type="button"
                       className="table__cell__copy"
@@ -303,11 +307,13 @@ export function KnowledgeTable({
                 </div>
               </td>
               <td className="table__cell">
-                <div className="table__cell__content">
-                  <span className="table__cell__value">
-                    {new Date(doc.createdAt).toISOString().split('T')[0]}
-                  </span>
-                  <div className="table__cell__actions">
+                <div className="table__cell__layout">
+                  <div className="table__cell__main">
+                    <span className="table__cell__value">
+                      {new Date(doc.createdAt).toISOString().split('T')[0]}
+                    </span>
+                  </div>
+                  <div className="table__cell__footer">
                     <button
                       type="button"
                       className="table__cell__copy"
@@ -359,11 +365,13 @@ export function KnowledgeTable({
                           </Button>
                         </div>
                       ) : (
-                        <div className="table__cell__content">
-                          <span className="table__cell__value">
-                            {cellValue || '—'}
-                          </span>
-                          <div className="table__cell__actions">
+                        <div className="table__cell__layout">
+                          <div className="table__cell__main">
+                            <span className="table__cell__value">
+                              {cellValue || '—'}
+                            </span>
+                          </div>
+                          <div className="table__cell__footer">
                             <button
                               type="button"
                               className="table__cell__copy"
@@ -387,59 +395,59 @@ export function KnowledgeTable({
                 
                 return (
                   <td key={column.id} className={`table__cell table__cell--processor ${displayStatus ? `table__cell--${displayStatus}` : ''}`}>
-                    <div className="table__cell__processor-content">
-                      {/* Status indicator */}
-                      <div className="table__cell__status">
-                        <StatusIcon status={displayStatus || 'pending'} />
-                        <span className="table__cell__status-label">
-                          {displayStatus === 'running' && 'Processing...'}
-                          {displayStatus === 'queued' && 'Queued'}
-                          {displayStatus === 'success' && !cellValue && 'Done'}
-                          {displayStatus === 'error' && 'Error'}
-                          {!displayStatus && 'Not run'}
-                        </span>
-                      </div>
-                      
-                      {/* Value or error */}
-                      <div className="table__cell__value-container">
+                    <div className="table__cell__layout">
+                      {/* Line 1: Value or error */}
+                      <div className="table__cell__main">
                         {cellValue ? (
                           <span className="table__cell__value" title={cellValue}>
-                            {cellValue.length > 100 ? cellValue.slice(0, 100) + '...' : cellValue}
+                            {cellValue}
                           </span>
                         ) : runInfo?.error ? (
                           <span className="table__cell__error" title={runInfo.error}>
-                            {runInfo.error.length > 50 ? runInfo.error.slice(0, 50) + '...' : runInfo.error}
+                            {runInfo.error}
                           </span>
                         ) : (
-                          <span style={{ color: 'var(--color-gray-400)' }}>
+                          <span className="table__cell__value table__cell__value--placeholder">
                             Not processed
                           </span>
                         )}
                       </div>
                       
-                      {/* Action buttons */}
-                      <div className="table__cell__actions">
-                        <button
-                          type="button"
-                          className="table__cell__copy"
-                          onClick={() => handleCopy(cellValue)}
-                          aria-label={`Copy ${column.name}`}
-                        >
-                          Copy
-                        </button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          isLoading={isRunning}
-                          disabled={displayStatus === 'queued' || displayStatus === 'running'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRunProcessor(doc.id, column.id);
-                          }}
-                          title={runInfo ? `Rerun ${column.name}` : `Run ${column.name}`}
-                        >
-                          {displayStatus === 'queued' ? '⏳' : displayStatus === 'running' ? '⚙️' : runInfo ? '🔄' : '▶️'}
-                        </Button>
+                      {/* Line 2: Status + Actions */}
+                      <div className="table__cell__footer">
+                        <div className="table__cell__status">
+                          <StatusIcon status={displayStatus || 'pending'} />
+                          <span className="table__cell__status-label">
+                            Status: {displayStatus === 'running' && 'Processing'}
+                            {displayStatus === 'queued' && 'Queued'}
+                            {displayStatus === 'success' && 'Done'}
+                            {displayStatus === 'error' && 'Error'}
+                            {!displayStatus && 'Not run'}
+                          </span>
+                        </div>
+                        <div className="table__cell__footer-actions">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            isLoading={isRunning}
+                            disabled={displayStatus === 'queued' || displayStatus === 'running'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRunProcessor(doc.id, column.id);
+                            }}
+                            title={runInfo ? `Rerun ${column.name}` : `Run ${column.name}`}
+                          >
+                            {displayStatus === 'queued' ? '⏳' : displayStatus === 'running' ? '⚙️' : runInfo ? '🔄' : '▶️'}
+                          </Button>
+                          <button
+                            type="button"
+                            className="table__cell__copy"
+                            onClick={() => handleCopy(cellValue)}
+                            aria-label={`Copy ${column.name}`}
+                          >
+                            Copy
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </td>

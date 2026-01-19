@@ -237,11 +237,8 @@ export function ColumnModal({
     switch (dataType) {
       case "text":
         return [
-          { value: "document_to_markdown", label: "Document → Markdown" },
+          { value: "document_to_markdown", label: "Document → Text" },
           { value: "document_to_metadata", label: "Document → Metadata" },
-          { value: "pdf_to_markdown_mupdf", label: "PDF → Markdown (MuPDF)" },
-          { value: "pdf_to_metadata", label: "PDF → Metadata" },
-          { value: "url_to_markdown", label: "URL → Markdown" },
           { value: "ai_transform", label: "AI Transform" },
         ];
       case "number":
