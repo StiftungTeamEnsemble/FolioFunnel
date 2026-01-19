@@ -1,9 +1,11 @@
 import prisma from '@/lib/db';
+import Handlebars from 'handlebars';
 import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
 import { pdfToThumbnailMupdf } from './pdf-to-thumbnail-mupdf';
-import { urlToText } from './url-to-text';
+import { documentToMarkdown } from './document-to-markdown';
+import { documentToMetadata } from './document-to-metadata';
 import { urlToMarkdown } from './url-to-markdown';
 import { chunkText } from './chunk-text';
 import { createEmbeddings } from './create-embeddings';
@@ -26,10 +28,11 @@ export interface ProcessorResult {
 type ProcessorFunction = (ctx: ProcessorContext) => Promise<ProcessorResult>;
 
 const processors: Record<ProcessorType, ProcessorFunction> = {
+  document_to_markdown: documentToMarkdown,
+  document_to_metadata: documentToMetadata,
   pdf_to_markdown_mupdf: pdfToMarkdownMupdf,
   pdf_to_metadata: pdfToMetadata,
   pdf_to_thumbnail_mupdf: pdfToThumbnailMupdf,
-  url_to_text: urlToText,
   url_to_markdown: urlToMarkdown,
   chunk_text: chunkText,
   create_embeddings: createEmbeddings,
@@ -139,10 +142,17 @@ export function expandTemplate(
   template: string,
   values: Record<string, unknown>
 ): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
-    const value = values[key];
+  const handlebars = Handlebars.create();
+  handlebars.registerHelper('truncate', (value: unknown, length: number) => {
     if (value === undefined || value === null) return '';
-    if (typeof value === 'string') return value;
-    return JSON.stringify(value);
+    const safeLength = Number(length);
+    if (!Number.isFinite(safeLength) || safeLength <= 0) return '';
+
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    if (text.length <= safeLength) return text;
+    return text.slice(0, safeLength);
   });
+
+  const compiledTemplate = handlebars.compile(template, { noEscape: true });
+  return compiledTemplate(values);
 }
