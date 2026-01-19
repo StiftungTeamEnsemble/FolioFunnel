@@ -369,6 +369,23 @@
   color: var(--color-gray-800);
 }
 
+/* Table filters */
+.table__filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.table__filters .input {
+  min-width: 220px;
+}
+
+.table__filters__field {
+  min-width: 200px;
+}
+
 /* Column actions */
 .table__column-menu {
   display: flex;

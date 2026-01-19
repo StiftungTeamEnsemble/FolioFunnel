@@ -1,6 +1,5 @@
 import prisma from '@/lib/db';
 import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
-import { pdfToMarkdown } from './pdf-to-markdown';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
 import { documentToMarkdown } from './document-to-markdown';

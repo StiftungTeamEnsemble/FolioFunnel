@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Column, Document, RunStatus } from '@prisma/client';
 import { Button } from '@/components/ui';
 import { updateDocumentValue } from '@/app/actions/documents';
+import { updateColumnVisibility } from '@/app/actions/columns';
 import { triggerProcessorRun } from '@/app/actions/runs';
 import { DocumentDetailModal } from '@/components/documents/DocumentDetailModal';
 import '@/styles/components/table.css';
@@ -40,59 +41,26 @@ export function KnowledgeTable({
   } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [runningCells, setRunningCells] = useState<Set<string>>(new Set());
-  const [hiddenColumnIds, setHiddenColumnIds] = useState<Set<string>>(new Set());
   const [detailDocument, setDetailDocument] = useState<Document | null>(null);
 
-  const storageKey = `project:${projectId}:hidden-columns`;
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(storageKey);
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        setHiddenColumnIds(new Set(parsed));
-      }
-    } catch {
-      setHiddenColumnIds(new Set());
-    }
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(storageKey, JSON.stringify(Array.from(hiddenColumnIds)));
-  }, [hiddenColumnIds, storageKey]);
-
-  useEffect(() => {
-    setHiddenColumnIds((prev) => {
-      const columnIds = new Set(columns.map((column) => column.id));
-      const next = new Set(Array.from(prev).filter((id) => columnIds.has(id)));
-      if (next.size === prev.size) return prev;
-      return next;
-    });
-  }, [columns]);
-
   const visibleColumns = useMemo(
-    () => columns.filter((column) => !hiddenColumnIds.has(column.id)),
-    [columns, hiddenColumnIds]
+    () => columns.filter((column) => !column.hidden),
+    [columns]
   );
 
   const hiddenColumns = useMemo(
-    () => columns.filter((column) => hiddenColumnIds.has(column.id)),
-    [columns, hiddenColumnIds]
+    () => columns.filter((column) => column.hidden),
+    [columns]
   );
 
-  const handleHideColumn = (columnId: string) => {
-    setHiddenColumnIds((prev) => new Set(prev).add(columnId));
+  const handleHideColumn = async (columnId: string) => {
+    await updateColumnVisibility(projectId, columnId, true);
+    onRefresh();
   };
 
-  const handleShowColumn = (columnId: string) => {
-    setHiddenColumnIds((prev) => {
-      const next = new Set(prev);
-      next.delete(columnId);
-      return next;
-    });
+  const handleShowColumn = async (columnId: string) => {
+    await updateColumnVisibility(projectId, columnId, false);
+    onRefresh();
   };
 
   const handleCopy = async (value: string) => {
@@ -197,14 +165,25 @@ export function KnowledgeTable({
           <span className="table__hidden-columns__label">Hidden columns:</span>
           <div className="table__hidden-columns__list">
             {hiddenColumns.map((column) => (
-              <button
-                key={column.id}
-                type="button"
-                className="table__hidden-columns__chip"
-                onClick={() => handleShowColumn(column.id)}
-              >
-                Show {column.name}
-              </button>
+              <div key={column.id} className="table__hidden-columns__chip">
+                <span>Hidden {column.name}</span>
+                {onEditColumn && (
+                  <button
+                    type="button"
+                    className="table__column-menu__trigger"
+                    onClick={() => onEditColumn(column)}
+                  >
+                    Edit
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="table__column-menu__trigger"
+                  onClick={() => handleShowColumn(column.id)}
+                >
+                  Show
+                </button>
+              </div>
             ))}
           </div>
         </div>

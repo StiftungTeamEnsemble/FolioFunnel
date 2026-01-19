@@ -207,6 +207,7 @@ model Column {
   mode            ColumnMode    @default(manual)
   processorType   ProcessorType? @map("processor_type")
   processorConfig Json?         @map("processor_config") @db.JsonB
+  hidden          Boolean       @default(false)
   position        Int           @default(0)
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
