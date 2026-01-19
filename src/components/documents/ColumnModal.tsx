@@ -438,7 +438,7 @@ export function ColumnModal({
                   <Textarea
                     id="promptTemplate"
                     name="promptTemplate"
-                    placeholder="Summarize the following document:\n\n{{markdown}}"
+                    placeholder="Summarize the following document:\n\n{{document.columnKey}}"
                     value={promptTemplate}
                     onChange={(e) => setPromptTemplate(e.target.value)}
                     rows={4}
