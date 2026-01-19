@@ -3,6 +3,7 @@ import Handlebars from 'handlebars';
 import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
 import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
 import { pdfToMetadata } from './pdf-to-metadata';
+import { pdfToThumbnailMupdf } from './pdf-to-thumbnail-mupdf';
 import { documentToMarkdown } from './document-to-markdown';
 import { documentToMetadata } from './document-to-metadata';
 import { urlToMarkdown } from './url-to-markdown';
@@ -31,6 +32,7 @@ const processors: Record<ProcessorType, ProcessorFunction> = {
   document_to_metadata: documentToMetadata,
   pdf_to_markdown_mupdf: pdfToMarkdownMupdf,
   pdf_to_metadata: pdfToMetadata,
+  pdf_to_thumbnail_mupdf: pdfToThumbnailMupdf,
   url_to_markdown: urlToMarkdown,
   chunk_text: chunkText,
   create_embeddings: createEmbeddings,
