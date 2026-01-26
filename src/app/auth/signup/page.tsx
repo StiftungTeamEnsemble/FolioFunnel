@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button, Input, InputGroup } from '@/components/ui';
-import { signUp } from '@/app/actions/auth';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button, Input, InputGroup } from "@/components/ui";
+import { signUp } from "@/app/actions/auth";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -25,7 +25,7 @@ export default function SignUpPage() {
       return;
     }
 
-    router.push('/auth/signin?registered=true');
+    router.push("/auth/signin?registered=true");
   };
 
   return (
@@ -40,18 +40,20 @@ export default function SignUpPage() {
         <p className="auth-card__subtitle">Get started with FolioFunnel</p>
 
         {error && (
-          <div style={{ color: 'var(--color-error)', textAlign: 'center', marginBottom: '16px' }}>
+          <div
+            style={{
+              color: "var(--color-error)",
+              textAlign: "center",
+              marginBottom: "16px",
+            }}
+          >
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="form">
           <InputGroup label="Name" htmlFor="name">
-            <Input
-              id="name"
-              name="name"
-              placeholder="Your name"
-            />
+            <Input id="name" name="name" placeholder="Your name" />
           </InputGroup>
 
           <InputGroup label="Email" htmlFor="email" required>
@@ -81,8 +83,7 @@ export default function SignUpPage() {
         </form>
 
         <div className="auth-card__footer">
-          Already have an account?{' '}
-          <Link href="/auth/signin">Sign in</Link>
+          Already have an account? <Link href="/auth/signin">Sign in</Link>
         </div>
       </div>
     </div>

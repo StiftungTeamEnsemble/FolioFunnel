@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import * as SelectPrimitive from '@radix-ui/react-select';
-import '@/styles/components/select.css';
+import { ReactNode } from "react";
+import * as SelectPrimitive from "@radix-ui/react-select";
+import "@/styles/components/select.css";
 
 interface SelectProps {
   value?: string;
@@ -11,7 +11,12 @@ interface SelectProps {
   children: ReactNode;
 }
 
-export function Select({ value, onValueChange, placeholder, children }: SelectProps) {
+export function Select({
+  value,
+  onValueChange,
+  placeholder,
+  children,
+}: SelectProps) {
   return (
     <SelectPrimitive.Root value={value} onValueChange={onValueChange}>
       <SelectPrimitive.Trigger className="select__trigger">
@@ -29,7 +34,11 @@ export function Select({ value, onValueChange, placeholder, children }: SelectPr
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Content className="select__content" position="popper" sideOffset={4}>
+        <SelectPrimitive.Content
+          className="select__content"
+          position="popper"
+          sideOffset={4}
+        >
           <SelectPrimitive.Viewport className="select__viewport">
             {children}
           </SelectPrimitive.Viewport>
@@ -50,7 +59,7 @@ export function SelectItem({ value, children, disabled }: SelectItemProps) {
     <SelectPrimitive.Item
       value={value}
       disabled={disabled}
-      className={`select__item ${disabled ? 'select__item--disabled' : ''}`}
+      className={`select__item ${disabled ? "select__item--disabled" : ""}`}
     >
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
       <SelectPrimitive.ItemIndicator className="select__item-icon">

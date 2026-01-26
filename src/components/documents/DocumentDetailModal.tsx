@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Column, Document } from '@prisma/client';
-import { Modal, ModalContent } from '@/components/ui';
-import '@/styles/components/table.css';
+import { Column, Document } from "@prisma/client";
+import { Modal, ModalContent } from "@/components/ui";
+import "@/styles/components/table.css";
 
 interface DocumentDetailModalProps {
   document: Document | null;
@@ -12,8 +12,8 @@ interface DocumentDetailModalProps {
 }
 
 const formatValue = (value: unknown): string => {
-  if (value === undefined || value === null) return '—';
-  if (typeof value === 'string') return value;
+  if (value === undefined || value === null) return "—";
+  if (typeof value === "string") return value;
   return JSON.stringify(value, null, 2);
 };
 
@@ -30,13 +30,17 @@ export function DocumentDetailModal({
   const extraKeys = Object.keys(values).filter((key) => !columnKeys.has(key));
 
   const sourceLabel =
-    document.sourceType === 'url'
-      ? document.sourceUrl || 'URL'
-      : document.filePath || 'Upload';
+    document.sourceType === "url"
+      ? document.sourceUrl || "URL"
+      : document.filePath || "Upload";
 
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
-      <ModalContent title="Document details" description={document.title} size="lg">
+      <ModalContent
+        title="Document details"
+        description={document.title}
+        size="lg"
+      >
         <div className="document-detail">
           <div className="document-detail__section">
             <h4 className="document-detail__section-title">Metadata</h4>
@@ -51,11 +55,15 @@ export function DocumentDetailModal({
               </div>
               <div className="document-detail__row">
                 <dt>Created</dt>
-                <dd>{new Date(document.createdAt).toISOString().split('T')[0]}</dd>
+                <dd>
+                  {new Date(document.createdAt).toISOString().split("T")[0]}
+                </dd>
               </div>
               <div className="document-detail__row">
                 <dt>Updated</dt>
-                <dd>{new Date(document.updatedAt).toISOString().split('T')[0]}</dd>
+                <dd>
+                  {new Date(document.updatedAt).toISOString().split("T")[0]}
+                </dd>
               </div>
               {document.mimeType && (
                 <div className="document-detail__row">

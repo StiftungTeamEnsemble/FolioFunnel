@@ -1,7 +1,7 @@
-import { redirect } from 'next/navigation';
-import prisma from '@/lib/db';
-import { requireAuth } from '@/lib/session';
-import { ProfileForm } from '@/components/profile/ProfileForm';
+import { redirect } from "next/navigation";
+import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/session";
+import { ProfileForm } from "@/components/profile/ProfileForm";
 
 export default async function ProfilePage() {
   const sessionUser = await requireAuth();
@@ -11,7 +11,7 @@ export default async function ProfilePage() {
   });
 
   if (!user) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
   return (

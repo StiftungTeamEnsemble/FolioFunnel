@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button, Input, InputGroup } from '@/components/ui';
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button, Input, InputGroup } from "@/components/ui";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -17,22 +17,22 @@ export default function SignInPage() {
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-    const result = await signIn('credentials', {
+    const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
 
     if (result?.error) {
-      setError('Invalid email or password');
+      setError("Invalid email or password");
       setLoading(false);
       return;
     }
 
-    router.push('/projects');
+    router.push("/projects");
   };
 
   return (
@@ -44,10 +44,18 @@ export default function SignInPage() {
         </div>
 
         <h1 className="auth-card__title">Welcome back</h1>
-        <p className="auth-card__subtitle">Sign in to your account to continue</p>
+        <p className="auth-card__subtitle">
+          Sign in to your account to continue
+        </p>
 
         {error && (
-          <div style={{ color: 'var(--color-error)', textAlign: 'center', marginBottom: '16px' }}>
+          <div
+            style={{
+              color: "var(--color-error)",
+              textAlign: "center",
+              marginBottom: "16px",
+            }}
+          >
             {error}
           </div>
         )}
@@ -79,8 +87,7 @@ export default function SignInPage() {
         </form>
 
         <div className="auth-card__footer">
-          Don&apos;t have an account?{' '}
-          <Link href="/auth/signup">Sign up</Link>
+          Don&apos;t have an account? <Link href="/auth/signup">Sign up</Link>
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button, Modal, ModalContent, ModalFooter } from '@/components/ui';
-import { deleteDocument } from '@/app/actions/documents';
-import { Document } from '@prisma/client';
+import { useState } from "react";
+import { Button, Modal, ModalContent, ModalFooter } from "@/components/ui";
+import { deleteDocument } from "@/app/actions/documents";
+import { Document } from "@prisma/client";
 
 interface DeleteDocumentModalProps {
   projectId: string;
@@ -45,13 +45,13 @@ export function DeleteDocumentModal({
       <ModalContent title="Delete Document" size="sm">
         <div className="form">
           {error && (
-            <div style={{ color: 'var(--color-error)', marginBottom: '16px' }}>
+            <div style={{ color: "var(--color-error)", marginBottom: "16px" }}>
               {error}
             </div>
           )}
-          <p style={{ marginBottom: '16px' }}>
-            Are you sure you want to delete{' '}
-            <strong>{document?.title ?? 'this document'}</strong>? This will
+          <p style={{ marginBottom: "16px" }}>
+            Are you sure you want to delete{" "}
+            <strong>{document?.title ?? "this document"}</strong>? This will
             permanently remove the document and its stored file.
           </p>
           <ModalFooter>

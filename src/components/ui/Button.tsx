@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { forwardRef, ButtonHTMLAttributes, ReactNode } from 'react';
-import { Slot } from '@radix-ui/react-slot';
-import '@/styles/components/button.css';
+import { forwardRef, ButtonHTMLAttributes, ReactNode } from "react";
+import { Slot } from "@radix-ui/react-slot";
+import "@/styles/components/button.css";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
   isLoading?: boolean;
   isIcon?: boolean;
   fullWidth?: boolean;
@@ -17,9 +17,9 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
-      className = '',
-      variant = 'primary',
-      size = 'md',
+      className = "",
+      variant = "primary",
+      size = "md",
       isLoading = false,
       isIcon = false,
       fullWidth = false,
@@ -28,21 +28,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
-    const Comp = asChild ? Slot : 'button';
+    const Comp = asChild ? Slot : "button";
 
     const classes = [
-      'button',
+      "button",
       `button--${variant}`,
       `button--${size}`,
-      isIcon && 'button--icon',
-      isLoading && 'button--loading',
-      fullWidth && 'button--full',
+      isIcon && "button--icon",
+      isLoading && "button--loading",
+      fullWidth && "button--full",
       className,
     ]
       .filter(Boolean)
-      .join(' ');
+      .join(" ");
 
     // When using asChild with Slot, we can't have multiple children
     // So we render loading state differently
@@ -65,7 +65,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {children}
       </button>
     );
-  }
+  },
 );
 
-Button.displayName = 'Button';
+Button.displayName = "Button";

@@ -1,40 +1,51 @@
-'use client';
+"use client";
 
-import { forwardRef, InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react';
-import * as LabelPrimitive from '@radix-ui/react-label';
-import '@/styles/components/input.css';
+import {
+  forwardRef,
+  InputHTMLAttributes,
+  TextareaHTMLAttributes,
+  ReactNode,
+} from "react";
+import * as LabelPrimitive from "@radix-ui/react-label";
+import "@/styles/components/input.css";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className = '', error, ...props }, ref) => {
-    const classes = ['input', error && 'input--error', className]
+  ({ className = "", error, ...props }, ref) => {
+    const classes = ["input", error && "input--error", className]
       .filter(Boolean)
-      .join(' ');
+      .join(" ");
 
     return <input ref={ref} className={classes} {...props} />;
-  }
+  },
 );
 
-Input.displayName = 'Input';
+Input.displayName = "Input";
 
-export interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextareaProps
+  extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   error?: string;
 }
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className = '', error, ...props }, ref) => {
-    const classes = ['input', 'input--textarea', error && 'input--error', className]
+  ({ className = "", error, ...props }, ref) => {
+    const classes = [
+      "input",
+      "input--textarea",
+      error && "input--error",
+      className,
+    ]
       .filter(Boolean)
-      .join(' ');
+      .join(" ");
 
     return <textarea ref={ref} className={classes} {...props} />;
-  }
+  },
 );
 
-Textarea.displayName = 'Textarea';
+Textarea.displayName = "Textarea";
 
 export interface InputGroupProps {
   label?: string;
@@ -58,7 +69,7 @@ export function InputGroup({
       {label && (
         <LabelPrimitive.Root
           htmlFor={htmlFor}
-          className={`input-group__label ${required ? 'input-group__label--required' : ''}`}
+          className={`input-group__label ${required ? "input-group__label--required" : ""}`}
         >
           {label}
         </LabelPrimitive.Root>

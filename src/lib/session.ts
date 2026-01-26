@@ -1,7 +1,7 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/db';
-import { MemberRole } from '@prisma/client';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/db";
+import { MemberRole } from "@prisma/client";
 
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions);
@@ -14,12 +14,15 @@ export async function getCurrentUser() {
 export async function requireAuth() {
   const user = await getCurrentUser();
   if (!user) {
-    throw new Error('Unauthorized');
+    throw new Error("Unauthorized");
   }
   return user;
 }
 
-export async function getUserProjectMembership(userId: string, projectId: string) {
+export async function getUserProjectMembership(
+  userId: string,
+  projectId: string,
+) {
   return prisma.projectMembership.findUnique({
     where: {
       userId_projectId: {
@@ -32,20 +35,22 @@ export async function getUserProjectMembership(userId: string, projectId: string
 
 export async function requireProjectAccess(
   projectId: string,
-  requiredRoles?: MemberRole[]
+  requiredRoles?: MemberRole[],
 ) {
   const user = await requireAuth();
-  
+
   const membership = await getUserProjectMembership(user.id, projectId);
-  
+
   if (!membership) {
-    throw new Error('Access denied: Not a member of this project');
+    throw new Error("Access denied: Not a member of this project");
   }
-  
+
   if (requiredRoles && !requiredRoles.includes(membership.role)) {
-    throw new Error(`Access denied: Requires one of these roles: ${requiredRoles.join(', ')}`);
+    throw new Error(
+      `Access denied: Requires one of these roles: ${requiredRoles.join(", ")}`,
+    );
   }
-  
+
   return { user, membership };
 }
 
@@ -57,11 +62,11 @@ export async function getUserProjects(userId: string) {
     },
     orderBy: {
       project: {
-        updatedAt: 'desc',
+        updatedAt: "desc",
       },
     },
   });
-  
+
   return memberships.map((m) => ({
     ...m.project,
     role: m.role,

@@ -132,8 +132,12 @@
 }
 
 @keyframes toast-progress {
-  from { width: 100%; }
-  to { width: 0%; }
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
 /* Form Layout */
@@ -168,7 +172,7 @@
 
 .form__divider::before,
 .form__divider::after {
-  content: '';
+  content: "";
   flex: 1;
   height: 1px;
   background-color: var(--color-gray-200);

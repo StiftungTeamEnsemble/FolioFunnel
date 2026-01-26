@@ -1,10 +1,21 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { MemberRole, Project, ProjectMembership } from '@prisma/client';
-import { Button, Input, InputGroup, Select, SelectItem, Textarea } from '@/components/ui';
-import { addProjectMember, removeMember, updateProject } from '@/app/actions/projects';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { MemberRole, Project, ProjectMembership } from "@prisma/client";
+import {
+  Button,
+  Input,
+  InputGroup,
+  Select,
+  SelectItem,
+  Textarea,
+} from "@/components/ui";
+import {
+  addProjectMember,
+  removeMember,
+  updateProject,
+} from "@/app/actions/projects";
 
 interface MemberWithUser extends ProjectMembership {
   user: {
@@ -21,9 +32,9 @@ interface ProjectEditClientProps {
 }
 
 const roleLabels: Record<MemberRole, string> = {
-  owner: 'Owner',
-  admin: 'Admin',
-  member: 'Member',
+  owner: "Owner",
+  admin: "Admin",
+  member: "Member",
 };
 
 export function ProjectEditClient({
@@ -35,14 +46,15 @@ export function ProjectEditClient({
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
-  const [shareEmail, setShareEmail] = useState('');
-  const [shareRole, setShareRole] = useState<'admin' | 'member'>('member');
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareRole, setShareRole] = useState<"admin" | "member">("member");
   const [shareError, setShareError] = useState<string | null>(null);
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
   const currentMemberRole =
-    members.find((member) => member.user.id === currentUserId)?.role ?? MemberRole.member;
+    members.find((member) => member.user.id === currentUserId)?.role ??
+    MemberRole.member;
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -59,7 +71,7 @@ export function ProjectEditClient({
       return;
     }
 
-    setSaveSuccess('Project details updated.');
+    setSaveSuccess("Project details updated.");
     setSaving(false);
     router.refresh();
   };
@@ -79,8 +91,8 @@ export function ProjectEditClient({
       return;
     }
 
-    setShareSuccess('Member added to project.');
-    setShareEmail('');
+    setShareSuccess("Member added to project.");
+    setShareEmail("");
     setSharing(false);
     router.refresh();
   };
@@ -93,9 +105,9 @@ export function ProjectEditClient({
   };
 
   const badgeClass = (role: MemberRole) => {
-    if (role === MemberRole.owner) return 'badge badge--primary';
-    if (role === MemberRole.admin) return 'badge badge--success';
-    return 'badge badge--default';
+    if (role === MemberRole.owner) return "badge badge--primary";
+    if (role === MemberRole.admin) return "badge badge--success";
+    return "badge badge--default";
   };
 
   return (
@@ -108,28 +120,37 @@ export function ProjectEditClient({
           </p>
         </div>
         <div className="page__actions">
-          <Button variant="secondary" onClick={() => router.push(`/projects/${project.id}`)}>
+          <Button
+            variant="secondary"
+            onClick={() => router.push(`/projects/${project.id}`)}
+          >
             Back to Project
           </Button>
         </div>
       </div>
 
       <div className="section">
-        <div className="card" style={{ maxWidth: '640px' }}>
+        <div className="card" style={{ maxWidth: "640px" }}>
           <div className="card__header">
             <div>
               <h2 className="card__title">Project Details</h2>
-              <p className="card__subtitle">Edit the project name and description.</p>
+              <p className="card__subtitle">
+                Edit the project name and description.
+              </p>
             </div>
           </div>
           <div className="card__body">
             {saveError && (
-              <div style={{ color: 'var(--color-error)', marginBottom: '16px' }}>
+              <div
+                style={{ color: "var(--color-error)", marginBottom: "16px" }}
+              >
                 {saveError}
               </div>
             )}
             {saveSuccess && (
-              <div style={{ color: 'var(--color-success)', marginBottom: '16px' }}>
+              <div
+                style={{ color: "var(--color-success)", marginBottom: "16px" }}
+              >
                 {saveSuccess}
               </div>
             )}
@@ -147,7 +168,7 @@ export function ProjectEditClient({
                   id="description"
                   name="description"
                   rows={3}
-                  defaultValue={project.description ?? ''}
+                  defaultValue={project.description ?? ""}
                 />
               </InputGroup>
               <div className="form__actions">
@@ -172,12 +193,16 @@ export function ProjectEditClient({
           </div>
           <div className="card__body">
             {shareError && (
-              <div style={{ color: 'var(--color-error)', marginBottom: '16px' }}>
+              <div
+                style={{ color: "var(--color-error)", marginBottom: "16px" }}
+              >
                 {shareError}
               </div>
             )}
             {shareSuccess && (
-              <div style={{ color: 'var(--color-success)', marginBottom: '16px' }}>
+              <div
+                style={{ color: "var(--color-success)", marginBottom: "16px" }}
+              >
                 {shareSuccess}
               </div>
             )}
@@ -195,7 +220,12 @@ export function ProjectEditClient({
               </InputGroup>
               <InputGroup label="Role" required>
                 <input type="hidden" name="role" value={shareRole} />
-                <Select value={shareRole} onValueChange={(value) => setShareRole(value as 'admin' | 'member')}>
+                <Select
+                  value={shareRole}
+                  onValueChange={(value) =>
+                    setShareRole(value as "admin" | "member")
+                  }
+                >
                   <SelectItem value="member">Member</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </Select>
@@ -213,8 +243,8 @@ export function ProjectEditClient({
       <div className="section">
         <div className="section__header">
           <h3 className="section__title">Project Members</h3>
-          <span style={{ fontSize: '14px', color: 'var(--color-gray-500)' }}>
-            {members.length} member{members.length !== 1 ? 's' : ''}
+          <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
+            {members.length} member{members.length !== 1 ? "s" : ""}
           </span>
         </div>
         <div className="table-wrapper">
@@ -238,14 +268,19 @@ export function ProjectEditClient({
                 return (
                   <tr key={member.id} className="table__row">
                     <td className="table__cell">
-                      {member.user.name || 'Unknown'}
+                      {member.user.name || "Unknown"}
                       {isCurrentUser && (
-                        <span style={{ marginLeft: '8px', color: 'var(--color-gray-500)' }}>
+                        <span
+                          style={{
+                            marginLeft: "8px",
+                            color: "var(--color-gray-500)",
+                          }}
+                        >
                           (You)
                         </span>
                       )}
                     </td>
-                    <td className="table__cell">{member.user.email || '—'}</td>
+                    <td className="table__cell">{member.user.email || "—"}</td>
                     <td className="table__cell">
                       <span className={badgeClass(member.role)}>
                         {roleLabels[member.role]}

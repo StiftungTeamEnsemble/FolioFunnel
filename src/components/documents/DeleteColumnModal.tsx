@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button, Modal, ModalContent, ModalFooter } from '@/components/ui';
-import { deleteColumn } from '@/app/actions/columns';
-import { Column } from '@prisma/client';
+import { useState } from "react";
+import { Button, Modal, ModalContent, ModalFooter } from "@/components/ui";
+import { deleteColumn } from "@/app/actions/columns";
+import { Column } from "@prisma/client";
 
 interface DeleteColumnModalProps {
   projectId: string;
@@ -45,14 +45,14 @@ export function DeleteColumnModal({
       <ModalContent title="Delete Column" size="sm">
         <div className="form">
           {error && (
-            <div style={{ color: 'var(--color-error)', marginBottom: '16px' }}>
+            <div style={{ color: "var(--color-error)", marginBottom: "16px" }}>
               {error}
             </div>
           )}
-          <p style={{ marginBottom: '16px' }}>
-            Are you sure you want to delete{' '}
-            <strong>{column?.name ?? 'this column'}</strong>? This will remove the
-            column from the table and any existing values for it.
+          <p style={{ marginBottom: "16px" }}>
+            Are you sure you want to delete{" "}
+            <strong>{column?.name ?? "this column"}</strong>? This will remove
+            the column from the table and any existing values for it.
           </p>
           <ModalFooter>
             <Button

@@ -1,10 +1,16 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import * as ToastPrimitive from '@radix-ui/react-toast';
-import '@/styles/components/toast.css';
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
+import * as ToastPrimitive from "@radix-ui/react-toast";
+import "@/styles/components/toast.css";
 
-type ToastType = 'success' | 'error' | 'warning' | 'info';
+type ToastType = "success" | "error" | "warning" | "info";
 
 interface Toast {
   id: string;
@@ -14,7 +20,7 @@ interface Toast {
 }
 
 interface ToastContextValue {
-  toast: (options: Omit<Toast, 'id'>) => void;
+  toast: (options: Omit<Toast, "id">) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -22,7 +28,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error("useToast must be used within a ToastProvider");
   }
   return context;
 }
@@ -34,7 +40,7 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const toast = useCallback((options: Omit<Toast, 'id'>) => {
+  const toast = useCallback((options: Omit<Toast, "id">) => {
     const id = Math.random().toString(36).slice(2);
     setToasts((prev) => [...prev, { ...options, id }]);
   }, []);

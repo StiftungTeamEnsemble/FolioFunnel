@@ -1,9 +1,9 @@
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getUserProjects } from '@/lib/session';
-import prisma from '@/lib/db';
-import { Sidebar } from '@/components/layout/Sidebar';
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getUserProjects } from "@/lib/session";
+import prisma from "@/lib/db";
+import { Sidebar } from "@/components/layout/Sidebar";
 
 export default async function ProjectsLayout({
   children,
@@ -13,7 +13,7 @@ export default async function ProjectsLayout({
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
   const projects = await getUserProjects(session.user.id);
@@ -23,7 +23,7 @@ export default async function ProjectsLayout({
   });
 
   if (!user) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
   return (

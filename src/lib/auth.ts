@@ -1,26 +1,26 @@
-import { NextAuthOptions } from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { compare } from 'bcryptjs';
-import prisma from '@/lib/db';
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { compare } from "bcryptjs";
+import prisma from "@/lib/db";
 
 export const authOptions: NextAuthOptions = {
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   pages: {
-    signIn: '/auth/signin',
-    signUp: '/auth/signup',
+    signIn: "/auth/signin",
+    signUp: "/auth/signup",
   },
   providers: [
     CredentialsProvider({
-      name: 'credentials',
+      name: "credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required');
+          throw new Error("Email and password are required");
         }
 
         const user = await prisma.user.findUnique({
@@ -28,13 +28,16 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user || !user.passwordHash) {
-          throw new Error('Invalid email or password');
+          throw new Error("Invalid email or password");
         }
 
-        const isPasswordValid = await compare(credentials.password, user.passwordHash);
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.passwordHash,
+        );
 
         if (!isPasswordValid) {
-          throw new Error('Invalid email or password');
+          throw new Error("Invalid email or password");
         }
 
         return {
@@ -69,7 +72,7 @@ export const authOptions: NextAuthOptions = {
   },
 };
 
-declare module 'next-auth' {
+declare module "next-auth" {
   interface Session {
     user: {
       id: string;
@@ -79,7 +82,7 @@ declare module 'next-auth' {
   }
 }
 
-declare module 'next-auth/jwt' {
+declare module "next-auth/jwt" {
   interface JWT {
     id: string;
   }

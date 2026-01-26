@@ -58,8 +58,9 @@ export function ColumnModal({
     "text" | "number" | "text_array" | "number_array"
   >("text");
   const [mode, setMode] = useState<ColumnMode>("manual");
-  const [processorType, setProcessorType] =
-    useState<ProcessorType>("document_to_markdown");
+  const [processorType, setProcessorType] = useState<ProcessorType>(
+    "document_to_markdown",
+  );
 
   // Processor config state
   const [metadataField, setMetadataField] = useState("title");

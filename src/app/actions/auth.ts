@@ -1,19 +1,19 @@
-'use server';
+"use server";
 
-import { hash } from 'bcryptjs';
-import prisma from '@/lib/db';
-import { z } from 'zod';
+import { hash } from "bcryptjs";
+import prisma from "@/lib/db";
+import { z } from "zod";
 
 const signUpSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  name: z.string().min(1, 'Name is required').optional(),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1, "Name is required").optional(),
 });
 
 export async function signUp(formData: FormData) {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const name = formData.get('name') as string | undefined;
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const name = formData.get("name") as string | undefined;
 
   // Validate input
   const result = signUpSchema.safeParse({ email, password, name });
@@ -28,7 +28,7 @@ export async function signUp(formData: FormData) {
     });
 
     if (existingUser) {
-      return { error: 'A user with this email already exists' };
+      return { error: "A user with this email already exists" };
     }
 
     // Hash password
@@ -70,7 +70,7 @@ export async function signUp(formData: FormData) {
 
     return { success: true };
   } catch (error) {
-    console.error('Sign up error:', error);
-    return { error: 'Failed to create account' };
+    console.error("Sign up error:", error);
+    return { error: "Failed to create account" };
   }
 }

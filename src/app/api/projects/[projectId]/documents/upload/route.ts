@@ -1,25 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireProjectAccess } from '@/lib/session';
-import { writeFile, getDocumentSourcePath } from '@/lib/storage';
-import { enqueuePdfThumbnailRun } from '@/lib/thumbnail-processing';
-import prisma from '@/lib/db';
-import { SourceType } from '@prisma/client';
+import { NextRequest, NextResponse } from "next/server";
+import { requireProjectAccess } from "@/lib/session";
+import { writeFile, getDocumentSourcePath } from "@/lib/storage";
+import { enqueuePdfThumbnailRun } from "@/lib/thumbnail-processing";
+import prisma from "@/lib/db";
+import { SourceType } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: { projectId: string } },
 ) {
   try {
     await requireProjectAccess(params.projectId);
-    
+
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const title = formData.get('title') as string | undefined;
-    
+    const file = formData.get("file") as File;
+    const title = formData.get("title") as string | undefined;
+
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
-    
+
     // Create document record
     const document = await prisma.document.create({
       data: {
@@ -30,15 +30,19 @@ export async function POST(
         values: {},
       },
     });
-    
+
     // Determine file extension
-    const extension = file.name.split('.').pop() || 'bin';
-    const filePath = getDocumentSourcePath(params.projectId, document.id, extension);
-    
+    const extension = file.name.split(".").pop() || "bin";
+    const filePath = getDocumentSourcePath(
+      params.projectId,
+      document.id,
+      extension,
+    );
+
     // Save file to disk
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(filePath, buffer);
-    
+
     // Update document with file path
     await prisma.document.update({
       where: { id: document.id },
@@ -46,19 +50,22 @@ export async function POST(
     });
 
     const isPdf =
-      file.type === 'application/pdf' || extension.toLowerCase() === 'pdf';
+      file.type === "application/pdf" || extension.toLowerCase() === "pdf";
     if (isPdf) {
       try {
         await enqueuePdfThumbnailRun(params.projectId, document.id);
       } catch (error) {
-        console.error('Thumbnail enqueue error:', error);
+        console.error("Thumbnail enqueue error:", error);
       }
     }
-    
-    return NextResponse.json({ success: true, document: { ...document, filePath } });
+
+    return NextResponse.json({
+      success: true,
+      document: { ...document, filePath },
+    });
   } catch (error) {
-    console.error('Upload error:', error);
-    const message = error instanceof Error ? error.message : 'Upload failed';
+    console.error("Upload error:", error);
+    const message = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

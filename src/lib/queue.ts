@@ -1,10 +1,10 @@
-import PgBoss from 'pg-boss';
-import prisma from '@/lib/db';
+import PgBoss from "pg-boss";
 
 const connectionString = process.env.DATABASE_URL!;
 
 const globalForBoss = globalThis as unknown as {
   boss: PgBoss | undefined;
+  bossStarted: boolean | undefined;
 };
 
 export function getBoss(): PgBoss {
@@ -19,11 +19,24 @@ export function getBoss(): PgBoss {
   return globalForBoss.boss;
 }
 
+// Start boss and create queues if not already done
+async function ensureBossReady(): Promise<PgBoss> {
+  const boss = getBoss();
+  if (!globalForBoss.bossStarted) {
+    await boss.start();
+    // Create queues
+    await boss.createQueue(QUEUE_NAMES.PROCESS_DOCUMENT);
+    await boss.createQueue(QUEUE_NAMES.BULK_PROCESS);
+    globalForBoss.bossStarted = true;
+  }
+  return boss;
+}
+
 // Job queue names
 export const QUEUE_NAMES = {
-  PROCESS_DOCUMENT: 'process-document',
-  PROCESS_COLUMN: 'process-column',
-  BULK_PROCESS: 'bulk-process',
+  PROCESS_DOCUMENT: "process-document",
+  PROCESS_COLUMN: "process-column",
+  BULK_PROCESS: "bulk-process",
 } as const;
 
 // Job data types
@@ -39,48 +52,36 @@ export interface BulkProcessJobData {
   columnId: string;
 }
 
-// Enqueue functions - use raw SQL to insert directly into pgboss.job table
-// This avoids the need to start pg-boss in the Next.js app
 export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
-  console.log('[Queue] Enqueueing process-document job:', data);
+  console.log("[Queue] Enqueueing process-document job:", data);
   try {
-    const result = await prisma.$executeRaw`
-      INSERT INTO pgboss.job (name, data, state, retry_limit, retry_delay, expire_in)
-      VALUES (
-        ${QUEUE_NAMES.PROCESS_DOCUMENT},
-        ${JSON.stringify(data)}::jsonb,
-        'created',
-        2,
-        10,
-        interval '1 hour'
-      )
-    `;
-    console.log('[Queue] Job inserted into pgboss.job');
-    return result;
+    const boss = await ensureBossReady();
+    const id = await boss.send(QUEUE_NAMES.PROCESS_DOCUMENT, data, {
+      retryLimit: 2,
+      retryDelay: 10,
+      expireInMinutes: 60,
+    });
+    console.log("[Queue] Job enqueued with id", id);
+    return id;
   } catch (error) {
-    console.error('[Queue] Error enqueueing job:', error);
+    console.error("[Queue] Error enqueueing job:", error);
     throw error;
   }
 }
 
 export async function enqueueBulkProcess(data: BulkProcessJobData) {
-  console.log('[Queue] Enqueueing bulk-process job:', data);
+  console.log("[Queue] Enqueueing bulk-process job:", data);
   try {
-    const result = await prisma.$executeRaw`
-      INSERT INTO pgboss.job (name, data, state, retry_limit, retry_delay, expire_in)
-      VALUES (
-        ${QUEUE_NAMES.BULK_PROCESS},
-        ${JSON.stringify(data)}::jsonb,
-        'created',
-        1,
-        30,
-        interval '1 hour'
-      )
-    `;
-    console.log('[Queue] Job inserted into pgboss.job');
-    return result;
+    const boss = await ensureBossReady();
+    const id = await boss.send(QUEUE_NAMES.BULK_PROCESS, data, {
+      retryLimit: 1,
+      retryDelay: 30,
+      expireInMinutes: 60,
+    });
+    console.log("[Queue] Bulk job enqueued with id", id);
+    return id;
   } catch (error) {
-    console.error('[Queue] Error enqueueing job:', error);
+    console.error("[Queue] Error enqueueing bulk job:", error);
     throw error;
   }
 }

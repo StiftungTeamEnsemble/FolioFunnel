@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button, Input, InputGroup, Textarea } from '@/components/ui';
-import { createProject } from '@/app/actions/projects';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button, Input, InputGroup, Textarea } from "@/components/ui";
+import { createProject } from "@/app/actions/projects";
 
 export default function NewProjectPage() {
   const router = useRouter();
@@ -40,10 +40,10 @@ export default function NewProjectPage() {
         </div>
       </div>
 
-      <div className="card" style={{ maxWidth: '600px' }}>
+      <div className="card" style={{ maxWidth: "600px" }}>
         <div className="card__body">
           {error && (
-            <div style={{ color: 'var(--color-error)', marginBottom: '16px' }}>
+            <div style={{ color: "var(--color-error)", marginBottom: "16px" }}>
               {error}
             </div>
           )}

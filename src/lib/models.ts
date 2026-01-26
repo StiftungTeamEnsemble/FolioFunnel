@@ -12,7 +12,7 @@ export interface ModelConfig {
   // tiktoken model name for token counting
   tiktokenModel: string;
   // Model category for grouping
-  category: 'chat' | 'embedding';
+  category: "chat" | "embedding";
   // Context window size
   contextWindow: number;
 }
@@ -20,17 +20,17 @@ export interface ModelConfig {
 // Chat/Completion models
 export const CHAT_MODELS: ModelConfig[] = [
   {
-    id: 'gpt-5-nano',
-    name: 'GPT-5 nano',
-    tiktokenModel: 'gpt-5',
-    category: 'chat',
+    id: "gpt-5-nano",
+    name: "GPT-5 nano",
+    tiktokenModel: "gpt-5",
+    category: "chat",
     contextWindow: 400000,
   },
   {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    tiktokenModel: 'gpt-4o',
-    category: 'chat',
+    id: "gpt-4o-mini",
+    name: "GPT-4o Mini",
+    tiktokenModel: "gpt-4o",
+    category: "chat",
     contextWindow: 128000,
   },
   // {
@@ -66,17 +66,17 @@ export const CHAT_MODELS: ModelConfig[] = [
 // Embedding models
 export const EMBEDDING_MODELS: ModelConfig[] = [
   {
-    id: 'text-embedding-3-small',
-    name: 'Text Embedding 3 Small',
-    tiktokenModel: 'text-embedding-3-small',
-    category: 'embedding',
+    id: "text-embedding-3-small",
+    name: "Text Embedding 3 Small",
+    tiktokenModel: "text-embedding-3-small",
+    category: "embedding",
     contextWindow: 8191,
   },
   {
-    id: 'text-embedding-3-large',
-    name: 'Text Embedding 3 Large',
-    tiktokenModel: 'text-embedding-3-large',
-    category: 'embedding',
+    id: "text-embedding-3-large",
+    name: "Text Embedding 3 Large",
+    tiktokenModel: "text-embedding-3-large",
+    category: "embedding",
     contextWindow: 8191,
   },
 ];
@@ -85,9 +85,9 @@ export const EMBEDDING_MODELS: ModelConfig[] = [
 export const ALL_MODELS: ModelConfig[] = [...CHAT_MODELS, ...EMBEDDING_MODELS];
 
 // Valid model IDs for quick validation
-export const VALID_CHAT_MODEL_IDS = CHAT_MODELS.map(m => m.id);
-export const VALID_EMBEDDING_MODEL_IDS = EMBEDDING_MODELS.map(m => m.id);
-export const VALID_MODEL_IDS = ALL_MODELS.map(m => m.id);
+export const VALID_CHAT_MODEL_IDS = CHAT_MODELS.map((m) => m.id);
+export const VALID_EMBEDDING_MODEL_IDS = EMBEDDING_MODELS.map((m) => m.id);
+export const VALID_MODEL_IDS = ALL_MODELS.map((m) => m.id);
 
 /**
  * Validate if a model ID is a valid chat model
@@ -114,7 +114,7 @@ export function isValidModel(modelId: string): boolean {
  * Get model config by ID
  */
 export function getModelConfig(modelId: string): ModelConfig | undefined {
-  return ALL_MODELS.find(m => m.id === modelId);
+  return ALL_MODELS.find((m) => m.id === modelId);
 }
 
 /**
@@ -123,11 +123,11 @@ export function getModelConfig(modelId: string): ModelConfig | undefined {
  */
 export function getTiktokenModel(modelId: string): string {
   const config = getModelConfig(modelId);
-  return config?.tiktokenModel ?? 'gpt-4o';
+  return config?.tiktokenModel ?? "gpt-4o";
 }
 
 /**
  * Default models
  */
-export const DEFAULT_CHAT_MODEL = 'gpt-5-nano';
-export const DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-small';
+export const DEFAULT_CHAT_MODEL = "gpt-5-nano";
+export const DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";

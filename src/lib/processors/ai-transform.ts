@@ -1,6 +1,6 @@
-import { ProcessorContext, ProcessorResult, expandTemplate } from './index';
-import OpenAI from 'openai';
-import { isValidChatModel, DEFAULT_CHAT_MODEL } from '@/lib/models';
+import { ProcessorContext, ProcessorResult, expandTemplate } from "./index";
+import OpenAI from "openai";
+import { isValidChatModel, DEFAULT_CHAT_MODEL } from "@/lib/models";
 
 interface AITransformConfig {
   model: string;
@@ -8,50 +8,57 @@ interface AITransformConfig {
   promptTemplate: string;
   maxTokens?: number;
   systemPrompt?: string;
-  outputType?: 'text' | 'number';
+  outputType?: "text" | "number";
   autoConvert?: boolean;
 }
 
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 2000;
 
-export async function aiTransform(ctx: ProcessorContext): Promise<ProcessorResult> {
+export async function aiTransform(
+  ctx: ProcessorContext,
+): Promise<ProcessorResult> {
   const { document, column } = ctx;
-  
+
   const config = (column.processorConfig as AITransformConfig) || {};
-  
+
   // Validate model against allowed list, fallback to default if invalid
   const requestedModel = config.model || DEFAULT_CHAT_MODEL;
-  const model = isValidChatModel(requestedModel) ? requestedModel : DEFAULT_CHAT_MODEL;
+  const model = isValidChatModel(requestedModel)
+    ? requestedModel
+    : DEFAULT_CHAT_MODEL;
   const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
   const promptTemplate = config.promptTemplate;
   const maxTokens = config.maxTokens || DEFAULT_MAX_TOKENS;
-  const outputType = config.outputType || 'text';
+  const outputType = config.outputType || "text";
   const autoConvert = config.autoConvert ?? false;
-  
-  let systemPrompt = config.systemPrompt || 'You are a helpful assistant that processes documents.';
-  
+
+  let systemPrompt =
+    config.systemPrompt ||
+    "You are a helpful assistant that processes documents.";
+
   // If outputType is number, add instruction to return only a number
-  if (outputType === 'number') {
-    systemPrompt += '\n\nIMPORTANT: Your response must be ONLY a single number (integer or decimal). Do not include any text, units, or explanations.';
+  if (outputType === "number") {
+    systemPrompt +=
+      "\n\nIMPORTANT: Your response must be ONLY a single number (integer or decimal). Do not include any text, units, or explanations.";
   }
-  
+
   if (!promptTemplate) {
-    return { 
-      success: false, 
-      error: 'Prompt template is required for AI transform processor' 
+    return {
+      success: false,
+      error: "Prompt template is required for AI transform processor",
     };
   }
-  
+
   const openaiApiKey = process.env.OPENAI_API_KEY;
   if (!openaiApiKey) {
-    return { success: false, error: 'OpenAI API key not configured' };
+    return { success: false, error: "OpenAI API key not configured" };
   }
-  
+
   const openai = new OpenAI({ apiKey: openaiApiKey });
-  
+
   const startTime = Date.now();
-  
+
   try {
     // Build context values from document
     const values = (document.values as Record<string, unknown>) || {};
@@ -67,36 +74,36 @@ export async function aiTransform(ctx: ProcessorContext): Promise<ProcessorResul
       document: documentContext,
       ...documentContext,
     };
-    
+
     // Expand template
     const userPrompt = expandTemplate(promptTemplate, contextValues);
-    
+
     if (!userPrompt.trim()) {
-      return { 
-        success: false, 
-        error: 'Expanded prompt is empty. Check column references.' 
+      return {
+        success: false,
+        error: "Expanded prompt is empty. Check column references.",
       };
     }
-    
+
     // Call OpenAI
     const response = await openai.chat.completions.create({
       model,
       temperature,
       max_tokens: maxTokens,
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
     });
-    
-    let completion = response.choices[0]?.message?.content || '';
+
+    let completion = response.choices[0]?.message?.content || "";
     const usage = response.usage;
-    
+
     const duration = Date.now() - startTime;
-    
+
     // Auto-convert to number if configured
     let finalValue: string | number = completion;
-    if (autoConvert && outputType === 'number') {
+    if (autoConvert && outputType === "number") {
       // Extract number from response (handles cases where model adds extra text)
       const numberMatch = completion.match(/-?\d+\.?\d*/);
       if (numberMatch) {
@@ -106,7 +113,7 @@ export async function aiTransform(ctx: ProcessorContext): Promise<ProcessorResul
         }
       }
     }
-    
+
     return {
       success: true,
       value: finalValue,
@@ -115,7 +122,7 @@ export async function aiTransform(ctx: ProcessorContext): Promise<ProcessorResul
         model,
         temperature,
         outputType,
-        autoConverted: autoConvert && outputType === 'number',
+        autoConverted: autoConvert && outputType === "number",
         promptTokens: usage?.prompt_tokens,
         completionTokens: usage?.completion_tokens,
         totalTokens: usage?.total_tokens,
@@ -125,7 +132,8 @@ export async function aiTransform(ctx: ProcessorContext): Promise<ProcessorResul
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to call OpenAI API',
+      error:
+        error instanceof Error ? error.message : "Failed to call OpenAI API",
     };
   }
 }

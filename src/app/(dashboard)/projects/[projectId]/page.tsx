@@ -1,9 +1,9 @@
-import { redirect, notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { requireProjectAccess } from '@/lib/session';
-import prisma from '@/lib/db';
-import { ProjectPageClient } from './client';
+import { redirect, notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { requireProjectAccess } from "@/lib/session";
+import prisma from "@/lib/db";
+import { ProjectPageClient } from "./client";
 
 interface ProjectPageProps {
   params: { projectId: string };
@@ -11,9 +11,9 @@ interface ProjectPageProps {
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const session = await getServerSession(authOptions);
-  
+
   if (!session) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
   try {
@@ -28,11 +28,11 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     }),
     prisma.document.findMany({
       where: { projectId: params.projectId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
     }),
     prisma.column.findMany({
       where: { projectId: params.projectId },
-      orderBy: { position: 'asc' },
+      orderBy: { position: "asc" },
     }),
   ]);
 
@@ -41,12 +41,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   // Get latest processor runs for each document/column combination
-  const latestRuns = await prisma.$queryRaw<Array<{
-    documentId: string;
-    columnKey: string;
-    status: string;
-    error: string | null;
-  }>>`
+  const latestRuns = await prisma.$queryRaw<
+    Array<{
+      documentId: string;
+      columnKey: string;
+      status: string;
+      error: string | null;
+    }>
+  >`
     SELECT DISTINCT ON (pr.document_id, c.key)
       pr.document_id as "documentId",
       c.key as "columnKey",
@@ -68,7 +70,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           ...acc,
           [r.columnKey]: { status: r.status, error: r.error },
         }),
-        {} as Record<string, { status: string; error: string | null }>
+        {} as Record<string, { status: string; error: string | null }>,
       ),
   }));
 

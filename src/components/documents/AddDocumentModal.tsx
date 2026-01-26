@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Button,
   Input,
@@ -10,10 +10,10 @@ import {
   ModalFooter,
   Dropzone,
   FileItem,
-} from '@/components/ui';
-import { createDocumentFromUrl } from '@/app/actions/documents';
-import * as Tabs from '@radix-ui/react-tabs';
-import '@/styles/components/select.css';
+} from "@/components/ui";
+import { createDocumentFromUrl } from "@/app/actions/documents";
+import * as Tabs from "@radix-ui/react-tabs";
+import "@/styles/components/select.css";
 
 interface AddDocumentModalProps {
   projectId: string;
@@ -28,11 +28,13 @@ export function AddDocumentModal({
   onOpenChange,
   onSuccess,
 }: AddDocumentModalProps) {
-  const [tab, setTab] = useState<'upload' | 'url'>('upload');
+  const [tab, setTab] = useState<"upload" | "url">("upload");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>(
+    {},
+  );
 
   const handleFilesSelected = (selectedFiles: File[]) => {
     setFiles((prev) => [...prev, ...selectedFiles]);
@@ -50,24 +52,27 @@ export function AddDocumentModal({
 
     try {
       // Get comment from form
-      const form = document.getElementById('upload-form') as HTMLFormElement;
-      const comment = form ? (new FormData(form).get('comment') as string) : '';
-      
+      const form = document.getElementById("upload-form") as HTMLFormElement;
+      const comment = form ? (new FormData(form).get("comment") as string) : "";
+
       for (const file of files) {
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append("file", file);
         if (comment) {
-          formData.append('comment', comment);
+          formData.append("comment", comment);
         }
 
-        const response = await fetch(`/api/projects/${projectId}/documents/upload`, {
-          method: 'POST',
-          body: formData,
-        });
+        const response = await fetch(
+          `/api/projects/${projectId}/documents/upload`,
+          {
+            method: "POST",
+            body: formData,
+          },
+        );
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Upload failed');
+          throw new Error(data.error || "Upload failed");
         }
 
         setUploadProgress((prev) => ({ ...prev, [file.name]: 100 }));
@@ -78,7 +83,7 @@ export function AddDocumentModal({
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -106,18 +111,27 @@ export function AddDocumentModal({
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
       <ModalContent title="Add Document" size="md">
-        <Tabs.Root value={tab} onValueChange={(v) => setTab(v as 'upload' | 'url')}>
+        <Tabs.Root
+          value={tab}
+          onValueChange={(v) => setTab(v as "upload" | "url")}
+        >
           <Tabs.List className="tabs__list">
-            <Tabs.Trigger value="upload" className={`tabs__trigger ${tab === 'upload' ? 'tabs__trigger--active' : ''}`}>
+            <Tabs.Trigger
+              value="upload"
+              className={`tabs__trigger ${tab === "upload" ? "tabs__trigger--active" : ""}`}
+            >
               Upload File
             </Tabs.Trigger>
-            <Tabs.Trigger value="url" className={`tabs__trigger ${tab === 'url' ? 'tabs__trigger--active' : ''}`}>
+            <Tabs.Trigger
+              value="url"
+              className={`tabs__trigger ${tab === "url" ? "tabs__trigger--active" : ""}`}
+            >
               From URL
             </Tabs.Trigger>
           </Tabs.List>
 
           {error && (
-            <div style={{ color: 'var(--color-error)', margin: '16px 0' }}>
+            <div style={{ color: "var(--color-error)", margin: "16px 0" }}>
               {error}
             </div>
           )}

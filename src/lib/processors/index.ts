@@ -1,17 +1,18 @@
-import prisma from '@/lib/db';
-import Handlebars from 'handlebars';
-import { ProcessorType, RunStatus, Document, Column } from '@prisma/client';
-import { pdfToMarkdownMupdf } from './pdf-to-markdown-mupdf';
-import { pdfToMetadata } from './pdf-to-metadata';
-import { pdfToThumbnailMupdf } from './pdf-to-thumbnail-mupdf';
-import { documentToMarkdown } from './document-to-markdown';
-import { documentToMetadata } from './document-to-metadata';
-import { urlToHtml } from './url-to-html';
-import { urlToMarkdown } from './url-to-markdown';
-import { chunkText } from './chunk-text';
-import { createEmbeddings } from './create-embeddings';
-import { aiTransform } from './ai-transform';
-import { countTokens } from './count-tokens';
+import prisma from "@/lib/db";
+import Handlebars from "handlebars";
+import { ProcessorType, RunStatus, Document, Column } from "@prisma/client";
+import { pdfToMarkdownMupdf } from "./pdf-to-markdown-mupdf";
+import { pdfToMetadata } from "./pdf-to-metadata";
+import { pdfToThumbnailMupdf } from "./pdf-to-thumbnail-mupdf";
+import { documentToMarkdown } from "./document-to-markdown";
+import { documentToMetadata } from "./document-to-metadata";
+import { urlToHtml } from "./url-to-html";
+import { urlToMarkdown } from "./url-to-markdown";
+import { chunkText } from "./chunk-text";
+import { createEmbeddings } from "./create-embeddings";
+import { aiTransform } from "./ai-transform";
+import { countTokens } from "./count-tokens";
+import { enqueueProcessDocument } from "@/lib/queue";
 
 export interface ProcessorContext {
   document: Document;
@@ -43,18 +44,23 @@ const processors: Record<ProcessorType, ProcessorFunction> = {
   count_tokens: countTokens,
 };
 
-export async function runProcessor(ctx: ProcessorContext): Promise<ProcessorResult> {
+export async function runProcessor(
+  ctx: ProcessorContext,
+): Promise<ProcessorResult> {
   const { column, runId } = ctx;
-  
+
   if (!column.processorType) {
-    return { success: false, error: 'No processor type configured' };
+    return { success: false, error: "No processor type configured" };
   }
-  
+
   const processorFn = processors[column.processorType];
   if (!processorFn) {
-    return { success: false, error: `Unknown processor type: ${column.processorType}` };
+    return {
+      success: false,
+      error: `Unknown processor type: ${column.processorType}`,
+    };
   }
-  
+
   // Mark as running
   await prisma.processorRun.update({
     where: { id: runId },
@@ -63,10 +69,10 @@ export async function runProcessor(ctx: ProcessorContext): Promise<ProcessorResu
       startedAt: new Date(),
     },
   });
-  
+
   try {
     const result = await processorFn(ctx);
-    
+
     // Update run status
     await prisma.processorRun.update({
       where: { id: runId },
@@ -77,28 +83,29 @@ export async function runProcessor(ctx: ProcessorContext): Promise<ProcessorResu
         meta: result.meta as any,
       },
     });
-    
+
     // Update document values if successful
     if (result.success && result.value !== undefined) {
       const currentDoc = await prisma.document.findUnique({
         where: { id: ctx.document.id },
       });
-      
+
       if (currentDoc) {
         const values = (currentDoc.values as Record<string, unknown>) || {};
         values[column.key] = result.value;
-        
+
         await prisma.document.update({
           where: { id: ctx.document.id },
           data: { values },
         });
       }
     }
-    
+
     return result;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
     await prisma.processorRun.update({
       where: { id: runId },
       data: {
@@ -107,7 +114,7 @@ export async function runProcessor(ctx: ProcessorContext): Promise<ProcessorResu
         error: errorMessage,
       },
     });
-    
+
     return { success: false, error: errorMessage };
   }
 }
@@ -116,7 +123,7 @@ export async function runProcessor(ctx: ProcessorContext): Promise<ProcessorResu
 export async function createProcessorRun(
   projectId: string,
   documentId: string,
-  columnId: string
+  columnId: string,
 ): Promise<string> {
   const run = await prisma.processorRun.create({
     data: {
@@ -126,6 +133,15 @@ export async function createProcessorRun(
       status: RunStatus.queued,
     },
   });
+
+  // Enqueue the job to the worker
+  await enqueueProcessDocument({
+    projectId,
+    documentId,
+    columnId,
+    runId: run.id,
+  });
+
   return run.id;
 }
 
@@ -134,7 +150,7 @@ export async function getProcessorColumns(projectId: string) {
   return prisma.column.findMany({
     where: {
       projectId,
-      mode: 'processor',
+      mode: "processor",
       processorType: { not: null },
     },
   });
@@ -143,15 +159,15 @@ export async function getProcessorColumns(projectId: string) {
 // Expand template variables in a string
 export function expandTemplate(
   template: string,
-  values: Record<string, unknown>
+  values: Record<string, unknown>,
 ): string {
   const handlebars = Handlebars.create();
-  handlebars.registerHelper('truncate', (value: unknown, length: number) => {
-    if (value === undefined || value === null) return '';
+  handlebars.registerHelper("truncate", (value: unknown, length: number) => {
+    if (value === undefined || value === null) return "";
     const safeLength = Number(length);
-    if (!Number.isFinite(safeLength) || safeLength <= 0) return '';
+    if (!Number.isFinite(safeLength) || safeLength <= 0) return "";
 
-    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    const text = typeof value === "string" ? value : JSON.stringify(value);
     if (text.length <= safeLength) return text;
     return text.slice(0, safeLength);
   });

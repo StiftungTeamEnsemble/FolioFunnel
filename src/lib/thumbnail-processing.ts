@@ -1,8 +1,8 @@
-import prisma from '@/lib/db';
-import { ColumnMode, ColumnType, ProcessorType } from '@prisma/client';
-import { PDF_THUMBNAIL_COLUMN_KEY } from '@/lib/thumbnails';
-import { enqueueProcessDocument } from '@/lib/queue';
-import { createProcessorRun } from '@/lib/processors';
+import prisma from "@/lib/db";
+import { ColumnMode, ColumnType, ProcessorType } from "@prisma/client";
+import { PDF_THUMBNAIL_COLUMN_KEY } from "@/lib/thumbnails";
+import { enqueueProcessDocument } from "@/lib/queue";
+import { createProcessorRun } from "@/lib/processors";
 
 export async function ensurePdfThumbnailColumn(projectId: string) {
   const existing = await prisma.column.findUnique({
@@ -28,7 +28,7 @@ export async function ensurePdfThumbnailColumn(projectId: string) {
       data: {
         projectId,
         key: PDF_THUMBNAIL_COLUMN_KEY,
-        name: 'Thumbnail',
+        name: "Thumbnail",
         type: ColumnType.text,
         mode: ColumnMode.processor,
         processorType: ProcessorType.pdf_to_thumbnail_mupdf,
@@ -56,7 +56,7 @@ export async function ensurePdfThumbnailColumn(projectId: string) {
 
 export async function enqueuePdfThumbnailRun(
   projectId: string,
-  documentId: string
+  documentId: string,
 ) {
   const column = await ensurePdfThumbnailColumn(projectId);
   const runId = await createProcessorRun(projectId, documentId, column.id);

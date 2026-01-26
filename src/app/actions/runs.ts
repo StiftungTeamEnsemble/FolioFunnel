@@ -1,10 +1,10 @@
-'use server';
+"use server";
 
-import prisma from '@/lib/db';
-import { requireProjectAccess, requireAuth } from '@/lib/session';
-import { enqueueProcessDocument, enqueueBulkProcess } from '@/lib/queue';
-import { createProcessorRun } from '@/lib/processors';
-import { RunStatus } from '@prisma/client';
+import prisma from "@/lib/db";
+import { requireProjectAccess, requireAuth } from "@/lib/session";
+import { enqueueProcessDocument, enqueueBulkProcess } from "@/lib/queue";
+import { createProcessorRun } from "@/lib/processors";
+import { RunStatus } from "@prisma/client";
 
 export async function clearPendingTasks() {
   const user = await requireAuth();
@@ -26,37 +26,37 @@ export async function clearPendingTasks() {
 
     return { success: true, deletedCount: result.count };
   } catch (error) {
-    console.error('Clear pending tasks error:', error);
-    return { error: 'Failed to clear pending tasks' };
+    console.error("Clear pending tasks error:", error);
+    return { error: "Failed to clear pending tasks" };
   }
 }
 
 export async function triggerProcessorRun(
   projectId: string,
   documentId: string,
-  columnId: string
+  columnId: string,
 ) {
   await requireProjectAccess(projectId);
-  
+
   try {
     // Verify document and column exist
     const [document, column] = await Promise.all([
       prisma.document.findFirst({ where: { id: documentId, projectId } }),
       prisma.column.findFirst({ where: { id: columnId, projectId } }),
     ]);
-    
+
     if (!document) {
-      return { error: 'Document not found' };
+      return { error: "Document not found" };
     }
-    
+
     if (!column) {
-      return { error: 'Column not found' };
+      return { error: "Column not found" };
     }
-    
-    if (column.mode !== 'processor') {
-      return { error: 'Column is not a processor column' };
+
+    if (column.mode !== "processor") {
+      return { error: "Column is not a processor column" };
     }
-    
+
     // Check for already running/queued job
     const existingRun = await prisma.processorRun.findFirst({
       where: {
@@ -65,65 +65,76 @@ export async function triggerProcessorRun(
         status: { in: [RunStatus.queued, RunStatus.running] },
       },
     });
-    
+
     if (existingRun) {
-      return { error: 'A job is already running or queued for this cell' };
+      return { error: "A job is already running or queued for this cell" };
     }
-    
+
     // Create run and enqueue job
-    console.log('[Action] Creating processor run for document', documentId, 'column', columnId);
+    console.log(
+      "[Action] Creating processor run for document",
+      documentId,
+      "column",
+      columnId,
+    );
     const runId = await createProcessorRun(projectId, documentId, columnId);
-    console.log('[Action] Created processor run:', runId);
-    
-    console.log('[Action] Enqueueing job...');
+    console.log("[Action] Created processor run:", runId);
+
+    console.log("[Action] Enqueueing job...");
     await enqueueProcessDocument({
       projectId,
       documentId,
       columnId,
       runId,
     });
-    console.log('[Action] Job enqueued successfully');
-    
+    console.log("[Action] Job enqueued successfully");
+
     return { success: true, runId };
   } catch (error) {
-    console.error('Trigger processor run error:', error);
-    return { error: 'Failed to trigger processor run' };
+    console.error("Trigger processor run error:", error);
+    return { error: "Failed to trigger processor run" };
   }
 }
 
-export async function triggerBulkProcessorRun(projectId: string, columnId: string) {
+export async function triggerBulkProcessorRun(
+  projectId: string,
+  columnId: string,
+) {
   await requireProjectAccess(projectId);
-  
+
   try {
     const column = await prisma.column.findFirst({
       where: { id: columnId, projectId },
     });
-    
+
     if (!column) {
-      return { error: 'Column not found' };
+      return { error: "Column not found" };
     }
-    
-    if (column.mode !== 'processor') {
-      return { error: 'Column is not a processor column' };
+
+    if (column.mode !== "processor") {
+      return { error: "Column is not a processor column" };
     }
-    
+
     // Enqueue bulk job
     await enqueueBulkProcess({ projectId, columnId });
-    
+
     return { success: true };
   } catch (error) {
-    console.error('Trigger bulk processor run error:', error);
-    return { error: 'Failed to trigger bulk processor run' };
+    console.error("Trigger bulk processor run error:", error);
+    return { error: "Failed to trigger bulk processor run" };
   }
 }
 
-export async function getProcessorRuns(projectId: string, options?: {
-  documentId?: string;
-  columnId?: string;
-  limit?: number;
-}) {
+export async function getProcessorRuns(
+  projectId: string,
+  options?: {
+    documentId?: string;
+    columnId?: string;
+    limit?: number;
+  },
+) {
   await requireProjectAccess(projectId);
-  
+
   const runs = await prisma.processorRun.findMany({
     where: {
       projectId,
@@ -138,24 +149,29 @@ export async function getProcessorRuns(projectId: string, options?: {
         select: { title: true },
       },
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: options?.limit || 50,
   });
-  
+
   return runs;
 }
 
-export async function getLatestRunsForDocument(projectId: string, documentId: string) {
+export async function getLatestRunsForDocument(
+  projectId: string,
+  documentId: string,
+) {
   await requireProjectAccess(projectId);
-  
+
   // Get the latest run for each column for this document
-  const runs = await prisma.$queryRaw<Array<{
-    columnId: string;
-    columnKey: string;
-    status: RunStatus;
-    error: string | null;
-    finishedAt: Date | null;
-  }>>`
+  const runs = await prisma.$queryRaw<
+    Array<{
+      columnId: string;
+      columnKey: string;
+      status: RunStatus;
+      error: string | null;
+      finishedAt: Date | null;
+    }>
+  >`
     SELECT DISTINCT ON (pr.column_id)
       pr.column_id as "columnId",
       c.key as "columnKey",
@@ -168,7 +184,7 @@ export async function getLatestRunsForDocument(projectId: string, documentId: st
       AND pr.document_id = ${documentId}::uuid
     ORDER BY pr.column_id, pr.created_at DESC
   `;
-  
+
   return runs;
 }
 
@@ -181,53 +197,57 @@ export async function getRunStatus(runId: string) {
       },
     },
   });
-  
+
   return run;
 }
 
 export async function redownloadUrl(projectId: string, documentId: string) {
   await requireProjectAccess(projectId);
-  
+
   try {
     const document = await prisma.document.findFirst({
       where: { id: documentId, projectId },
     });
-    
+
     if (!document) {
-      return { error: 'Document not found' };
+      return { error: "Document not found" };
     }
-    
-    if (document.sourceType !== 'url') {
-      return { error: 'Document is not a URL' };
+
+    if (document.sourceType !== "url") {
+      return { error: "Document is not a URL" };
     }
-    
+
     // Find or create url_to_html column
     let htmlColumn = await prisma.column.findFirst({
       where: {
         projectId,
-        processorType: 'url_to_html',
+        processorType: "url_to_html",
       },
     });
-    
+
     if (!htmlColumn) {
       htmlColumn = await prisma.column.create({
         data: {
           projectId,
-          key: 'html_source',
-          name: 'HTML Source',
-          mode: 'processor',
-          processorType: 'url_to_html',
+          key: "html_source",
+          name: "HTML Source",
+          mode: "processor",
+          processorType: "url_to_html",
           hidden: true,
         },
       });
     }
-    
+
     // Create and enqueue processor run
-    const runId = await createProcessorRun(projectId, documentId, htmlColumn.id);
-    
+    const runId = await createProcessorRun(
+      projectId,
+      documentId,
+      htmlColumn.id,
+    );
+
     return { success: true, runId };
   } catch (error) {
-    console.error('Re-download URL error:', error);
-    return { error: 'Failed to re-download URL' };
+    console.error("Re-download URL error:", error);
+    return { error: "Failed to re-download URL" };
   }
 }

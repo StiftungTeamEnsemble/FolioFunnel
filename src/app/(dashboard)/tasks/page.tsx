@@ -1,38 +1,38 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/db';
-import { Button } from '@/components/ui';
-import { ClearPendingTasksButton } from '@/components/tasks/ClearPendingTasksButton';
-import '@/styles/components/tasks.css';
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import prisma from "@/lib/db";
+import { Button } from "@/components/ui";
+import { ClearPendingTasksButton } from "@/components/tasks/ClearPendingTasksButton";
+import "@/styles/components/tasks.css";
 
 const statusLabels: Record<string, string> = {
-  queued: 'Queued',
-  running: 'Running',
-  success: 'Success',
-  error: 'Error',
+  queued: "Queued",
+  running: "Running",
+  success: "Success",
+  error: "Error",
 };
 
 const statusBadgeClass: Record<string, string> = {
-  queued: 'badge badge--default badge--sm',
-  running: 'badge badge--warning badge--sm',
-  success: 'badge badge--success badge--sm',
-  error: 'badge badge--error badge--sm',
+  queued: "badge badge--default badge--sm",
+  running: "badge badge--warning badge--sm",
+  success: "badge badge--success badge--sm",
+  error: "badge badge--error badge--sm",
 };
 
 const statusDotClass: Record<string, string> = {
-  queued: 'tasks-list__status-dot tasks-list__status-dot--queued',
-  running: 'tasks-list__status-dot tasks-list__status-dot--running',
-  success: 'tasks-list__status-dot tasks-list__status-dot--success',
-  error: 'tasks-list__status-dot tasks-list__status-dot--error',
+  queued: "tasks-list__status-dot tasks-list__status-dot--queued",
+  running: "tasks-list__status-dot tasks-list__status-dot--running",
+  success: "tasks-list__status-dot tasks-list__status-dot--success",
+  error: "tasks-list__status-dot tasks-list__status-dot--error",
 };
 
 export default async function TasksPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
   const runs = await prisma.processorRun.findMany({
@@ -66,7 +66,7 @@ export default async function TasksPage() {
       },
     },
     orderBy: {
-      createdAt: 'desc',
+      createdAt: "desc",
     },
     take: 20,
   });

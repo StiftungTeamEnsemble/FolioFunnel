@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { ReactNode } from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
-import '@/styles/components/modal.css';
+import { ReactNode } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import "@/styles/components/modal.css";
 
 interface ModalProps {
   open: boolean;
@@ -21,14 +21,14 @@ export function Modal({ open, onOpenChange, children }: ModalProps) {
 interface ModalContentProps {
   title: string;
   description?: string;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: "sm" | "md" | "lg" | "xl";
   children: ReactNode;
 }
 
 export function ModalContent({
   title,
   description,
-  size = 'md',
+  size = "md",
   children,
 }: ModalContentProps) {
   return (

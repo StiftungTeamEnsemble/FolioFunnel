@@ -1,16 +1,20 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { clearPendingTasks } from '@/app/actions/runs';
-import { Button } from '@/components/ui';
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { clearPendingTasks } from "@/app/actions/runs";
+import { Button } from "@/components/ui";
 
 export function ClearPendingTasksButton() {
   const router = useRouter();
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClear = async () => {
-    if (!confirm('Are you sure you want to delete all pending tasks? This cannot be undone.')) {
+    if (
+      !confirm(
+        "Are you sure you want to delete all pending tasks? This cannot be undone.",
+      )
+    ) {
       return;
     }
 
@@ -23,7 +27,7 @@ export function ClearPendingTasksButton() {
         router.refresh();
       }
     } catch (error) {
-      alert('Failed to clear tasks');
+      alert("Failed to clear tasks");
     } finally {
       setIsClearing(false);
     }
@@ -36,7 +40,7 @@ export function ClearPendingTasksButton() {
       disabled={isClearing}
       variant="secondary"
     >
-      {isClearing ? 'Clearing...' : 'Clear All Pending'}
+      {isClearing ? "Clearing..." : "Clear All Pending"}
     </Button>
   );
 }

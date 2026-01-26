@@ -1,19 +1,19 @@
-'use server';
+"use server";
 
-import { Prisma } from '@prisma/client';
-import { z } from 'zod';
-import prisma from '@/lib/db';
-import { requireAuth } from '@/lib/session';
+import { Prisma } from "@prisma/client";
+import { z } from "zod";
+import prisma from "@/lib/db";
+import { requireAuth } from "@/lib/session";
 
 const updateProfileSchema = z.object({
   name: z.string().trim().optional(),
-  email: z.string().email('Enter a valid email address'),
+  email: z.string().email("Enter a valid email address"),
 });
 
 export async function updateProfile(formData: FormData) {
   const user = await requireAuth();
-  const nameValue = (formData.get('name') as string | null) ?? '';
-  const email = (formData.get('email') as string | null) ?? '';
+  const nameValue = (formData.get("name") as string | null) ?? "";
+  const email = (formData.get("email") as string | null) ?? "";
 
   const result = updateProfileSchema.safeParse({
     name: nameValue,
@@ -32,7 +32,7 @@ export async function updateProfile(formData: FormData) {
   });
 
   if (existingUser && existingUser.id !== user.id) {
-    return { error: 'That email is already in use.' };
+    return { error: "That email is already in use." };
   }
 
   let updatedUser;
@@ -49,9 +49,9 @@ export async function updateProfile(formData: FormData) {
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+      error.code === "P2002"
     ) {
-      return { error: 'That email is already in use.' };
+      return { error: "That email is already in use." };
     }
 
     throw error;

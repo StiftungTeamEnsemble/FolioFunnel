@@ -35,7 +35,11 @@
 .sidebar__logo {
   width: 32px;
   height: 32px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-primary-dark)
+  );
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -147,7 +151,11 @@
 
 .sidebar__project-link:hover,
 .sidebar__project-link--active {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(99, 102, 241, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.25),
+    rgba(99, 102, 241, 0.05)
+  );
   color: white;
   border: 1px solid rgba(99, 102, 241, 0.4);
   box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);

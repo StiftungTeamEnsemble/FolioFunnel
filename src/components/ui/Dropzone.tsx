@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useRef, DragEvent, ChangeEvent, ReactNode } from 'react';
-import '@/styles/components/dropzone.css';
+import { useState, useRef, DragEvent, ChangeEvent, ReactNode } from "react";
+import "@/styles/components/dropzone.css";
 
 interface DropzoneProps {
   onFilesSelected: (files: File[]) => void;
@@ -14,7 +14,7 @@ interface DropzoneProps {
 
 export function Dropzone({
   onFilesSelected,
-  accept = '.pdf',
+  accept = ".pdf",
   multiple = false,
   disabled = false,
   maxSize = 50 * 1024 * 1024, // 50MB default
@@ -58,7 +58,7 @@ export function Dropzone({
     }
     // Reset input
     if (inputRef.current) {
-      inputRef.current.value = '';
+      inputRef.current.value = "";
     }
   };
 
@@ -69,12 +69,12 @@ export function Dropzone({
   };
 
   const classes = [
-    'dropzone',
-    isDragging && 'dropzone--active',
-    disabled && 'dropzone--disabled',
+    "dropzone",
+    isDragging && "dropzone--active",
+    disabled && "dropzone--disabled",
   ]
     .filter(Boolean)
-    .join(' ');
+    .join(" ");
 
   return (
     <div
@@ -111,7 +111,7 @@ export function Dropzone({
             />
           </svg>
           <div className="dropzone__title">
-            Drag & drop files here, or{' '}
+            Drag & drop files here, or{" "}
             <span className="dropzone__browse">browse</span>
           </div>
           <div className="dropzone__description">
@@ -145,7 +145,11 @@ export function FileItem({ file, progress, onRemove }: FileItemProps) {
             stroke="currentColor"
             strokeWidth="1.5"
           />
-          <path d="M12 2v4a2 2 0 002 2h4" stroke="currentColor" strokeWidth="1.5" />
+          <path
+            d="M12 2v4a2 2 0 002 2h4"
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
         </svg>
       </div>
       <div className="dropzone__file-info">

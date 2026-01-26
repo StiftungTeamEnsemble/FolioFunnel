@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { Button } from '@/components/ui';
-import { acceptInvite } from '@/app/actions/projects';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Button } from "@/components/ui";
+import { acceptInvite } from "@/app/actions/projects";
 
 interface InvitePageProps {
   params: { token: string };
@@ -15,7 +15,10 @@ export default function InvitePage({ params }: InvitePageProps) {
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<{ projectId: string; projectName: string } | null>(null);
+  const [success, setSuccess] = useState<{
+    projectId: string;
+    projectName: string;
+  } | null>(null);
 
   const handleAccept = async () => {
     setLoading(true);
@@ -36,19 +39,22 @@ export default function InvitePage({ params }: InvitePageProps) {
     }
 
     if (result.success && result.projectId) {
-      setSuccess({ projectId: result.projectId, projectName: result.projectName || 'Project' });
+      setSuccess({
+        projectId: result.projectId,
+        projectName: result.projectName || "Project",
+      });
     }
 
     setLoading(false);
   };
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (status === "unauthenticated") {
       router.push(`/auth/signin?callbackUrl=/invite/${params.token}`);
     }
   }, [status, params.token, router]);
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="auth-page">
         <div className="auth-card">
@@ -56,7 +62,7 @@ export default function InvitePage({ params }: InvitePageProps) {
             <div className="auth-card__logo-icon">FF</div>
             <span className="auth-card__logo-text">FolioFunnel</span>
           </div>
-          <p style={{ textAlign: 'center' }}>Loading...</p>
+          <p style={{ textAlign: "center" }}>Loading...</p>
         </div>
       </div>
     );
@@ -74,7 +80,10 @@ export default function InvitePage({ params }: InvitePageProps) {
           <p className="auth-card__subtitle">
             You&apos;ve joined {success.projectName}
           </p>
-          <Button fullWidth onClick={() => router.push(`/projects/${success.projectId}`)}>
+          <Button
+            fullWidth
+            onClick={() => router.push(`/projects/${success.projectId}`)}
+          >
             Go to Project
           </Button>
         </div>
@@ -96,7 +105,13 @@ export default function InvitePage({ params }: InvitePageProps) {
         </p>
 
         {error && (
-          <div style={{ color: 'var(--color-error)', textAlign: 'center', marginBottom: '16px' }}>
+          <div
+            style={{
+              color: "var(--color-error)",
+              textAlign: "center",
+              marginBottom: "16px",
+            }}
+          >
             {error}
           </div>
         )}

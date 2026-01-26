@@ -1,20 +1,22 @@
-import { redirect, notFound } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { MemberRole } from '@prisma/client';
-import { authOptions } from '@/lib/auth';
-import { requireProjectAccess } from '@/lib/session';
-import prisma from '@/lib/db';
-import { ProjectEditClient } from './client';
+import { redirect, notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { MemberRole } from "@prisma/client";
+import { authOptions } from "@/lib/auth";
+import { requireProjectAccess } from "@/lib/session";
+import prisma from "@/lib/db";
+import { ProjectEditClient } from "./client";
 
 interface ProjectEditPageProps {
   params: { projectId: string };
 }
 
-export default async function ProjectEditPage({ params }: ProjectEditPageProps) {
+export default async function ProjectEditPage({
+  params,
+}: ProjectEditPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
   let access;
@@ -42,7 +44,7 @@ export default async function ProjectEditPage({ params }: ProjectEditPageProps) 
           },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: "asc" },
     }),
   ]);
 

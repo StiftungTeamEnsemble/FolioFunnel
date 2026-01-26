@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button, Input, InputGroup } from '@/components/ui';
-import { useToast } from '@/components/ui/Toast';
-import { updateProfile } from '@/app/actions/users';
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button, Input, InputGroup } from "@/components/ui";
+import { useToast } from "@/components/ui/Toast";
+import { updateProfile } from "@/app/actions/users";
 
 interface ProfileFormProps {
   name: string | null;
@@ -15,7 +15,7 @@ export function ProfileForm({ name, email }: ProfileFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [formState, setFormState] = useState({
-    name: name ?? '',
+    name: name ?? "",
     email,
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -29,8 +29,8 @@ export function ProfileForm({ name, email }: ProfileFormProps) {
 
     if (result.error) {
       toast({
-        type: 'error',
-        title: 'Unable to update profile',
+        type: "error",
+        title: "Unable to update profile",
         description: result.error,
       });
       setIsSaving(false);
@@ -39,15 +39,15 @@ export function ProfileForm({ name, email }: ProfileFormProps) {
 
     if (result.user) {
       setFormState({
-        name: result.user.name ?? '',
+        name: result.user.name ?? "",
         email: result.user.email,
       });
     }
 
     toast({
-      type: 'success',
-      title: 'Profile updated',
-      description: 'Your changes have been saved.',
+      type: "success",
+      title: "Profile updated",
+      description: "Your changes have been saved.",
     });
     router.refresh();
     setIsSaving(false);

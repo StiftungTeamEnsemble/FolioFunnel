@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
-import '@/styles/components/sidebar.css';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
+import "@/styles/components/sidebar.css";
 
 interface Project {
   id: string;
@@ -25,11 +25,11 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
   const { data: session } = useSession();
 
   const getInitials = (name: string | null | undefined) => {
-    if (!name) return '?';
+    if (!name) return "?";
     return name
-      .split(' ')
+      .split(" ")
       .map((n) => n[0])
-      .join('')
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -48,21 +48,25 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
           <div className="sidebar__section-title">Projects</div>
           <ul className="sidebar__projects">
             {projects.map((project) => {
-              const isActive = pathname === `/projects/${project.id}` || pathname?.startsWith(`/projects/${project.id}/`);
+              const isActive =
+                pathname === `/projects/${project.id}` ||
+                pathname?.startsWith(`/projects/${project.id}/`);
               return (
-              <li key={project.id} className="sidebar__project-item">
-                <Link
-                  href={`/projects/${project.id}`}
-                  className={`sidebar__project-link ${
-                    isActive ? 'sidebar__project-link--active' : ''
-                  }`}
-                >
-                  <div className="sidebar__project-icon">
-                    {project.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="sidebar__project-name">{project.name}</span>
-                </Link>
-              </li>
+                <li key={project.id} className="sidebar__project-item">
+                  <Link
+                    href={`/projects/${project.id}`}
+                    className={`sidebar__project-link ${
+                      isActive ? "sidebar__project-link--active" : ""
+                    }`}
+                  >
+                    <div className="sidebar__project-icon">
+                      {project.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="sidebar__project-name">
+                      {project.name}
+                    </span>
+                  </Link>
+                </li>
               );
             })}
           </ul>
@@ -85,7 +89,7 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
           <Link
             href="/tasks"
             className={`sidebar__tasks-link ${
-              pathname === '/tasks' ? 'sidebar__tasks-link--active' : ''
+              pathname === "/tasks" ? "sidebar__tasks-link--active" : ""
             }`}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -104,13 +108,20 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
       <div className="sidebar__footer">
         <div className="sidebar__user">
           <div className="sidebar__user-avatar">
-            {getInitials(user?.name || user?.email || session?.user?.name || session?.user?.email)}
+            {getInitials(
+              user?.name ||
+                user?.email ||
+                session?.user?.name ||
+                session?.user?.email,
+            )}
           </div>
           <div className="sidebar__user-info">
             <div className="sidebar__user-name">
-              {user?.name || session?.user?.name || 'User'}
+              {user?.name || session?.user?.name || "User"}
             </div>
-            <div className="sidebar__user-email">{user?.email || session?.user?.email}</div>
+            <div className="sidebar__user-email">
+              {user?.email || session?.user?.email}
+            </div>
           </div>
         </div>
         <div className="sidebar__user-actions">
@@ -120,7 +131,7 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
           <button
             type="button"
             className="sidebar__user-link sidebar__user-link--button"
-            onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+            onClick={() => signOut({ callbackUrl: "/auth/signin" })}
           >
             Sign out
           </button>

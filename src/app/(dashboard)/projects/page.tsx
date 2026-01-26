@@ -1,16 +1,16 @@
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { getUserProjects } from '@/lib/session';
-import { Button } from '@/components/ui';
-import { DeleteProjectButton } from '@/components/projects/DeleteProjectButton';
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { getUserProjects } from "@/lib/session";
+import { Button } from "@/components/ui";
+import { DeleteProjectButton } from "@/components/projects/DeleteProjectButton";
 
 export default async function ProjectsPage() {
   const session = await getServerSession(authOptions);
-  
+
   if (!session) {
-    redirect('/auth/signin');
+    redirect("/auth/signin");
   }
 
   const projects = await getUserProjects(session.user.id);
@@ -43,11 +43,7 @@ export default async function ProjectsPage() {
               stroke="currentColor"
               strokeWidth="3"
             />
-            <path
-              d="M8 28h48"
-              stroke="currentColor"
-              strokeWidth="3"
-            />
+            <path d="M8 28h48" stroke="currentColor" strokeWidth="3" />
             <path
               d="M24 8v8M40 8v8"
               stroke="currentColor"
@@ -65,12 +61,18 @@ export default async function ProjectsPage() {
           </Button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+            gap: "20px",
+          }}
+        >
           {projects.map((project) => (
             <Link
               key={project.id}
               href={`/projects/${project.id}`}
-              style={{ textDecoration: 'none' }}
+              style={{ textDecoration: "none" }}
             >
               <div className="card card--clickable">
                 <div className="card__body">
@@ -80,17 +82,34 @@ export default async function ProjectsPage() {
                   )}
                 </div>
                 <div className="card__footer">
-                  <span className={`badge badge--${project.role === 'owner' ? 'primary' : 'default'}`}>
+                  <span
+                    className={`badge badge--${project.role === "owner" ? "primary" : "default"}`}
+                  >
                     {project.role}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontSize: '13px', color: 'var(--color-gray-500)' }}>
-                      {new Date(project.updatedAt).toLocaleDateString('de-CH', {year:"numeric",month:"2-digit", day:"2-digit"})}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "13px",
+                        color: "var(--color-gray-500)",
+                      }}
+                    >
+                      {new Date(project.updatedAt).toLocaleDateString("de-CH", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      })}
                     </span>
-                    <DeleteProjectButton 
-                      projectId={project.id} 
+                    <DeleteProjectButton
+                      projectId={project.id}
                       projectName={project.name}
-                      isOwner={project.role === 'owner'}
+                      isOwner={project.role === "owner"}
                     />
                   </div>
                 </div>

@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { Project, Document, Column } from '@prisma/client';
-import { Button, Input, Select, SelectItem } from '@/components/ui';
-import { KnowledgeTable } from '@/components/documents/KnowledgeTable';
-import { AddDocumentModal } from '@/components/documents/AddDocumentModal';
-import { ColumnModal } from '@/components/documents/ColumnModal';
-import { DeleteColumnModal } from '@/components/documents/DeleteColumnModal';
-import { DeleteDocumentModal } from '@/components/documents/DeleteDocumentModal';
-import { triggerBulkProcessorRun } from '@/app/actions/runs';
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Project, Document, Column } from "@prisma/client";
+import { Button, Input, Select, SelectItem } from "@/components/ui";
+import { KnowledgeTable } from "@/components/documents/KnowledgeTable";
+import { AddDocumentModal } from "@/components/documents/AddDocumentModal";
+import { ColumnModal } from "@/components/documents/ColumnModal";
+import { DeleteColumnModal } from "@/components/documents/DeleteColumnModal";
+import { DeleteDocumentModal } from "@/components/documents/DeleteDocumentModal";
+import { triggerBulkProcessorRun } from "@/app/actions/runs";
 
 interface DocumentWithRuns extends Document {
   latestRuns?: Record<string, { status: string; error: string | null }>;
@@ -31,13 +31,17 @@ export function ProjectPageClient({
   const [columns, setColumns] = useState(initialColumns);
   const [showAddDocument, setShowAddDocument] = useState(false);
   const [showAddColumn, setShowAddColumn] = useState(false);
-  const [bulkRunningColumn, setBulkRunningColumn] = useState<string | null>(null);
-  const [selectedBulkColumn, setSelectedBulkColumn] = useState<string>('');
+  const [bulkRunningColumn, setBulkRunningColumn] = useState<string | null>(
+    null,
+  );
+  const [selectedBulkColumn, setSelectedBulkColumn] = useState<string>("");
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
-  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchField, setSearchField] = useState('all');
+  const [documentToDelete, setDocumentToDelete] = useState<Document | null>(
+    null,
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchField, setSearchField] = useState("all");
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
@@ -46,29 +50,29 @@ export function ProjectPageClient({
 
     const matchesValue = (value: unknown) => {
       if (value === undefined || value === null) return false;
-      const text = typeof value === 'string' ? value : JSON.stringify(value);
+      const text = typeof value === "string" ? value : JSON.stringify(value);
       return text.toLowerCase().includes(normalizedSearchTerm);
     };
 
     return documents.filter((doc) => {
       const values = (doc.values as Record<string, unknown>) || {};
-      const createdDate = new Date(doc.createdAt).toISOString().split('T')[0];
-      const sourceText = `${doc.sourceType}${doc.sourceUrl ? ' ' + doc.sourceUrl : ''}`;
+      const createdDate = new Date(doc.createdAt).toISOString().split("T")[0];
+      const sourceText = `${doc.sourceType}${doc.sourceUrl ? " " + doc.sourceUrl : ""}`;
 
-      if (searchField === 'title') {
+      if (searchField === "title") {
         return matchesValue(doc.title);
       }
 
-      if (searchField === 'source') {
+      if (searchField === "source") {
         return matchesValue(sourceText);
       }
 
-      if (searchField === 'created') {
+      if (searchField === "created") {
         return matchesValue(createdDate);
       }
 
-      if (searchField.startsWith('column:')) {
-        const key = searchField.replace('column:', '');
+      if (searchField.startsWith("column:")) {
+        const key = searchField.replace("column:", "");
         return matchesValue(values[key]);
       }
 
@@ -102,11 +106,11 @@ export function ProjectPageClient({
   }, [initialColumns]);
 
   useEffect(() => {
-    if (!searchField.startsWith('column:')) return;
-    const key = searchField.replace('column:', '');
+    if (!searchField.startsWith("column:")) return;
+    const key = searchField.replace("column:", "");
     const columnExists = columns.some((column) => column.key === key);
     if (!columnExists) {
-      setSearchField('all');
+      setSearchField("all");
     }
   }, [columns, searchField]);
 
@@ -120,21 +124,21 @@ export function ProjectPageClient({
     }
   };
 
-  const processorColumns = columns.filter((c) => c.mode === 'processor');
+  const processorColumns = columns.filter((c) => c.mode === "processor");
 
   useEffect(() => {
     if (!processorColumns.length) {
       if (selectedBulkColumn) {
-        setSelectedBulkColumn('');
+        setSelectedBulkColumn("");
       }
       return;
     }
 
     const stillValid = processorColumns.some(
-      (column) => column.id === selectedBulkColumn
+      (column) => column.id === selectedBulkColumn,
     );
     if (!stillValid && selectedBulkColumn) {
-      setSelectedBulkColumn('');
+      setSelectedBulkColumn("");
     }
   }, [processorColumns, selectedBulkColumn]);
 
@@ -157,9 +161,7 @@ export function ProjectPageClient({
           <Button variant="secondary" onClick={() => setShowAddColumn(true)}>
             Add Column
           </Button>
-          <Button onClick={() => setShowAddDocument(true)}>
-            Add Document
-          </Button>
+          <Button onClick={() => setShowAddDocument(true)}>Add Document</Button>
         </div>
       </div>
 
@@ -169,8 +171,8 @@ export function ProjectPageClient({
           <div className="section__header">
             <h3 className="section__title">Bulk Actions</h3>
           </div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <div style={{ minWidth: '220px' }}>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <div style={{ minWidth: "220px" }}>
               <Select
                 value={selectedBulkColumn}
                 onValueChange={setSelectedBulkColumn}
@@ -201,13 +203,13 @@ export function ProjectPageClient({
         <div className="section__header">
           <div>
             <h3 className="section__title">Documents</h3>
-            <span style={{ fontSize: '14px', color: 'var(--color-gray-500)' }}>
+            <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
               {filteredDocuments.length} document
-              {filteredDocuments.length !== 1 ? 's' : ''}
+              {filteredDocuments.length !== 1 ? "s" : ""}
               {filteredDocuments.length !== documents.length && (
                 <> of {documents.length}</>
               )}
-              , {columns.length} column{columns.length !== 1 ? 's' : ''}
+              , {columns.length} column{columns.length !== 1 ? "s" : ""}
             </span>
           </div>
           <div className="table__filters">
