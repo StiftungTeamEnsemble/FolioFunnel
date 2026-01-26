@@ -28,6 +28,7 @@ async function handleProcessDocument(jobs: PgBossJob<ProcessDocumentJobData>[]) 
         document,
         column,
         runId,
+        projectId,
       });
       
       console.log(`[Worker] Completed processing document ${documentId} for column ${columnId}`);

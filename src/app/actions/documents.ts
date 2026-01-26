@@ -9,8 +9,9 @@ import {
   deleteDir,
 } from '@/lib/storage';
 import { enqueuePdfThumbnailRun } from '@/lib/thumbnail-processing';
-import { SourceType } from '@prisma/client';
+import { SourceType, ProcessorType } from '@prisma/client';
 import { z } from 'zod';
+import { createProcessorRun } from '@/lib/processors';
 
 const createDocumentFromUrlSchema = z.object({
   url: z.string().url('Invalid URL'),
@@ -21,10 +22,11 @@ export async function createDocumentFromUpload(
   projectId: string,
   formData: FormData
 ) {
-  await requireProjectAccess(projectId);
+  const { user } = await requireProjectAccess(projectId);
   
   const file = formData.get('file') as File;
   const title = formData.get('title') as string | undefined;
+  const comment = formData.get('comment') as string | undefined;
   
   if (!file) {
     return { error: 'No file provided' };
@@ -35,7 +37,9 @@ export async function createDocumentFromUpload(
     const document = await prisma.document.create({
       data: {
         projectId,
+        uploadedById: user.id,
         title: title || file.name,
+        comment: comment || null,
         sourceType: SourceType.upload,
         mimeType: file.type,
         values: {},
@@ -74,10 +78,11 @@ export async function createDocumentFromUpload(
 }
 
 export async function createDocumentFromUrl(projectId: string, formData: FormData) {
-  await requireProjectAccess(projectId);
+  const { user } = await requireProjectAccess(projectId);
   
   const url = formData.get('url') as string;
   const title = formData.get('title') as string | undefined;
+  const comment = formData.get('comment') as string | undefined;
   
   const result = createDocumentFromUrlSchema.safeParse({ url, title });
   if (!result.success) {
@@ -89,7 +94,9 @@ export async function createDocumentFromUrl(projectId: string, formData: FormDat
     const document = await prisma.document.create({
       data: {
         projectId,
+        uploadedById: user.id,
         title: title || new URL(url).hostname,
+        comment: comment || null,
         sourceType: SourceType.url,
         sourceUrl: url,
         values: {},
@@ -105,6 +112,34 @@ export async function createDocumentFromUrl(projectId: string, formData: FormDat
       where: { id: document.id },
       data: { filePath },
     });
+    
+    // Enqueue url_to_html processor to download HTML immediately
+    try {
+      // Find or create url_to_html column
+      let htmlColumn = await prisma.column.findFirst({
+        where: {
+          projectId,
+          processorType: ProcessorType.url_to_html,
+        },
+      });
+      
+      if (!htmlColumn) {
+        htmlColumn = await prisma.column.create({
+          data: {
+            projectId,
+            key: 'html_source',
+            name: 'HTML Source',
+            mode: 'processor',
+            processorType: ProcessorType.url_to_html,
+            hidden: true,
+          },
+        });
+      }
+      
+      await createProcessorRun(projectId, document.id, htmlColumn.id);
+    } catch (error) {
+      console.error('Failed to enqueue url_to_html processor:', error);
+    }
     
     return { success: true, document: { ...document, filePath } };
   } catch (error) {

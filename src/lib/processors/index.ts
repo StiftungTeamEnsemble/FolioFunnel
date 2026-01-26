@@ -6,6 +6,7 @@ import { pdfToMetadata } from './pdf-to-metadata';
 import { pdfToThumbnailMupdf } from './pdf-to-thumbnail-mupdf';
 import { documentToMarkdown } from './document-to-markdown';
 import { documentToMetadata } from './document-to-metadata';
+import { urlToHtml } from './url-to-html';
 import { urlToMarkdown } from './url-to-markdown';
 import { chunkText } from './chunk-text';
 import { createEmbeddings } from './create-embeddings';
@@ -16,6 +17,7 @@ export interface ProcessorContext {
   document: Document;
   column: Column;
   runId: string;
+  projectId: string;
 }
 
 export interface ProcessorResult {
@@ -33,6 +35,7 @@ const processors: Record<ProcessorType, ProcessorFunction> = {
   pdf_to_markdown_mupdf: pdfToMarkdownMupdf,
   pdf_to_metadata: pdfToMetadata,
   pdf_to_thumbnail_mupdf: pdfToThumbnailMupdf,
+  url_to_html: urlToHtml,
   url_to_markdown: urlToMarkdown,
   chunk_text: chunkText,
   create_embeddings: createEmbeddings,

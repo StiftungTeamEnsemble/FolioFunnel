@@ -184,3 +184,50 @@ export async function getRunStatus(runId: string) {
   
   return run;
 }
+
+export async function redownloadUrl(projectId: string, documentId: string) {
+  await requireProjectAccess(projectId);
+  
+  try {
+    const document = await prisma.document.findFirst({
+      where: { id: documentId, projectId },
+    });
+    
+    if (!document) {
+      return { error: 'Document not found' };
+    }
+    
+    if (document.sourceType !== 'url') {
+      return { error: 'Document is not a URL' };
+    }
+    
+    // Find or create url_to_html column
+    let htmlColumn = await prisma.column.findFirst({
+      where: {
+        projectId,
+        processorType: 'url_to_html',
+      },
+    });
+    
+    if (!htmlColumn) {
+      htmlColumn = await prisma.column.create({
+        data: {
+          projectId,
+          key: 'html_source',
+          name: 'HTML Source',
+          mode: 'processor',
+          processorType: 'url_to_html',
+          hidden: true,
+        },
+      });
+    }
+    
+    // Create and enqueue processor run
+    const runId = await createProcessorRun(projectId, documentId, htmlColumn.id);
+    
+    return { success: true, runId };
+  } catch (error) {
+    console.error('Re-download URL error:', error);
+    return { error: 'Failed to re-download URL' };
+  }
+}

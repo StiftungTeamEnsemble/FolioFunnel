@@ -49,9 +49,16 @@ export function AddDocumentModal({
     setError(null);
 
     try {
+      // Get comment from form
+      const form = document.getElementById('upload-form') as HTMLFormElement;
+      const comment = form ? (new FormData(form).get('comment') as string) : '';
+      
       for (const file of files) {
         const formData = new FormData();
         formData.append('file', file);
+        if (comment) {
+          formData.append('comment', comment);
+        }
 
         const response = await fetch(`/api/projects/${projectId}/documents/upload`, {
           method: 'POST',
@@ -133,6 +140,15 @@ export function AddDocumentModal({
                 ))}
               </div>
             )}
+            <form id="upload-form">
+              <InputGroup label="Comment (optional)" htmlFor="upload-comment">
+                <Input
+                  id="upload-comment"
+                  name="comment"
+                  placeholder="Add a note about this document"
+                />
+              </InputGroup>
+            </form>
             <ModalFooter>
               <Button
                 type="button"
@@ -168,6 +184,14 @@ export function AddDocumentModal({
                   id="title"
                   name="title"
                   placeholder="Leave empty to auto-detect"
+                />
+              </InputGroup>
+
+              <InputGroup label="Comment (optional)" htmlFor="comment">
+                <Input
+                  id="comment"
+                  name="comment"
+                  placeholder="Add a note about this URL"
                 />
               </InputGroup>
 

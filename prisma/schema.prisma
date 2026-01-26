@@ -31,6 +31,7 @@ model User {
   sessions       Session[]
   memberships    ProjectMembership[]
   createdProjects Project[]          @relation("ProjectCreator")
+  uploadedDocuments Document[]       @relation("DocumentUploader")
 
   @@map("users")
 }
@@ -147,24 +148,28 @@ enum SourceType {
 }
 
 model Document {
-  id         String     @id @default(uuid()) @db.Uuid
-  projectId  String     @map("project_id") @db.Uuid
-  title      String
-  sourceType SourceType @map("source_type")
-  sourceUrl  String?    @map("source_url")
-  filePath   String?    @map("file_path")
-  mimeType   String?    @map("mime_type")
-  values     Json       @default("{}") @db.JsonB
-  createdAt  DateTime   @default(now()) @map("created_at")
-  updatedAt  DateTime   @updatedAt @map("updated_at")
+  id          String     @id @default(uuid()) @db.Uuid
+  projectId   String     @map("project_id") @db.Uuid
+  uploadedById String    @map("uploaded_by_id") @db.Uuid
+  title       String
+  comment     String?
+  sourceType  SourceType @map("source_type")
+  sourceUrl   String?    @map("source_url")
+  filePath    String?    @map("file_path")
+  mimeType    String?    @map("mime_type")
+  values      Json       @default("{}") @db.JsonB
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
 
   // Relations
   project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploadedBy    User           @relation("DocumentUploader", fields: [uploadedById], references: [id])
   processorRuns ProcessorRun[]
   chunks        Chunk[]
   embeddings    Embedding[]
 
   @@index([projectId])
+  @@index([uploadedById])
   @@map("documents")
 }
 
@@ -190,6 +195,7 @@ enum ProcessorType {
   pdf_to_markdown_mupdf
   pdf_to_metadata
   pdf_to_thumbnail_mupdf
+  url_to_html
   url_to_markdown
   chunk_text
   create_embeddings

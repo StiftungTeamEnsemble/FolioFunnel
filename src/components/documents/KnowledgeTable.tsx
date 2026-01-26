@@ -5,7 +5,7 @@ import { Column, Document, RunStatus } from '@prisma/client';
 import { Button } from '@/components/ui';
 import { updateDocumentValue } from '@/app/actions/documents';
 import { updateColumnVisibility } from '@/app/actions/columns';
-import { triggerProcessorRun } from '@/app/actions/runs';
+import { triggerProcessorRun, redownloadUrl } from '@/app/actions/runs';
 import { DocumentDetailModal } from '@/components/documents/DocumentDetailModal';
 import { getDocumentThumbnailUrl, PDF_THUMBNAIL_COLUMN_KEY } from '@/lib/thumbnails';
 import '@/styles/components/table.css';
@@ -118,6 +118,22 @@ export function KnowledgeTable({
       setRunningCells((prev) => {
         const next = new Set(prev);
         next.delete(cellKey);
+        return next;
+      });
+    }
+  };
+
+  const handleRedownloadUrl = async (docId: string) => {
+    setRunningCells((prev) => new Set(prev).add(`${docId}-redownload`));
+
+    try {
+      await redownloadUrl(projectId, docId);
+      // Wait a bit then refresh
+      setTimeout(onRefresh, 1000);
+    } finally {
+      setRunningCells((prev) => {
+        const next = new Set(prev);
+        next.delete(`${docId}-redownload`);
         return next;
       });
     }
@@ -462,6 +478,16 @@ export function KnowledgeTable({
                   >
                     View
                   </Button>
+                  {doc.sourceType === 'url' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRedownloadUrl(doc.id)}
+                      isLoading={runningCells.has(`${doc.id}-redownload`)}
+                    >
+                      Re-download
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="ghost"
