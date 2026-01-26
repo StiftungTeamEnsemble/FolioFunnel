@@ -32,6 +32,7 @@ model User {
   memberships    ProjectMembership[]
   createdProjects Project[]          @relation("ProjectCreator")
   uploadedDocuments Document[]       @relation("DocumentUploader")
+  promptRuns      PromptRun[]        @relation("PromptRunAuthor")
 
   @@map("users")
 }
@@ -100,6 +101,7 @@ model Project {
   documents   Document[]
   columns     Column[]
   processorRuns ProcessorRun[]
+  promptRuns  PromptRun[]
   chunks      Chunk[]
   embeddings  Embedding[]
 
@@ -237,6 +239,13 @@ enum RunStatus {
   error
 }
 
+enum PromptRunStatus {
+  queued
+  running
+  success
+  error
+}
+
 model ProcessorRun {
   id         String    @id @default(uuid()) @db.Uuid
   projectId  String    @map("project_id") @db.Uuid
@@ -259,6 +268,36 @@ model ProcessorRun {
   @@index([columnId])
   @@index([status])
   @@map("processor_runs")
+}
+
+// ============================================================================
+// Prompt Runs (Prompt Processor)
+// ============================================================================
+
+model PromptRun {
+  id            String          @id @default(uuid()) @db.Uuid
+  projectId     String          @map("project_id") @db.Uuid
+  createdById   String          @map("created_by_id") @db.Uuid
+  model         String
+  promptTemplate String         @map("prompt_template") @db.Text
+  renderedPrompt String         @map("rendered_prompt") @db.Text
+  filters       Json?           @db.JsonB
+  documentIds   Json?           @map("document_ids") @db.JsonB
+  tokenCount    Int?            @map("token_count")
+  costEstimate  Float?          @map("cost_estimate")
+  status        PromptRunStatus @default(queued)
+  error         String?
+  result        String?         @db.Text
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User    @relation("PromptRunAuthor", fields: [createdById], references: [id])
+
+  @@index([projectId])
+  @@index([createdById])
+  @@map("prompt_runs")
 }
 
 // ============================================================================
