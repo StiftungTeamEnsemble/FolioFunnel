@@ -3,13 +3,13 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { requireProjectAccess } from "@/lib/session";
 import prisma from "@/lib/db";
-import { ProjectPageClient } from "./client";
+import { ProjectPromptClient } from "./client";
 
 interface ProjectPageProps {
   params: { projectId: string };
 }
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
+export default async function ProjectPromptPage({ params }: ProjectPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -22,7 +22,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  const [project, documents, columns] = await Promise.all([
+  const [project, documents, columns, promptRuns] = await Promise.all([
     prisma.project.findUnique({
       where: { id: params.projectId },
     }),
@@ -34,51 +34,27 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       where: { projectId: params.projectId },
       orderBy: { position: "asc" },
     }),
+    prisma.promptRun.findMany({
+      where: { projectId: params.projectId },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   if (!project) {
     notFound();
   }
 
-  // Get latest processor runs for each document/column combination
-  const latestRuns = await prisma.$queryRaw<
-    Array<{
-      documentId: string;
-      columnKey: string;
-      status: string;
-      error: string | null;
-    }>
-  >`
-    SELECT DISTINCT ON (pr.document_id, c.key)
-      pr.document_id as "documentId",
-      c.key as "columnKey",
-      pr.status,
-      pr.error
-    FROM processor_runs pr
-    JOIN columns c ON c.id = pr.column_id
-    WHERE pr.project_id = ${params.projectId}::uuid
-    ORDER BY pr.document_id, c.key, pr.created_at DESC
-  `;
-
-  // Attach runs to documents
-  const documentsWithRuns = documents.map((doc) => ({
-    ...doc,
-    latestRuns: latestRuns
-      .filter((r) => r.documentId === doc.id)
-      .reduce(
-        (acc, r) => ({
-          ...acc,
-          [r.columnKey]: { status: r.status, error: r.error },
-        }),
-        {} as Record<string, { status: string; error: string | null }>,
-      ),
-  }));
-
   return (
-    <ProjectPageClient
+    <ProjectPromptClient
       project={project}
-      initialDocuments={documentsWithRuns}
-      initialColumns={columns}
+      initialDocuments={documents}
+      columns={columns}
+      promptRuns={promptRuns}
     />
   );
 }
