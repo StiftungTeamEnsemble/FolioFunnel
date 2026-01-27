@@ -31,8 +31,8 @@ export const CHAT_MODELS: ModelConfig[] = [
     category: "chat",
     contextWindow: 400000,
     pricing: {
-      inputPerMillion: 1,
-      outputPerMillion: 1,
+      inputPerMillion: 0.05,
+      outputPerMillion: 0.4,
     },
   },
   {
@@ -42,8 +42,8 @@ export const CHAT_MODELS: ModelConfig[] = [
     category: "chat",
     contextWindow: 128000,
     pricing: {
-      inputPerMillion: 1.5,
-      outputPerMillion: 1.5,
+      inputPerMillion: 0.15,
+      outputPerMillion: 0.6,
     },
   },
   // {
