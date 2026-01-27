@@ -70,7 +70,6 @@ export function ColumnModal({
   const [useChunks, setUseChunks] = useState<"true" | "false">("true");
   const [promptTemplate, setPromptTemplate] = useState("");
   const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL);
-  const [temperature, setTemperature] = useState(0.7);
 
   // Reset form when modal opens or column changes
   useEffect(() => {
@@ -109,9 +108,6 @@ export function ColumnModal({
       setSelectedModel(
         typeof config.model === "string" ? config.model : DEFAULT_CHAT_MODEL,
       );
-      setTemperature(
-        typeof config.temperature === "number" ? config.temperature : 0.7,
-      );
     } else {
       // Add mode: reset to defaults
       setKey("");
@@ -126,7 +122,6 @@ export function ColumnModal({
       setUseChunks("true");
       setPromptTemplate("");
       setSelectedModel(DEFAULT_CHAT_MODEL);
-      setTemperature(0.7);
     }
     setError(null);
   }, [open, column]);
@@ -179,7 +174,6 @@ export function ColumnModal({
       if (processorType === "ai_transform") {
         config.promptTemplate = promptTemplate;
         config.model = selectedModel;
-        config.temperature = temperature;
         config.outputType = dataType === "number" ? "number" : "text";
         config.autoConvert = dataType === "number";
       }
@@ -466,22 +460,6 @@ export function ColumnModal({
                       ))}
                     </Select>
                   </InputGroup>
-                  {processorType === "ai_transform" && (
-                    <InputGroup label="Temperature" htmlFor="temperature">
-                      <Input
-                        id="temperature"
-                        name="temperature"
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        max="2"
-                        value={temperature}
-                        onChange={(e) =>
-                          setTemperature(parseFloat(e.target.value || "0"))
-                        }
-                      />
-                    </InputGroup>
-                  )}
                 </div>
               )}
             </>

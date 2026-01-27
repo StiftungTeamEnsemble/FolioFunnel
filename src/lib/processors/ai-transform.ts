@@ -4,7 +4,6 @@ import { isValidChatModel, DEFAULT_CHAT_MODEL } from "@/lib/models";
 
 interface AITransformConfig {
   model: string;
-  temperature: number;
   promptTemplate: string;
   maxTokens?: number;
   systemPrompt?: string;
@@ -12,7 +11,6 @@ interface AITransformConfig {
   autoConvert?: boolean;
 }
 
-const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 2000;
 
 export async function aiTransform(
@@ -27,7 +25,6 @@ export async function aiTransform(
   const model = isValidChatModel(requestedModel)
     ? requestedModel
     : DEFAULT_CHAT_MODEL;
-  const temperature = config.temperature ?? DEFAULT_TEMPERATURE;
   const promptTemplate = config.promptTemplate;
   const maxTokens = config.maxTokens || DEFAULT_MAX_TOKENS;
   const outputType = config.outputType || "text";
@@ -88,8 +85,7 @@ export async function aiTransform(
     // Call OpenAI
     const response = await openai.chat.completions.create({
       model,
-      temperature,
-      max_tokens: maxTokens,
+      max_completion_tokens: maxTokens, // todo: remove?
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -120,7 +116,6 @@ export async function aiTransform(
       meta: {
         duration,
         model,
-        temperature,
         outputType,
         autoConverted: autoConvert && outputType === "number",
         promptTokens: usage?.prompt_tokens,
