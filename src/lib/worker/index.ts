@@ -39,12 +39,17 @@ async function handleProcessDocument(
         continue;
       }
 
-      await runProcessor({
+      const result = await runProcessor({
         document,
         column,
         runId,
         projectId,
       });
+
+      console.log(
+        `[Worker] Processor result for document ${documentId} column ${columnId}:`,
+        JSON.stringify(result, null, 2),
+      );
 
       console.log(
         `[Worker] Completed processing document ${documentId} for column ${columnId}`,

@@ -9,7 +9,7 @@ interface OpenAIConfig {
   systemPrompt?: string;
 }
 
-const DEFAULT_MAX_TOKENS = 2000;
+const DEFAULT_MAX_TOKENS = 60000;
 
 export async function openaiTransform(
   ctx: ProcessorContext,

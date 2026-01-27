@@ -11,7 +11,7 @@ interface AITransformConfig {
   autoConvert?: boolean;
 }
 
-const DEFAULT_MAX_TOKENS = 2000;
+const DEFAULT_MAX_TOKENS = 60000;
 
 export async function aiTransform(
   ctx: ProcessorContext,
@@ -74,8 +74,11 @@ export async function aiTransform(
 
     // Expand template
     const userPrompt = expandTemplate(promptTemplate, contextValues);
-
+    console.log("[AITransform] Expanded prompt:", userPrompt);
     if (!userPrompt.trim()) {
+      console.error(
+        "[AITransform] Expanded prompt is empty. Check column references.",
+      );
       return {
         success: false,
         error: "Expanded prompt is empty. Check column references.",
@@ -83,17 +86,61 @@ export async function aiTransform(
     }
 
     // Call OpenAI
-    const response = await openai.chat.completions.create({
-      model,
-      max_completion_tokens: maxTokens, // todo: remove?
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-    });
+    let response;
+    try {
+      response = await openai.chat.completions.create({
+        model,
+        max_completion_tokens: maxTokens, // todo: remove?
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+    } catch (apiError) {
+      console.error("[AITransform] OpenAI API error:", apiError);
+      return {
+        success: false,
+        error:
+          apiError instanceof Error
+            ? apiError.message
+            : "Failed to call OpenAI API",
+      };
+    }
 
     let completion = response.choices[0]?.message?.content || "";
     const usage = response.usage;
+    const finishReason = response.choices[0]?.finish_reason;
+    console.log(
+      "[AITransform] OpenAI response:",
+      JSON.stringify(response, null, 2),
+    );
+    if (!completion) {
+      console.warn("[AITransform] OpenAI returned empty completion.", response);
+      if (finishReason === "length") {
+        return {
+          success: false,
+          error: `The AI output was cut off because it reached the maximum token limit (${maxTokens}).`,
+          meta: {
+            finishReason,
+            promptTokens: usage?.prompt_tokens,
+            completionTokens: usage?.completion_tokens,
+            totalTokens: usage?.total_tokens,
+          },
+        };
+      } else {
+        return {
+          success: false,
+          error:
+            "The AI did not return any output. Please check your prompt and settings.",
+          meta: {
+            finishReason,
+            promptTokens: usage?.prompt_tokens,
+            completionTokens: usage?.completion_tokens,
+            totalTokens: usage?.total_tokens,
+          },
+        };
+      }
+    }
 
     const duration = Date.now() - startTime;
 
@@ -110,6 +157,7 @@ export async function aiTransform(
       }
     }
 
+    console.log("[AITransform] Final value:", finalValue);
     return {
       success: true,
       value: finalValue,
@@ -121,10 +169,11 @@ export async function aiTransform(
         promptTokens: usage?.prompt_tokens,
         completionTokens: usage?.completion_tokens,
         totalTokens: usage?.total_tokens,
-        finishReason: response.choices[0]?.finish_reason,
+        finishReason,
       },
     };
   } catch (error) {
+    console.error("[AITransform] Unexpected error:", error);
     return {
       success: false,
       error:
