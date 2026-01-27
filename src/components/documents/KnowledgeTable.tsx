@@ -294,14 +294,77 @@ export function KnowledgeTable({
                     <span className="table__cell__value">{doc.title}</span>
                   </div>
                   <div className="table__cell__footer">
-                    <button
-                      type="button"
-                      className="table__cell__copy"
-                      onClick={() => handleCopy(doc.title)}
-                      aria-label="Copy title"
-                    >
-                      Copy
-                    </button>
+                    {(() => {
+                      if (doc.sourceType !== "url") {
+                        return (
+                          <button
+                            type="button"
+                            className="table__cell__copy"
+                            onClick={() => handleCopy(doc.title)}
+                            aria-label="Copy title"
+                          >
+                            Copy
+                          </button>
+                        );
+                      }
+
+                      const htmlSourceRun = getRunStatus(doc, "html_source");
+                      const isRedownloadRunning = runningCells.has(
+                        `${doc.id}-redownload`,
+                      );
+                      const displayStatus = isRedownloadRunning
+                        ? "running"
+                        : htmlSourceRun?.status;
+
+                      return (
+                        <>
+                          <div className="table__cell__status">
+                            <StatusIcon status={displayStatus || "pending"} />
+                            <span className="table__cell__status-label">
+                              Status:{" "}
+                              {displayStatus === "running" && "Processing"}
+                              {displayStatus === "queued" && "Queued"}
+                              {displayStatus === "success" && "Done"}
+                              {displayStatus === "error" && "Error"}
+                              {!displayStatus && "Not run"}
+                            </span>
+                          </div>
+                          <div className="table__cell__footer-actions">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              isLoading={isRedownloadRunning}
+                              disabled={
+                                displayStatus === "queued" ||
+                                displayStatus === "running"
+                              }
+                              onClick={() => handleRedownloadUrl(doc.id)}
+                              title={
+                                htmlSourceRun
+                                  ? "Rerun HTML download"
+                                  : "Download HTML source"
+                              }
+                            >
+                              {displayStatus === "queued"
+                                ? "⏳"
+                                : displayStatus === "running"
+                                  ? "⚙️"
+                                  : htmlSourceRun
+                                    ? "🔄"
+                                    : "▶️"}
+                            </Button>
+                            <button
+                              type="button"
+                              className="table__cell__copy"
+                              onClick={() => handleCopy(doc.title)}
+                              aria-label="Copy title"
+                            >
+                              Copy
+                            </button>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </td>
@@ -522,16 +585,6 @@ export function KnowledgeTable({
                   >
                     View
                   </Button>
-                  {doc.sourceType === "url" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleRedownloadUrl(doc.id)}
-                      isLoading={runningCells.has(`${doc.id}-redownload`)}
-                    >
-                      Re-download
-                    </Button>
-                  )}
                   <Button
                     size="sm"
                     variant="ghost"
