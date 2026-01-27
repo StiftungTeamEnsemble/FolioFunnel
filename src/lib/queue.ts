@@ -11,8 +11,6 @@ export function getBoss(): PgBoss {
   if (!globalForBoss.boss) {
     globalForBoss.boss = new PgBoss({
       connectionString,
-      retryLimit: 3,
-      retryDelay: 5,
       retentionDays: 7,
     });
   }
@@ -63,8 +61,6 @@ export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
   try {
     const boss = await ensureBossReady();
     const id = await boss.send(QUEUE_NAMES.PROCESS_DOCUMENT, data, {
-      retryLimit: 2,
-      retryDelay: 10,
       expireInMinutes: 60,
     });
     console.log("[Queue] Job enqueued with id", id);
@@ -80,8 +76,6 @@ export async function enqueueBulkProcess(data: BulkProcessJobData) {
   try {
     const boss = await ensureBossReady();
     const id = await boss.send(QUEUE_NAMES.BULK_PROCESS, data, {
-      retryLimit: 1,
-      retryDelay: 30,
       expireInMinutes: 60,
     });
     console.log("[Queue] Bulk job enqueued with id", id);
@@ -97,8 +91,6 @@ export async function enqueuePromptRun(data: PromptRunJobData) {
   try {
     const boss = await ensureBossReady();
     const id = await boss.send(QUEUE_NAMES.PROMPT_RUN, data, {
-      retryLimit: 2,
-      retryDelay: 10,
       expireInMinutes: 60,
     });
     console.log("[Queue] Prompt job enqueued with id", id);

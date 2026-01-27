@@ -100,10 +100,6 @@ async function handleBulkProcess(jobs: PgBossJob<BulkProcessJobData>[]) {
             columnId,
             runId,
           },
-          {
-            retryLimit: 2,
-            retryDelay: 10,
-          },
         );
       }
 
