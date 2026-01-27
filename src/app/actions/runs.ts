@@ -10,21 +10,42 @@ export async function clearPendingTasks() {
   const user = await requireAuth();
 
   try {
-    // Delete all queued runs for projects the user has access to
-    const result = await prisma.processorRun.deleteMany({
-      where: {
-        status: RunStatus.queued,
-        project: {
-          memberships: {
-            some: {
-              userId: user.id,
+    // Delete all queued/running processor runs and prompt runs for projects the user has access to
+    const [processorResult, promptResult] = await Promise.all([
+      prisma.processorRun.deleteMany({
+        where: {
+          status: { in: [RunStatus.queued, RunStatus.running] },
+          project: {
+            memberships: {
+              some: {
+                userId: user.id,
+              },
             },
           },
         },
-      },
-    });
+      }),
+      prisma.promptRun.deleteMany({
+        where: {
+          status: { in: ["queued", "running"] },
+          project: {
+            memberships: {
+              some: {
+                userId: user.id,
+              },
+            },
+          },
+        },
+      }),
+    ]);
 
-    return { success: true, deletedCount: result.count };
+    const totalDeleted = processorResult.count + promptResult.count;
+
+    return { 
+      success: true, 
+      deletedCount: totalDeleted,
+      processorCount: processorResult.count,
+      promptCount: promptResult.count,
+    };
   } catch (error) {
     console.error("Clear pending tasks error:", error);
     return { error: "Failed to clear pending tasks" };

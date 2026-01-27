@@ -28,6 +28,19 @@ const statusDotClass: Record<string, string> = {
   error: "tasks-list__status-dot tasks-list__status-dot--error",
 };
 
+// Unified task type for display
+type UnifiedTask = {
+  id: string;
+  type: "processor" | "prompt";
+  status: string;
+  createdAt: Date;
+  projectId: string;
+  projectName: string;
+  title: string;
+  subtitle?: string;
+  error?: string | null;
+};
+
 export default async function TasksPage() {
   const session = await getServerSession(authOptions);
 
@@ -35,41 +48,98 @@ export default async function TasksPage() {
     redirect("/auth/signin");
   }
 
-  const runs = await prisma.processorRun.findMany({
-    where: {
-      project: {
-        memberships: {
-          some: {
-            userId: session.user.id,
+  // Fetch both processor runs and prompt runs
+  const [processorRuns, promptRuns] = await Promise.all([
+    prisma.processorRun.findMany({
+      where: {
+        project: {
+          memberships: {
+            some: {
+              userId: session.user.id,
+            },
           },
         },
       },
-    },
-    include: {
-      project: {
-        select: {
-          id: true,
-          name: true,
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        document: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        column: {
+          select: {
+            id: true,
+            name: true,
+          },
         },
       },
-      document: {
-        select: {
-          id: true,
-          title: true,
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 50, // Get more since we're combining two lists
+    }),
+    prisma.promptRun.findMany({
+      where: {
+        project: {
+          memberships: {
+            some: {
+              userId: session.user.id,
+            },
+          },
         },
       },
-      column: {
-        select: {
-          id: true,
-          name: true,
+      include: {
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        createdBy: {
+          select: {
+            name: true,
+            email: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 20,
-  });
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 50,
+    }),
+  ]);
+
+  // Combine and sort all tasks
+  const allTasks: UnifiedTask[] = [
+    ...processorRuns.map((run) => ({
+      id: run.id,
+      type: "processor" as const,
+      status: run.status,
+      createdAt: run.createdAt,
+      projectId: run.project.id,
+      projectName: run.project.name,
+      title: `${run.column.name} on ${run.document.title}`,
+      error: run.error,
+    })),
+    ...promptRuns.map((run) => ({
+      id: run.id,
+      type: "prompt" as const,
+      status: run.status,
+      createdAt: run.createdAt,
+      projectId: run.project.id,
+      projectName: run.project.name,
+      title: `Prompt Run (${run.model})`,
+      subtitle: run.createdBy.name || run.createdBy.email || "Unknown user",
+      error: run.error,
+    })),
+  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 20);
 
   return (
     <div className="page">
@@ -77,7 +147,7 @@ export default async function TasksPage() {
         <div>
           <h1 className="page__title">Tasks</h1>
           <p className="page__subtitle">
-            Track recent processing runs across your projects.
+            Track recent processing runs and prompt executions across your projects.
           </p>
         </div>
         <div className="page__actions">
@@ -88,7 +158,7 @@ export default async function TasksPage() {
         </div>
       </div>
 
-      {runs.length === 0 ? (
+      {allTasks.length === 0 ? (
         <div className="empty-state">
           <svg className="empty-state__icon" viewBox="0 0 64 64" fill="none">
             <rect
@@ -115,7 +185,7 @@ export default async function TasksPage() {
           </svg>
           <h2 className="empty-state__title">No tasks yet</h2>
           <p className="empty-state__description">
-            Start running processors in a project to see task activity here.
+            Start running processors or prompts in a project to see task activity here.
           </p>
           <Button asChild>
             <Link href="/projects">Go to Projects</Link>
@@ -126,38 +196,53 @@ export default async function TasksPage() {
           <div className="card">
             <div className="card__header">
               <div>
-                <h2 className="card__title">Recent Runs</h2>
+                <h2 className="card__title">Recent Activity</h2>
                 <p className="card__subtitle">
-                  Latest automated and manual processing activity.
+                  Latest processor runs and prompt executions from the unified queue.
                 </p>
               </div>
             </div>
             <div className="card__body card__body--compact">
               <ul className="tasks-list">
-                {runs.map((run) => {
-                  const status = run.status.toLowerCase();
+                {allTasks.map((task) => {
+                  const status = task.status.toLowerCase();
+                  const taskLink = task.type === "prompt" 
+                    ? `/projects/${task.projectId}/prompts/${task.id}`
+                    : `/projects/${task.projectId}`;
+                  
                   return (
-                    <li key={run.id} className="tasks-list__item">
+                    <li key={`${task.type}-${task.id}`} className="tasks-list__item">
                       <div className="tasks-list__details">
                         <span className={statusDotClass[status]} />
                         <div>
                           <div className="tasks-list__title">
-                            {run.column.name} on {run.document.title}
+                            <Link href={taskLink} className="tasks-list__link">
+                              {task.title}
+                            </Link>
+                            <span className="badge badge--xs" style={{ marginLeft: "8px" }}>
+                              {task.type === "processor" ? "Processor" : "Prompt"}
+                            </span>
                           </div>
                           <div className="tasks-list__meta">
                             <Link
-                              href={`/projects/${run.project.id}`}
+                              href={`/projects/${task.projectId}`}
                               className="tasks-list__link"
                             >
-                              {run.project.name}
+                              {task.projectName}
                             </Link>
+                            {task.subtitle && (
+                              <>
+                                <span className="tasks-list__separator">•</span>
+                                <span>{task.subtitle}</span>
+                              </>
+                            )}
                             <span className="tasks-list__separator">•</span>
                             <span className="tasks-list__time">
-                              {new Date(run.createdAt).toLocaleString()}
+                              {new Date(task.createdAt).toLocaleString()}
                             </span>
                           </div>
-                          {run.error && (
-                            <div className="tasks-list__error">{run.error}</div>
+                          {task.error && (
+                            <div className="tasks-list__error">{task.error}</div>
                           )}
                         </div>
                       </div>
