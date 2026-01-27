@@ -27,6 +27,7 @@ async function ensureBossReady(): Promise<PgBoss> {
     // Create queues
     await boss.createQueue(QUEUE_NAMES.PROCESS_DOCUMENT);
     await boss.createQueue(QUEUE_NAMES.BULK_PROCESS);
+    await boss.createQueue(QUEUE_NAMES.PROMPT_RUN);
     globalForBoss.bossStarted = true;
   }
   return boss;
@@ -37,6 +38,7 @@ export const QUEUE_NAMES = {
   PROCESS_DOCUMENT: "process-document",
   PROCESS_COLUMN: "process-column",
   BULK_PROCESS: "bulk-process",
+  PROMPT_RUN: "prompt-run",
 } as const;
 
 // Job data types
@@ -50,6 +52,10 @@ export interface ProcessDocumentJobData {
 export interface BulkProcessJobData {
   projectId: string;
   columnId: string;
+}
+
+export interface PromptRunJobData {
+  promptRunId: string;
 }
 
 export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
@@ -82,6 +88,23 @@ export async function enqueueBulkProcess(data: BulkProcessJobData) {
     return id;
   } catch (error) {
     console.error("[Queue] Error enqueueing bulk job:", error);
+    throw error;
+  }
+}
+
+export async function enqueuePromptRun(data: PromptRunJobData) {
+  console.log("[Queue] Enqueueing prompt-run job:", data);
+  try {
+    const boss = await ensureBossReady();
+    const id = await boss.send(QUEUE_NAMES.PROMPT_RUN, data, {
+      retryLimit: 2,
+      retryDelay: 10,
+      expireInMinutes: 60,
+    });
+    console.log("[Queue] Prompt job enqueued with id", id);
+    return id;
+  } catch (error) {
+    console.error("[Queue] Error enqueueing prompt job:", error);
     throw error;
   }
 }

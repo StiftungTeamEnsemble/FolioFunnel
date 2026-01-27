@@ -1,10 +1,7 @@
 import { encodingForModel, TiktokenModel } from "js-tiktoken";
-import { getTiktokenModel } from "@/lib/models";
+import { getModelConfig, getTiktokenModel } from "@/lib/models";
 
-const CHAT_MODEL_PRICING: Record<string, { inputPer1k: number }> = {
-  "gpt-5-nano": { inputPer1k: 0.001 },
-  "gpt-4o-mini": { inputPer1k: 0.0015 },
-};
+const TOKENS_PER_MILLION = 1_000_000;
 
 export function countPromptTokens(prompt: string, modelId: string) {
   const tiktokenModel = getTiktokenModel(modelId) as TiktokenModel;
@@ -14,7 +11,26 @@ export function countPromptTokens(prompt: string, modelId: string) {
 }
 
 export function estimatePromptCost(tokenCount: number, modelId: string) {
-  const pricing = CHAT_MODEL_PRICING[modelId];
-  if (!pricing) return null;
-  return (tokenCount / 1000) * pricing.inputPer1k;
+  const config = getModelConfig(modelId);
+  if (!config?.pricing) return null;
+  return (tokenCount / TOKENS_PER_MILLION) * config.pricing.inputPerMillion;
+}
+
+export function calculatePromptCost({
+  modelId,
+  inputTokens,
+  outputTokens,
+}: {
+  modelId: string;
+  inputTokens: number | null | undefined;
+  outputTokens: number | null | undefined;
+}) {
+  const config = getModelConfig(modelId);
+  if (!config?.pricing) return null;
+  if (inputTokens == null || outputTokens == null) return null;
+
+  return (
+    (inputTokens / TOKENS_PER_MILLION) * config.pricing.inputPerMillion +
+    (outputTokens / TOKENS_PER_MILLION) * config.pricing.outputPerMillion
+  );
 }
