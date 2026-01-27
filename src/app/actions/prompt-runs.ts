@@ -88,9 +88,6 @@ export async function createPromptRunAction({
     return { error: "Rendered prompt is empty." };
   }
 
-  const tokenCount = countPromptTokens(renderedPrompt, validatedModel);
-  const costEstimate = estimatePromptCost(tokenCount, validatedModel);
-
   const run = await prisma.promptRun.create({
     data: {
       projectId,
@@ -100,11 +97,35 @@ export async function createPromptRunAction({
       renderedPrompt,
       filters,
       documentIds,
-      tokenCount,
-      costEstimate,
+      // tokenCount and costEstimate will be set after AI response
     },
   });
 
+// Helper to update token counts and price after AI response
+export async function updatePromptRunTokensAndPrice({
+  promptRunId,
+  inputTokenCount,
+  outputTokenCount,
+  model,
+}: {
+  promptRunId: string;
+  inputTokenCount: number;
+  outputTokenCount: number;
+  model: string;
+}) {
+  const totalTokens = inputTokenCount + outputTokenCount;
+  // Always calculate price at update time
+  const costEstimate = estimatePromptCost(totalTokens, model);
+  await prisma.promptRun.update({
+    where: { id: promptRunId },
+    data: {
+      inputTokenCount,
+      outputTokenCount,
+      tokenCount: totalTokens,
+      costEstimate,
+    },
+  });
+}
   try {
     await enqueuePromptRun({ promptRunId: run.id });
   } catch (error) {

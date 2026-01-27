@@ -114,6 +114,19 @@ export async function aiTransform(
       "[AITransform] OpenAI response:",
       JSON.stringify(response, null, 2),
     );
+
+    // Write token counts and price to DB if promptRunId is available in context
+    if (ctx.promptRunId && usage?.prompt_tokens != null && usage?.completion_tokens != null) {
+      // Dynamically import updatePromptRunTokensAndPrice
+      const { updatePromptRunTokensAndPrice } = await import("@/app/actions/prompt-runs");
+      await updatePromptRunTokensAndPrice({
+        promptRunId: ctx.promptRunId,
+        inputTokenCount: usage.prompt_tokens,
+        outputTokenCount: usage.completion_tokens,
+        model,
+      });
+    }
+
     if (!completion) {
       console.warn("[AITransform] OpenAI returned empty completion.", response);
       if (finishReason === "length") {

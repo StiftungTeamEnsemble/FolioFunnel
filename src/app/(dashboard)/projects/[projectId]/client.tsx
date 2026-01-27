@@ -314,11 +314,7 @@ export function ProjectPromptClient({
         return;
       }
 
-      if (result.promptRunId) {
-        router.push(`/projects/${project.id}/prompts/${result.promptRunId}`);
-        return;
-      }
-
+      // Do not navigate to detail view. Optionally refresh to show updated prompt run list.
       router.refresh();
     });
   };
