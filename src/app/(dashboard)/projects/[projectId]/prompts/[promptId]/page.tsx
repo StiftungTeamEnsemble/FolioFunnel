@@ -21,8 +21,12 @@ export default async function PromptRunPage({ params }: PromptRunPageProps) {
     notFound();
   }
 
-  const promptRun = await prisma.promptRun.findFirst({
-    where: { id: params.promptId, projectId: params.projectId },
+  const promptRun = await prisma.run.findFirst({
+    where: { 
+      id: params.promptId, 
+      projectId: params.projectId,
+      type: "prompt",
+    },
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },
@@ -83,7 +87,11 @@ export default async function PromptRunPage({ params }: PromptRunPageProps) {
         <div className="card">
           <div className="card__body">
             <pre style={{ whiteSpace: "pre-wrap" }}>
-              {JSON.stringify(promptRun.filters ?? {}, null, 2)}
+              {JSON.stringify(
+                (promptRun.config as any)?.filters ?? {},
+                null,
+                2
+              )}
             </pre>
           </div>
         </div>

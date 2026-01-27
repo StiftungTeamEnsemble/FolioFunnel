@@ -4,47 +4,29 @@ import prisma from "@/lib/db";
 import { requireProjectAccess, requireAuth } from "@/lib/session";
 import { enqueueBulkProcess } from "@/lib/queue";
 import { createProcessorRun } from "@/lib/processors";
-import { RunStatus } from "@prisma/client";
+import { RunStatus, RunType } from "@prisma/client";
 
 export async function clearPendingTasks() {
   const user = await requireAuth();
 
   try {
-    // Delete all queued/running processor runs and prompt runs for projects the user has access to
-    const [processorResult, promptResult] = await Promise.all([
-      prisma.processorRun.deleteMany({
-        where: {
-          status: { in: [RunStatus.queued, RunStatus.running] },
-          project: {
-            memberships: {
-              some: {
-                userId: user.id,
-              },
+    // Delete all queued/running runs (both processor and prompt) for projects the user has access to
+    const result = await prisma.run.deleteMany({
+      where: {
+        status: { in: [RunStatus.queued, RunStatus.running] },
+        project: {
+          memberships: {
+            some: {
+              userId: user.id,
             },
           },
         },
-      }),
-      prisma.promptRun.deleteMany({
-        where: {
-          status: { in: ["queued", "running"] },
-          project: {
-            memberships: {
-              some: {
-                userId: user.id,
-              },
-            },
-          },
-        },
-      }),
-    ]);
-
-    const totalDeleted = processorResult.count + promptResult.count;
+      },
+    });
 
     return { 
       success: true, 
-      deletedCount: totalDeleted,
-      processorCount: processorResult.count,
-      promptCount: promptResult.count,
+      deletedCount: result.count,
     };
   } catch (error) {
     console.error("Clear pending tasks error:", error);
@@ -79,8 +61,9 @@ export async function triggerProcessorRun(
     }
 
     // Check for already running/queued job
-    const existingRun = await prisma.processorRun.findFirst({
+    const existingRun = await prisma.run.findFirst({
       where: {
+        type: RunType.processor,
         documentId,
         columnId,
         status: { in: [RunStatus.queued, RunStatus.running] },
@@ -147,9 +130,10 @@ export async function getProcessorRuns(
 ) {
   await requireProjectAccess(projectId);
 
-  const runs = await prisma.processorRun.findMany({
+  const runs = await prisma.run.findMany({
     where: {
       projectId,
+      type: RunType.processor,
       ...(options?.documentId && { documentId: options.documentId }),
       ...(options?.columnId && { columnId: options.columnId }),
     },
@@ -184,24 +168,25 @@ export async function getLatestRunsForDocument(
       finishedAt: Date | null;
     }>
   >`
-    SELECT DISTINCT ON (pr.column_id)
-      pr.column_id as "columnId",
+    SELECT DISTINCT ON (r.column_id)
+      r.column_id as "columnId",
       c.key as "columnKey",
-      pr.status,
-      pr.error,
-      pr.finished_at as "finishedAt"
-    FROM processor_runs pr
-    JOIN columns c ON c.id = pr.column_id
-    WHERE pr.project_id = ${projectId}::uuid
-      AND pr.document_id = ${documentId}::uuid
-    ORDER BY pr.column_id, pr.created_at DESC
+      r.status::text as status,
+      r.error,
+      r.finished_at as "finishedAt"
+    FROM runs r
+    JOIN columns c ON c.id = r.column_id
+    WHERE r.project_id = ${projectId}::uuid
+      AND r.document_id = ${documentId}::uuid
+      AND r.type = 'processor'
+    ORDER BY r.column_id, r.created_at DESC
   `;
 
   return runs;
 }
 
 export async function getRunStatus(runId: string) {
-  const run = await prisma.processorRun.findUnique({
+  const run = await prisma.run.findUnique({
     where: { id: runId },
     include: {
       column: {

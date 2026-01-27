@@ -63,31 +63,31 @@ async function handlePromptRun(job: PromptRunJob) {
 
   console.log(`[Worker] Processing prompt run ${promptRunId}`);
 
-  const promptRun = await prisma.promptRun.findUnique({
+  const promptRun = await prisma.run.findUnique({
     where: { id: promptRunId },
   });
 
-  if (!promptRun) {
-    console.error(`[Worker] Prompt run ${promptRunId} not found`);
+  if (!promptRun || promptRun.type !== "prompt") {
+    console.error(`[Worker] Prompt run ${promptRunId} not found or invalid type`);
     return;
   }
 
   // Mark as running
-  await prisma.promptRun.update({
+  await prisma.run.update({
     where: { id: promptRunId },
     data: { status: "running" },
   });
 
   // Use shared OpenAI client for the API call
   const response = await callOpenAI({
-    model: promptRun.model,
-    userPrompt: promptRun.renderedPrompt,
+    model: promptRun.model!,
+    userPrompt: promptRun.renderedPrompt!,
     // No system prompt for direct prompt runs - the user controls the full prompt
   });
 
   if (!response.success) {
     // Update with failure details including any partial token stats
-    await prisma.promptRun.update({
+    await prisma.run.update({
       where: { id: promptRunId },
       data: {
         status: "error",
@@ -107,7 +107,7 @@ async function handlePromptRun(job: PromptRunJob) {
   }
 
   // Update prompt run with success result and full token stats/cost
-  await prisma.promptRun.update({
+  await prisma.run.update({
     where: { id: promptRunId },
     data: {
       status: "success",

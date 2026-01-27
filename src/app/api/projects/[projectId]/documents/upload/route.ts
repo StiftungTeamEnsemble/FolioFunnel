@@ -10,7 +10,7 @@ export async function POST(
   { params }: { params: { projectId: string } },
 ) {
   try {
-    await requireProjectAccess(params.projectId);
+    const { user } = await requireProjectAccess(params.projectId);
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -24,6 +24,7 @@ export async function POST(
     const document = await prisma.document.create({
       data: {
         projectId: params.projectId,
+        uploadedById: user.id,
         title: title || file.name,
         sourceType: SourceType.upload,
         mimeType: file.type,

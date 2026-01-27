@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Column, Document, Project, PromptRun } from "@prisma/client";
+import type { Column, Document, Project, Run } from "@prisma/client";
 import { Button, Input, Select, SelectItem, Textarea } from "@/components/ui";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
@@ -27,8 +27,8 @@ interface FilterGroup {
   rules: FilterRule[];
 }
 
-interface PromptRunWithAuthor extends PromptRun {
-  createdBy: { id: string; name: string | null; email: string | null };
+interface PromptRunWithAuthor extends Run {
+  createdBy: { id: string; name: string | null; email: string | null } | null;
 }
 
 interface ProjectPromptClientProps {

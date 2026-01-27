@@ -32,7 +32,7 @@ model User {
   memberships    ProjectMembership[]
   createdProjects Project[]          @relation("ProjectCreator")
   uploadedDocuments Document[]       @relation("DocumentUploader")
-  promptRuns      PromptRun[]        @relation("PromptRunAuthor")
+  runs           Run[]               @relation("RunAuthor")
 
   @@map("users")
 }
@@ -100,8 +100,7 @@ model Project {
   invites     ProjectInvite[]
   documents   Document[]
   columns     Column[]
-  processorRuns ProcessorRun[]
-  promptRuns  PromptRun[]
+  runs        Run[]
   chunks      Chunk[]
   embeddings  Embedding[]
 
@@ -166,7 +165,7 @@ model Document {
   // Relations
   project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   uploadedBy    User           @relation("DocumentUploader", fields: [uploadedById], references: [id])
-  processorRuns ProcessorRun[]
+  runs          Run[]
   chunks        Chunk[]
   embeddings    Embedding[]
 
@@ -221,7 +220,7 @@ model Column {
 
   // Relations
   project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  processorRuns ProcessorRun[]
+  runs          Run[]
 
   @@unique([projectId, key])
   @@index([projectId])
@@ -229,8 +228,13 @@ model Column {
 }
 
 // ============================================================================
-// Processor Runs (Job Tracking)
+// Unified Runs (Processor Runs + Prompt Runs)
 // ============================================================================
+
+enum RunType {
+  processor
+  prompt
+}
 
 enum RunStatus {
   queued
@@ -239,67 +243,53 @@ enum RunStatus {
   error
 }
 
-enum PromptRunStatus {
-  queued
-  running
-  success
-  error
-}
-
-model ProcessorRun {
-  id         String    @id @default(uuid()) @db.Uuid
-  projectId  String    @map("project_id") @db.Uuid
-  documentId String    @map("document_id") @db.Uuid
-  columnId   String    @map("column_id") @db.Uuid
-  status     RunStatus @default(queued)
-  startedAt  DateTime? @map("started_at")
-  finishedAt DateTime? @map("finished_at")
-  error      String?
-  meta       Json?     @db.JsonB
-  createdAt  DateTime  @default(now()) @map("created_at")
-
+model Run {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  type        RunType
+  status      RunStatus @default(queued)
+  
+  // Common fields
+  createdById String?   @map("created_by_id") @db.Uuid  // Optional, only for prompts
+  startedAt   DateTime? @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  // Processor-specific (nullable for prompt runs)
+  documentId  String?   @map("document_id") @db.Uuid
+  columnId    String?   @map("column_id") @db.Uuid
+  
+  // Prompt-specific (nullable for processor runs)
+  model            String? // AI model name
+  promptTemplate   String? @map("prompt_template") @db.Text
+  renderedPrompt   String? @map("rendered_prompt") @db.Text
+  
+  // Common output/metrics
+  result           String? @db.Text  // Prompt result or can store processor output
+  inputTokenCount  Int?    @map("input_token_count")
+  outputTokenCount Int?    @map("output_token_count")
+  tokenCount       Int?    @map("token_count")
+  costEstimate     Float?  @map("cost_estimate")
+  
+  // Flexible fields for additional data
+  config      Json?    @db.JsonB  // For filters, documentIds array, processor config, etc.
+  meta        Json?    @db.JsonB  // For additional metadata (duration, finish_reason, etc.)
+  
   // Relations
-  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  column   Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy   User?     @relation("RunAuthor", fields: [createdById], references: [id])
+  document    Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  column      Column?   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId, type])
+  @@index([status])
   @@index([documentId])
   @@index([columnId])
-  @@index([status])
-  @@map("processor_runs")
-}
-
-// ============================================================================
-// Prompt Runs (Prompt Processor)
-// ============================================================================
-
-model PromptRun {
-  id            String          @id @default(uuid()) @db.Uuid
-  projectId     String          @map("project_id") @db.Uuid
-  createdById   String          @map("created_by_id") @db.Uuid
-  model         String
-  promptTemplate String         @map("prompt_template") @db.Text
-  renderedPrompt String         @map("rendered_prompt") @db.Text
-  filters       Json?           @db.JsonB
-  documentIds   Json?           @map("document_ids") @db.JsonB
-  tokenCount    Int?            @map("token_count")
-  inputTokenCount Int?          @map("input_token_count")
-  outputTokenCount Int?         @map("output_token_count")
-  costEstimate  Float?          @map("cost_estimate")
-  status        PromptRunStatus @default(queued)
-  error         String?
-  result        String?         @db.Text
-  createdAt     DateTime        @default(now()) @map("created_at")
-  updatedAt     DateTime        @updatedAt @map("updated_at")
-
-  // Relations
-  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy   User    @relation("PromptRunAuthor", fields: [createdById], references: [id])
-
-  @@index([projectId])
   @@index([createdById])
-  @@map("prompt_runs")
+  @@index([createdAt])
+  @@map("runs")
 }
 
 // ============================================================================

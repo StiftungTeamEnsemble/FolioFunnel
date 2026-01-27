@@ -1,6 +1,6 @@
 import prisma from "@/lib/db";
 import Handlebars from "handlebars";
-import { ProcessorType, RunStatus, Document, Column } from "@prisma/client";
+import { ProcessorType, RunStatus, RunType, Document, Column } from "@prisma/client";
 import { pdfToMarkdownMupdf } from "./pdf-to-markdown-mupdf";
 import { pdfToMetadata } from "./pdf-to-metadata";
 import { pdfToThumbnailMupdf } from "./pdf-to-thumbnail-mupdf";
@@ -62,7 +62,7 @@ export async function runProcessor(
   }
 
   // Mark as running
-  await prisma.processorRun.update({
+  await prisma.run.update({
     where: { id: runId },
     data: {
       status: RunStatus.running,
@@ -74,7 +74,7 @@ export async function runProcessor(
     const result = await processorFn(ctx);
 
     // Update run status
-    await prisma.processorRun.update({
+    await prisma.run.update({
       where: { id: runId },
       data: {
         status: result.success ? RunStatus.success : RunStatus.error,
@@ -106,7 +106,7 @@ export async function runProcessor(
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
 
-    await prisma.processorRun.update({
+    await prisma.run.update({
       where: { id: runId },
       data: {
         status: RunStatus.error,
@@ -125,11 +125,12 @@ export async function createProcessorRun(
   documentId: string,
   columnId: string,
 ): Promise<string> {
-  const run = await prisma.processorRun.create({
+  const run = await prisma.run.create({
     data: {
       projectId,
       documentId,
       columnId,
+      type: RunType.processor,
       status: RunStatus.queued,
     },
   });

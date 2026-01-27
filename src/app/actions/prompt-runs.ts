@@ -6,6 +6,7 @@ import { DEFAULT_CHAT_MODEL, isValidChatModel } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
 import { countPromptTokens, estimatePromptCost } from "@/lib/prompt-cost";
 import { enqueuePromptRun } from "@/lib/queue";
+import { RunType, RunStatus } from "@prisma/client";
 
 interface CountPromptTokensInput {
   prompt: string;
@@ -88,25 +89,26 @@ export async function createPromptRunAction({
     return { error: "Rendered prompt is empty." };
   }
 
-  const run = await prisma.promptRun.create({
+  const run = await prisma.run.create({
     data: {
       projectId,
       createdById: user.id,
+      type: RunType.prompt,
+      status: RunStatus.queued,
       model: validatedModel,
       promptTemplate,
       renderedPrompt,
-      filters,
-      documentIds,
+      config: { filters, documentIds },
       // tokenCount and costEstimate will be set after AI response
     },
   });
   try {
     await enqueuePromptRun({ promptRunId: run.id });
   } catch (error) {
-    await prisma.promptRun.update({
+    await prisma.run.update({
       where: { id: run.id },
       data: {
-        status: "error",
+        status: RunStatus.error,
         error:
           error instanceof Error ? error.message : "Failed to queue prompt.",
       },

@@ -49,15 +49,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       error: string | null;
     }>
   >`
-    SELECT DISTINCT ON (pr.document_id, c.key)
-      pr.document_id as "documentId",
+    SELECT DISTINCT ON (r.document_id, c.key)
+      r.document_id as "documentId",
       c.key as "columnKey",
-      pr.status,
-      pr.error
-    FROM processor_runs pr
-    JOIN columns c ON c.id = pr.column_id
-    WHERE pr.project_id = ${params.projectId}::uuid
-    ORDER BY pr.document_id, c.key, pr.created_at DESC
+      r.status::text as status,
+      r.error
+    FROM runs r
+    JOIN columns c ON c.id = r.column_id
+    WHERE r.project_id = ${params.projectId}::uuid
+      AND r.type = 'processor'
+    ORDER BY r.document_id, c.key, r.created_at DESC
   `;
 
   // Attach runs to documents

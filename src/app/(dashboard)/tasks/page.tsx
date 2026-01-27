@@ -48,98 +48,80 @@ export default async function TasksPage() {
     redirect("/auth/signin");
   }
 
-  // Fetch both processor runs and prompt runs
-  const [processorRuns, promptRuns] = await Promise.all([
-    prisma.processorRun.findMany({
-      where: {
-        project: {
-          memberships: {
-            some: {
-              userId: session.user.id,
-            },
+  // Fetch all runs (both processor and prompt) from unified table
+  const runs = await prisma.run.findMany({
+    where: {
+      project: {
+        memberships: {
+          some: {
+            userId: session.user.id,
           },
         },
       },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        document: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-        column: {
-          select: {
-            id: true,
-            name: true,
-          },
+    },
+    include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 50, // Get more since we're combining two lists
-    }),
-    prisma.promptRun.findMany({
-      where: {
-        project: {
-          memberships: {
-            some: {
-              userId: session.user.id,
-            },
-          },
+      document: {
+        select: {
+          id: true,
+          title: true,
         },
       },
-      include: {
-        project: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        createdBy: {
-          select: {
-            name: true,
-            email: true,
-          },
+      column: {
+        select: {
+          id: true,
+          name: true,
         },
       },
-      orderBy: {
-        createdAt: "desc",
+      createdBy: {
+        select: {
+          name: true,
+          email: true,
+        },
       },
-      take: 50,
-    }),
-  ]);
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 20,
+  });
 
-  // Combine and sort all tasks
-  const allTasks: UnifiedTask[] = [
-    ...processorRuns.map((run) => ({
-      id: run.id,
-      type: "processor" as const,
-      status: run.status,
-      createdAt: run.createdAt,
-      projectId: run.project.id,
-      projectName: run.project.name,
-      title: `${run.column.name} on ${run.document.title}`,
-      error: run.error,
-    })),
-    ...promptRuns.map((run) => ({
-      id: run.id,
-      type: "prompt" as const,
-      status: run.status,
-      createdAt: run.createdAt,
-      projectId: run.project.id,
-      projectName: run.project.name,
-      title: `Prompt Run (${run.model})`,
-      subtitle: run.createdBy.name || run.createdBy.email || "Unknown user",
-      error: run.error,
-    })),
-  ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 20);
+  // Convert runs to unified task format
+  const allTasks: UnifiedTask[] = runs.map((run) => {
+    if (run.type === "processor") {
+      return {
+        id: run.id,
+        type: "processor" as const,
+        status: run.status,
+        createdAt: run.createdAt,
+        projectId: run.project.id,
+        projectName: run.project.name,
+        title: run.column && run.document 
+          ? `${run.column.name} on ${run.document.title}`
+          : "Processor Run",
+        error: run.error,
+      };
+    } else {
+      return {
+        id: run.id,
+        type: "prompt" as const,
+        status: run.status,
+        createdAt: run.createdAt,
+        projectId: run.project.id,
+        projectName: run.project.name,
+        title: `Prompt Run${run.model ? ` (${run.model})` : ""}`,
+        subtitle: run.createdBy 
+          ? (run.createdBy.name || run.createdBy.email || "Unknown user")
+          : undefined,
+        error: run.error,
+      };
+    }
+  });
 
   return (
     <div className="page">

@@ -34,8 +34,11 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
       where: { projectId: params.projectId },
       orderBy: { position: "asc" },
     }),
-    prisma.promptRun.findMany({
-      where: { projectId: params.projectId },
+    prisma.run.findMany({
+      where: { 
+        projectId: params.projectId,
+        type: "prompt",
+      },
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
