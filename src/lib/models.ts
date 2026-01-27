@@ -15,6 +15,11 @@ export interface ModelConfig {
   category: "chat" | "embedding";
   // Context window size
   contextWindow: number;
+  // Pricing per million tokens (chat models only)
+  pricing?: {
+    inputPerMillion: number;
+    outputPerMillion: number;
+  };
 }
 
 // Chat/Completion models
@@ -25,6 +30,10 @@ export const CHAT_MODELS: ModelConfig[] = [
     tiktokenModel: "gpt-5",
     category: "chat",
     contextWindow: 400000,
+    pricing: {
+      inputPerMillion: 1,
+      outputPerMillion: 1,
+    },
   },
   {
     id: "gpt-4o-mini",
@@ -32,6 +41,10 @@ export const CHAT_MODELS: ModelConfig[] = [
     tiktokenModel: "gpt-4o",
     category: "chat",
     contextWindow: 128000,
+    pricing: {
+      inputPerMillion: 1.5,
+      outputPerMillion: 1.5,
+    },
   },
   // {
   //   id: 'gpt-4o',
