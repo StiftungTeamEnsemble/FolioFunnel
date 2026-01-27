@@ -3,6 +3,7 @@ import {
   QUEUE_NAMES,
   ProcessDocumentJobData,
   BulkProcessJobData,
+  PromptRunJobData,
 } from "@/lib/queue";
 import {
   runProcessor,
@@ -10,6 +11,8 @@ import {
   getProcessorColumns,
 } from "@/lib/processors";
 import prisma from "@/lib/db";
+import OpenAI from "openai";
+import { calculatePromptCost } from "@/lib/prompt-cost";
 
 // pg-boss v10 passes an array of jobs to the handler
 type PgBossJob<T> = { id: string; name: string; data: T };
@@ -114,6 +117,79 @@ async function handleBulkProcess(jobs: PgBossJob<BulkProcessJobData>[]) {
   }
 }
 
+async function handlePromptRun(jobs: PgBossJob<PromptRunJobData>[]) {
+  console.log(`[Worker] handlePromptRun called with ${jobs.length} job(s)`);
+
+  for (const job of jobs) {
+    const { promptRunId } = job.data;
+
+    try {
+      const promptRun = await prisma.promptRun.findUnique({
+        where: { id: promptRunId },
+      });
+
+      if (!promptRun) {
+        console.error(`[Worker] Prompt run ${promptRunId} not found`);
+        continue;
+      }
+
+      await prisma.promptRun.update({
+        where: { id: promptRunId },
+        data: { status: "running" },
+      });
+
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      if (!openaiApiKey) {
+        await prisma.promptRun.update({
+          where: { id: promptRunId },
+          data: {
+            status: "error",
+            error: "OpenAI API key not configured.",
+          },
+        });
+        continue;
+      }
+
+      const openai = new OpenAI({ apiKey: openaiApiKey });
+      const response = await openai.chat.completions.create({
+        model: promptRun.model,
+        messages: [{ role: "user", content: promptRun.renderedPrompt }],
+      });
+
+      const result = response.choices[0]?.message?.content || "";
+      const usage = response.usage;
+      const inputTokens = usage?.prompt_tokens ?? null;
+      const outputTokens = usage?.completion_tokens ?? null;
+      const totalTokens = usage?.total_tokens ?? null;
+      const costEstimate = calculatePromptCost({
+        modelId: promptRun.model,
+        inputTokens,
+        outputTokens,
+      });
+
+      await prisma.promptRun.update({
+        where: { id: promptRunId },
+        data: {
+          status: "success",
+          result,
+          inputTokenCount: inputTokens ?? undefined,
+          outputTokenCount: outputTokens ?? undefined,
+          tokenCount: totalTokens ?? undefined,
+          costEstimate,
+        },
+      });
+    } catch (error) {
+      await prisma.promptRun.update({
+        where: { id: promptRunId },
+        data: {
+          status: "error",
+          error: error instanceof Error ? error.message : "Prompt failed.",
+        },
+      });
+    }
+  }
+}
+
 export async function startWorker() {
   console.log("Starting worker...");
 
@@ -126,6 +202,7 @@ export async function startWorker() {
   console.log("Creating queues...");
   await boss.createQueue(QUEUE_NAMES.PROCESS_DOCUMENT);
   await boss.createQueue(QUEUE_NAMES.BULK_PROCESS);
+  await boss.createQueue(QUEUE_NAMES.PROMPT_RUN);
   console.log("Queues created");
 
   // Register handlers
@@ -139,6 +216,12 @@ export async function startWorker() {
     QUEUE_NAMES.BULK_PROCESS,
     { teamConcurrency: 1 },
     handleBulkProcess,
+  );
+
+  await boss.work(
+    QUEUE_NAMES.PROMPT_RUN,
+    { teamConcurrency: 3 },
+    handlePromptRun,
   );
 
   console.log("Worker handlers registered");

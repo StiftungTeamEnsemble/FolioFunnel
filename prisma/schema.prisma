@@ -284,6 +284,8 @@ model PromptRun {
   filters       Json?           @db.JsonB
   documentIds   Json?           @map("document_ids") @db.JsonB
   tokenCount    Int?            @map("token_count")
+  inputTokenCount Int?          @map("input_token_count")
+  outputTokenCount Int?         @map("output_token_count")
   costEstimate  Float?          @map("cost_estimate")
   status        PromptRunStatus @default(queued)
   error         String?
