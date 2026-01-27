@@ -25,44 +25,59 @@ async function ensureBossReady(): Promise<PgBoss> {
   if (!globalForBoss.bossStarted) {
     await boss.start();
     // Create queues
-    await boss.createQueue(QUEUE_NAMES.PROCESS_DOCUMENT);
+    await boss.createQueue(QUEUE_NAMES.PROCESS_JOB);
     await boss.createQueue(QUEUE_NAMES.BULK_PROCESS);
-    await boss.createQueue(QUEUE_NAMES.PROMPT_RUN);
     globalForBoss.bossStarted = true;
   }
   return boss;
 }
 
-// Job queue names
+// Job queue names - unified into a single processing queue
 export const QUEUE_NAMES = {
-  PROCESS_DOCUMENT: "process-document",
-  PROCESS_COLUMN: "process-column",
-  BULK_PROCESS: "bulk-process",
-  PROMPT_RUN: "prompt-run",
+  PROCESS_JOB: "process-job", // Unified queue for all processing jobs
+  BULK_PROCESS: "bulk-process", // Orchestration queue for bulk operations
 } as const;
 
-// Job data types
-export interface ProcessDocumentJobData {
+// ============================================================================
+// Unified Job Types - discriminated union for different processing modes
+// ============================================================================
+
+// Column processor job - processes a document with a column's processor config
+export interface ColumnProcessorJob {
+  type: "column_processor";
   projectId: string;
   documentId: string;
   columnId: string;
   runId: string;
 }
 
+// Prompt run job - executes a prompt run with its configuration
+export interface PromptRunJob {
+  type: "prompt_run";
+  promptRunId: string;
+}
+
+// Union type for all job types
+export type ProcessJobData = ColumnProcessorJob | PromptRunJob;
+
+// Bulk process job data (unchanged)
 export interface BulkProcessJobData {
   projectId: string;
   columnId: string;
 }
 
-export interface PromptRunJobData {
-  promptRunId: string;
-}
+// ============================================================================
+// Queue Functions
+// ============================================================================
 
-export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
-  console.log("[Queue] Enqueueing process-document job:", data);
+/**
+ * Enqueue a unified processing job (column processor or prompt run)
+ */
+export async function enqueueProcessJob(data: ProcessJobData) {
+  console.log("[Queue] Enqueueing process-job:", data);
   try {
     const boss = await ensureBossReady();
-    const id = await boss.send(QUEUE_NAMES.PROCESS_DOCUMENT, data, {
+    const id = await boss.send(QUEUE_NAMES.PROCESS_JOB, data, {
       retryLimit: 2,
       retryDelay: 10,
       expireInMinutes: 60,
@@ -75,6 +90,23 @@ export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
   }
 }
 
+/**
+ * Convenience function to enqueue a column processor job
+ */
+export async function enqueueColumnProcessor(data: Omit<ColumnProcessorJob, "type">) {
+  return enqueueProcessJob({ type: "column_processor", ...data });
+}
+
+/**
+ * Convenience function to enqueue a prompt run job
+ */
+export async function enqueuePromptRun(data: { promptRunId: string }) {
+  return enqueueProcessJob({ type: "prompt_run", ...data });
+}
+
+/**
+ * Enqueue a bulk process job (orchestration)
+ */
 export async function enqueueBulkProcess(data: BulkProcessJobData) {
   console.log("[Queue] Enqueueing bulk-process job:", data);
   try {
@@ -92,19 +124,24 @@ export async function enqueueBulkProcess(data: BulkProcessJobData) {
   }
 }
 
-export async function enqueuePromptRun(data: PromptRunJobData) {
-  console.log("[Queue] Enqueueing prompt-run job:", data);
-  try {
-    const boss = await ensureBossReady();
-    const id = await boss.send(QUEUE_NAMES.PROMPT_RUN, data, {
-      retryLimit: 2,
-      retryDelay: 10,
-      expireInMinutes: 60,
-    });
-    console.log("[Queue] Prompt job enqueued with id", id);
-    return id;
-  } catch (error) {
-    console.error("[Queue] Error enqueueing prompt job:", error);
-    throw error;
-  }
+// ============================================================================
+// Legacy exports for backwards compatibility (deprecated - use unified queue)
+// ============================================================================
+
+/** @deprecated Use enqueueColumnProcessor instead */
+export interface ProcessDocumentJobData {
+  projectId: string;
+  documentId: string;
+  columnId: string;
+  runId: string;
+}
+
+/** @deprecated Use enqueueColumnProcessor instead */
+export async function enqueueProcessDocument(data: ProcessDocumentJobData) {
+  return enqueueColumnProcessor(data);
+}
+
+/** @deprecated Use enqueuePromptRun instead */
+export interface PromptRunJobData {
+  promptRunId: string;
 }

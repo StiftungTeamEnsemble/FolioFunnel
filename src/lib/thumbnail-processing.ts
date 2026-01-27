@@ -1,7 +1,6 @@
 import prisma from "@/lib/db";
 import { ColumnMode, ColumnType, ProcessorType } from "@prisma/client";
 import { PDF_THUMBNAIL_COLUMN_KEY } from "@/lib/thumbnails";
-import { enqueueProcessDocument } from "@/lib/queue";
 import { createProcessorRun } from "@/lib/processors";
 
 export async function ensurePdfThumbnailColumn(projectId: string) {
@@ -59,14 +58,8 @@ export async function enqueuePdfThumbnailRun(
   documentId: string,
 ) {
   const column = await ensurePdfThumbnailColumn(projectId);
+  // createProcessorRun already enqueues the job to the unified queue
   const runId = await createProcessorRun(projectId, documentId, column.id);
-
-  await enqueueProcessDocument({
-    projectId,
-    documentId,
-    columnId: column.id,
-    runId,
-  });
 
   return { runId, columnId: column.id };
 }

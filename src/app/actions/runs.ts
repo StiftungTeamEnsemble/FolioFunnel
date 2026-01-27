@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/db";
 import { requireProjectAccess, requireAuth } from "@/lib/session";
-import { enqueueProcessDocument, enqueueBulkProcess } from "@/lib/queue";
+import { enqueueBulkProcess } from "@/lib/queue";
 import { createProcessorRun } from "@/lib/processors";
 import { RunStatus } from "@prisma/client";
 
@@ -70,7 +70,7 @@ export async function triggerProcessorRun(
       return { error: "A job is already running or queued for this cell" };
     }
 
-    // Create run and enqueue job
+    // Create run and enqueue job (createProcessorRun handles both)
     console.log(
       "[Action] Creating processor run for document",
       documentId,
@@ -78,16 +78,7 @@ export async function triggerProcessorRun(
       columnId,
     );
     const runId = await createProcessorRun(projectId, documentId, columnId);
-    console.log("[Action] Created processor run:", runId);
-
-    console.log("[Action] Enqueueing job...");
-    await enqueueProcessDocument({
-      projectId,
-      documentId,
-      columnId,
-      runId,
-    });
-    console.log("[Action] Job enqueued successfully");
+    console.log("[Action] Processor run created and job enqueued:", runId);
 
     return { success: true, runId };
   } catch (error) {

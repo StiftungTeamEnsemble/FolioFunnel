@@ -12,7 +12,7 @@ import { chunkText } from "./chunk-text";
 import { createEmbeddings } from "./create-embeddings";
 import { aiTransform } from "./ai-transform";
 import { countTokens } from "./count-tokens";
-import { enqueueProcessDocument } from "@/lib/queue";
+import { enqueueColumnProcessor } from "@/lib/queue";
 
 export interface ProcessorContext {
   document: Document;
@@ -135,7 +135,7 @@ export async function createProcessorRun(
   });
 
   // Enqueue the job to the worker
-  await enqueueProcessDocument({
+  await enqueueColumnProcessor({
     projectId,
     documentId,
     columnId,
