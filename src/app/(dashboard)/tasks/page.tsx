@@ -102,9 +102,10 @@ export default async function TasksPage() {
         createdAt: run.createdAt,
         projectId: run.project.id,
         projectName: run.project.name,
-        title: run.column && run.document 
-          ? `${run.column.name} on ${run.document.title}`
-          : "Processor Run",
+        title:
+          run.column && run.document
+            ? `${run.column.name} on ${run.document.title}`
+            : "Processor Run",
         error: run.error,
       };
     } else {
@@ -116,8 +117,8 @@ export default async function TasksPage() {
         projectId: run.project.id,
         projectName: run.project.name,
         title: `Prompt Run${run.model ? ` (${run.model})` : ""}`,
-        subtitle: run.createdBy 
-          ? (run.createdBy.name || run.createdBy.email || "Unknown user")
+        subtitle: run.createdBy
+          ? run.createdBy.name || run.createdBy.email || "Unknown user"
           : undefined,
         error: run.error,
       };
@@ -130,7 +131,8 @@ export default async function TasksPage() {
         <div>
           <h1 className="page__title">Tasks</h1>
           <p className="page__subtitle">
-            Track recent processing runs and prompt executions across your projects.
+            Track recent processing runs and prompt executions across your
+            projects.
           </p>
         </div>
         <div className="page__actions">
@@ -168,7 +170,8 @@ export default async function TasksPage() {
           </svg>
           <h2 className="empty-state__title">No tasks yet</h2>
           <p className="empty-state__description">
-            Start running processors or prompts in a project to see task activity here.
+            Start running processors or prompts in a project to see task
+            activity here.
           </p>
           <Button asChild>
             <Link href="/projects">Go to Projects</Link>
@@ -181,7 +184,8 @@ export default async function TasksPage() {
               <div>
                 <h2 className="card__title">Recent Activity</h2>
                 <p className="card__subtitle">
-                  Latest processor runs and prompt executions from the unified queue.
+                  Latest processor runs and prompt executions from the unified
+                  queue.
                 </p>
               </div>
             </div>
@@ -189,12 +193,16 @@ export default async function TasksPage() {
               <ul className="tasks-list">
                 {allTasks.map((task) => {
                   const status = task.status.toLowerCase();
-                  const taskLink = task.type === "prompt" 
-                    ? `/projects/${task.projectId}/prompts/${task.id}`
-                    : `/projects/${task.projectId}`;
-                  
+                  const taskLink =
+                    task.type === "prompt"
+                      ? `/projects/${task.projectId}/prompts/${task.id}`
+                      : `/projects/${task.projectId}`;
+
                   return (
-                    <li key={`${task.type}-${task.id}`} className="tasks-list__item">
+                    <li
+                      key={`${task.type}-${task.id}`}
+                      className="tasks-list__item"
+                    >
                       <div className="tasks-list__details">
                         <span className={statusDotClass[status]} />
                         <div>
@@ -202,8 +210,13 @@ export default async function TasksPage() {
                             <Link href={taskLink} className="tasks-list__link">
                               {task.title}
                             </Link>
-                            <span className="badge badge--xs" style={{ marginLeft: "8px" }}>
-                              {task.type === "processor" ? "Processor" : "Prompt"}
+                            <span
+                              className="badge badge--xs"
+                              style={{ marginLeft: "8px" }}
+                            >
+                              {task.type === "processor"
+                                ? "Processor"
+                                : "Prompt"}
                             </span>
                           </div>
                           <div className="tasks-list__meta">
@@ -225,7 +238,9 @@ export default async function TasksPage() {
                             </span>
                           </div>
                           {task.error && (
-                            <div className="tasks-list__error">{task.error}</div>
+                            <div className="tasks-list__error">
+                              {task.error}
+                            </div>
                           )}
                         </div>
                       </div>

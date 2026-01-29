@@ -57,8 +57,9 @@ export function KnowledgeTable({
   } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [runningCells, setRunningCells] = useState<Set<string>>(new Set());
-  const [detailDocument, setDetailDocument] =
-    useState<DocumentWithRuns | null>(null);
+  const [detailDocument, setDetailDocument] = useState<DocumentWithRuns | null>(
+    null,
+  );
   const [hiddenBaseColumns, setHiddenBaseColumns] = useState<Set<string>>(
     new Set(),
   );

@@ -5,7 +5,10 @@ import { requireProjectAccess, requireAuth } from "@/lib/session";
 import { enqueueBulkProcess } from "@/lib/queue";
 import { createProcessorRun } from "@/lib/processors";
 import { RunStatus, RunType } from "@prisma/client";
-import { getFilteredDocumentIds, type FilterGroup } from "@/lib/document-filters";
+import {
+  getFilteredDocumentIds,
+  type FilterGroup,
+} from "@/lib/document-filters";
 
 export async function clearPendingTasks() {
   const user = await requireAuth();
@@ -25,8 +28,8 @@ export async function clearPendingTasks() {
       },
     });
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       deletedCount: result.count,
     };
   } catch (error) {

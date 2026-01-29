@@ -57,7 +57,8 @@ export interface OpenAIResponse {
 // ============================================================================
 
 const DEFAULT_MAX_TOKENS = 60000;
-const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant that processes documents.";
+const DEFAULT_SYSTEM_PROMPT =
+  "You are a helpful assistant that processes documents.";
 
 // ============================================================================
 // OpenAI Client
@@ -66,12 +67,16 @@ const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant that processes docume
 /**
  * Call OpenAI Chat Completions API with unified error handling and stats tracking
  */
-export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIResponse> {
+export async function callOpenAI(
+  config: OpenAIRequestConfig,
+): Promise<OpenAIResponse> {
   const startTime = Date.now();
 
   // Validate and normalize model
   const requestedModel = config.model || DEFAULT_CHAT_MODEL;
-  const model = isValidChatModel(requestedModel) ? requestedModel : DEFAULT_CHAT_MODEL;
+  const model = isValidChatModel(requestedModel)
+    ? requestedModel
+    : DEFAULT_CHAT_MODEL;
   const modelConfig = getModelConfig(model);
   const apiModel = modelConfig?.apiModel ?? model;
   const serviceTier = modelConfig?.serviceTier;
@@ -109,7 +114,9 @@ export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIRes
   const openai = new OpenAI({ apiKey: openaiApiKey });
 
   try {
-    console.log(`[OpenAI] Calling model ${model} with ${config.userPrompt.length} char prompt`);
+    console.log(
+      `[OpenAI] Calling model ${model} with ${config.userPrompt.length} char prompt`,
+    );
 
     const response = await openai.chat.completions.create({
       model: apiModel,
@@ -141,7 +148,7 @@ export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIRes
     });
 
     console.log(
-      `[OpenAI] Response received in ${durationMs}ms - tokens: ${tokens.totalTokens}, cost: $${costEstimate?.toFixed(6) ?? "N/A"}, finish: ${finishReason}`
+      `[OpenAI] Response received in ${durationMs}ms - tokens: ${tokens.totalTokens}, cost: $${costEstimate?.toFixed(6) ?? "N/A"}, finish: ${finishReason}`,
     );
 
     // Check for empty completion
@@ -150,7 +157,8 @@ export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIRes
       if (finishReason === "length") {
         errorMessage = `The AI output was cut off because it reached the maximum token limit (${maxTokens}).`;
       } else {
-        errorMessage = "The AI did not return any output. Please check your prompt and settings.";
+        errorMessage =
+          "The AI did not return any output. Please check your prompt and settings.";
       }
 
       return {
@@ -175,7 +183,8 @@ export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIRes
     };
   } catch (error) {
     const durationMs = Date.now() - startTime;
-    const errorMessage = error instanceof Error ? error.message : "Failed to call OpenAI API";
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to call OpenAI API";
 
     console.error(`[OpenAI] API error after ${durationMs}ms:`, error);
 
@@ -196,7 +205,7 @@ export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIRes
  */
 export async function callOpenAISimple(
   model: string,
-  userPrompt: string
+  userPrompt: string,
 ): Promise<OpenAIResponse> {
   return callOpenAI({
     model,

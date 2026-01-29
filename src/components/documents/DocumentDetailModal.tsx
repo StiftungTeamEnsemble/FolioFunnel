@@ -66,15 +66,11 @@ export function DocumentDetailModal({
               </div>
               <div className="document-detail__row">
                 <dt>Created</dt>
-                <dd>
-                  {formatDateTime(document.createdAt)}
-                </dd>
+                <dd>{formatDateTime(document.createdAt)}</dd>
               </div>
               <div className="document-detail__row">
                 <dt>Updated</dt>
-                <dd>
-                  {formatDateTime(document.updatedAt)}
-                </dd>
+                <dd>{formatDateTime(document.updatedAt)}</dd>
               </div>
               {document.mimeType && (
                 <div className="document-detail__row">

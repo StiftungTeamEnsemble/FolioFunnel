@@ -10,7 +10,8 @@ interface AITransformConfig {
   autoConvert?: boolean;
 }
 
-const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant that processes documents.";
+const DEFAULT_SYSTEM_PROMPT =
+  "You are a helpful assistant that processes documents.";
 
 export async function aiTransform(
   ctx: ProcessorContext,

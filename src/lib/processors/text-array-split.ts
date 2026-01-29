@@ -32,8 +32,7 @@ function normalizeReplacements(
     .filter((rule) => typeof rule?.pattern === "string")
     .map((rule) => ({
       pattern: rule.pattern,
-      replacement:
-        typeof rule.replacement === "string" ? rule.replacement : "",
+      replacement: typeof rule.replacement === "string" ? rule.replacement : "",
       flags: typeof rule.flags === "string" ? rule.flags : "g",
     }))
     .filter((rule) => rule.pattern.trim().length > 0);
@@ -102,9 +101,7 @@ export async function textArraySplit(
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : "Invalid split regex pattern",
+        error instanceof Error ? error.message : "Invalid split regex pattern",
     };
   }
 

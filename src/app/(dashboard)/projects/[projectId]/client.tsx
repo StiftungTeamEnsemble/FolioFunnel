@@ -77,8 +77,9 @@ export function ProjectPromptClient({
   >(initialPromptTemplates[0]?.id ?? null);
   const selectedPromptTemplate = useMemo(
     () =>
-      promptTemplates.find((template) => template.id === selectedPromptTemplateId) ||
-      null,
+      promptTemplates.find(
+        (template) => template.id === selectedPromptTemplateId,
+      ) || null,
     [promptTemplates, selectedPromptTemplateId],
   );
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(
@@ -127,9 +128,7 @@ export function ProjectPromptClient({
       setFilterGroups([]);
       return;
     }
-    setFilterGroups(
-      (selectedPromptTemplate.filters as FilterGroup[]) || [],
-    );
+    setFilterGroups((selectedPromptTemplate.filters as FilterGroup[]) || []);
   }, [selectedPromptTemplate]);
 
   const promptContext = useMemo(
@@ -426,8 +425,7 @@ export function ProjectPromptClient({
               </Select>
             </div>
             <div style={{ marginTop: "4px" }}>
-              <strong>Documents:</strong>{" "}
-              {selectedDocuments.length} document
+              <strong>Documents:</strong> {selectedDocuments.length} document
               {selectedDocuments.length !== 1 ? "s" : ""} selected
               {selectedDocuments.length > 0 && (
                 <>
@@ -558,9 +556,7 @@ export function ProjectPromptClient({
                       variant="secondary"
                       size="sm"
                       onClick={() =>
-                        router.push(
-                          `/projects/${project.id}/prompts/${run.id}`,
-                        )
+                        router.push(`/projects/${project.id}/prompts/${run.id}`)
                       }
                     >
                       View details
@@ -615,7 +611,9 @@ export function ProjectPromptClient({
       <Modal open={isModalOpen} onOpenChange={setIsModalOpen}>
         <ModalContent
           title={
-            builderMode === "create" ? "New Prompt Template" : "Edit Prompt Template"
+            builderMode === "create"
+              ? "New Prompt Template"
+              : "Edit Prompt Template"
           }
           description="Define the title, document filters, and prompt template."
           size="lg"
@@ -644,7 +642,9 @@ export function ProjectPromptClient({
                 initialFilterGroups={builderFilters}
                 serverFiltering
               />
-              <div style={{ marginTop: "10px", color: "var(--color-gray-500)" }}>
+              <div
+                style={{ marginTop: "10px", color: "var(--color-gray-500)" }}
+              >
                 {builderSelectedDocuments.length} document
                 {builderSelectedDocuments.length !== 1 ? "s" : ""} selected
               </div>
@@ -663,9 +663,12 @@ export function ProjectPromptClient({
                 }
                 placeholder="Use {{#each documents}} to iterate."
               />
-              <span style={{ fontSize: "13px", color: "var(--color-gray-500)" }}>
-                Available fields: project.name, documentCount, documents[].title,
-                documents[].createdAt, documents[].sourceUrl, and column keys.
+              <span
+                style={{ fontSize: "13px", color: "var(--color-gray-500)" }}
+              >
+                Available fields: project.name, documentCount,
+                documents[].title, documents[].createdAt, documents[].sourceUrl,
+                and column keys.
               </span>
             </div>
 
@@ -675,7 +678,13 @@ export function ProjectPromptClient({
           </div>
 
           <ModalFooter>
-            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>

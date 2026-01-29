@@ -21,10 +21,7 @@ export async function POST(
     const filters = Array.isArray(body.filters) ? body.filters : [];
     const includeRuns = Boolean(body.includeRuns);
 
-    const documentIds = await getFilteredDocumentIds(
-      params.projectId,
-      filters,
-    );
+    const documentIds = await getFilteredDocumentIds(params.projectId, filters);
 
     if (!documentIds.length) {
       return NextResponse.json({ documents: [] });

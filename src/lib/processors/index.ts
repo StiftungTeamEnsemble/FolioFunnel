@@ -1,6 +1,12 @@
 import prisma from "@/lib/db";
 import Handlebars from "handlebars";
-import { ProcessorType, RunStatus, RunType, Document, Column } from "@prisma/client";
+import {
+  ProcessorType,
+  RunStatus,
+  RunType,
+  Document,
+  Column,
+} from "@prisma/client";
 import { pdfToMarkdownMupdf } from "./pdf-to-markdown-mupdf";
 import { pdfToMetadata } from "./pdf-to-metadata";
 import { pdfToThumbnailMupdf } from "./pdf-to-thumbnail-mupdf";

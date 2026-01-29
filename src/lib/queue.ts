@@ -92,7 +92,9 @@ export async function enqueueProcessJob(data: ProcessJobData) {
 /**
  * Convenience function to enqueue a column processor job
  */
-export async function enqueueColumnProcessor(data: Omit<ColumnProcessorJob, "type">) {
+export async function enqueueColumnProcessor(
+  data: Omit<ColumnProcessorJob, "type">,
+) {
   return enqueueProcessJob({ type: "column_processor", ...data });
 }
 

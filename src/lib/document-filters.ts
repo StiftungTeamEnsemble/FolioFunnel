@@ -167,10 +167,7 @@ export const buildDocumentFilterSql = (filters: FilterGroup[]) => {
         return null;
       }
 
-      const joiner =
-        group.join === "or"
-          ? Prisma.sql` OR `
-          : Prisma.sql` AND `;
+      const joiner = group.join === "or" ? Prisma.sql` OR ` : Prisma.sql` AND `;
 
       return Prisma.sql`(${Prisma.join(ruleConditions, joiner)})`;
     })

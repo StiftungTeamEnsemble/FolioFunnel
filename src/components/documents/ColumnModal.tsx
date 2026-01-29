@@ -580,21 +580,14 @@ export function ColumnModal({
                             }
                           />
                         </InputGroup>
-                        <InputGroup
-                          label="Flags"
-                          htmlFor={`flags-${index}`}
-                        >
+                        <InputGroup label="Flags" htmlFor={`flags-${index}`}>
                           <Input
                             id={`flags-${index}`}
                             name={`flags-${index}`}
                             placeholder="g"
                             value={replacement.flags}
                             onChange={(e) =>
-                              updateReplacement(
-                                index,
-                                "flags",
-                                e.target.value,
-                              )
+                              updateReplacement(index, "flags", e.target.value)
                             }
                           />
                         </InputGroup>

@@ -6,10 +6,7 @@ import {
   ColumnProcessorJob,
   PromptRunJob,
 } from "@/lib/queue";
-import {
-  runProcessor,
-  createProcessorRun,
-} from "@/lib/processors";
+import { runProcessor, createProcessorRun } from "@/lib/processors";
 import prisma from "@/lib/db";
 import { callOpenAI } from "@/lib/openai-client";
 
@@ -68,7 +65,9 @@ async function handlePromptRun(job: PromptRunJob) {
   });
 
   if (!promptRun || promptRun.type !== "prompt") {
-    console.error(`[Worker] Prompt run ${promptRunId} not found or invalid type`);
+    console.error(
+      `[Worker] Prompt run ${promptRunId} not found or invalid type`,
+    );
     return;
   }
 
@@ -100,9 +99,7 @@ async function handlePromptRun(job: PromptRunJob) {
       },
     });
 
-    console.log(
-      `[Worker] Prompt run ${promptRunId} failed: ${response.error}`,
-    );
+    console.log(`[Worker] Prompt run ${promptRunId} failed: ${response.error}`);
     return;
   }
 
@@ -195,16 +192,13 @@ async function handleBulkProcess(jobs: PgBossJob<BulkProcessJobData>[]) {
         );
 
         // Use unified queue with column_processor type
-        await boss.send(
-          QUEUE_NAMES.PROCESS_JOB,
-          {
-            type: "column_processor",
-            projectId,
-            documentId: document.id,
-            columnId,
-            runId,
-          } satisfies ColumnProcessorJob,
-        );
+        await boss.send(QUEUE_NAMES.PROCESS_JOB, {
+          type: "column_processor",
+          projectId,
+          documentId: document.id,
+          columnId,
+          runId,
+        } satisfies ColumnProcessorJob);
       }
 
       console.log(

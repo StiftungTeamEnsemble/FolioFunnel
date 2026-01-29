@@ -194,8 +194,8 @@ export function ProjectDocumentsClient({
             <h3 className="section__title">Documents</h3>
             <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
               {filteredDocuments.length} document
-              {filteredDocuments.length !== 1 ? "s" : ""},{" "}
-              {columns.length} column{columns.length !== 1 ? "s" : ""}
+              {filteredDocuments.length !== 1 ? "s" : ""}, {columns.length}{" "}
+              column{columns.length !== 1 ? "s" : ""}
             </span>
           </div>
         </div>

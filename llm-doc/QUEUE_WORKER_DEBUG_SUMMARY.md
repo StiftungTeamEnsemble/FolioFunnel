@@ -26,11 +26,13 @@ Jobs for document processing (e.g., HTML download for URLs) were stuck in the qu
 The queue system was refactored to use a single unified queue:
 
 ### Old Architecture (before 2026-01-27)
+
 - `process-document` queue - for column processors
 - `prompt-run` queue - for prompt runs
 - `bulk-process` queue - for bulk operations
 
 ### New Architecture (after 2026-01-27)
+
 - **`process-job`** queue - unified queue for all processing (column processors AND prompt runs)
   - Uses discriminated union with `type` field:
     - `type: "column_processor"` - for document/column processing
@@ -38,6 +40,7 @@ The queue system was refactored to use a single unified queue:
 - `bulk-process` queue - remains for orchestration
 
 ### Key Changes
+
 - Single worker handler `handleProcessJob()` routes to appropriate sub-handler based on job type
 - Shared OpenAI client (`src/lib/openai-client.ts`) for both column processors and prompt runs
 - Consistent token counting, cost calculation, and error handling across all AI processing
@@ -54,6 +57,7 @@ The queue system was refactored to use a single unified queue:
 ## For Future Tasks
 
 ### If jobs are stuck or not processed, check:
+
 1. **Worker logs** - Look for the correct handler names:
    - NEW: `[Worker] handleProcessJob called`
    - OLD: `[Worker] handleProcessDocument called` or `[Worker] handlePromptRun called`
@@ -62,24 +66,28 @@ The queue system was refactored to use a single unified queue:
    docker compose -f docker-compose.yml -f docker-compose.dev.yml restart worker next-app
    ```
 3. **Queue state** - Check for jobs in pg-boss queue vs processor_runs table:
+
    ```sql
    -- Check pg-boss queue
-   SELECT name, state, COUNT(*) FROM pgboss.job 
+   SELECT name, state, COUNT(*) FROM pgboss.job
    WHERE state != 'completed' GROUP BY name, state;
-   
+
    -- Check processor_runs for queued jobs
-   SELECT pr.status, COUNT(*) FROM processor_runs pr 
+   SELECT pr.status, COUNT(*) FROM processor_runs pr
    GROUP BY pr.status;
    ```
+
 4. **Prisma client sync** in all containers
 5. **Job enqueue logic** (use pg-boss JS client with correct queue name: `process-job`)
 
 ### After any schema change, always:
+
 - Regenerate Prisma client
 - Restart containers
 - Test with a new document/URL
 
 ### After code refactoring, always:
+
 - Restart affected containers (usually `worker` and `next-app`)
 - Verify worker logs show new code is running
 - Re-enqueue any stuck jobs that were created with old code
@@ -90,14 +98,14 @@ If jobs exist in `processor_runs` but not in `pgboss.job`, they need to be re-en
 
 ```javascript
 // Quick script to re-enqueue (run in next-app container)
-import PgBoss from 'pg-boss';
+import PgBoss from "pg-boss";
 const boss = new PgBoss({ connectionString: process.env.DATABASE_URL });
 await boss.start();
 
 // Query stuck jobs from processor_runs where status='queued'
 // Then for each:
-await boss.send('process-job', {
-  type: 'column_processor',
+await boss.send("process-job", {
+  type: "column_processor",
   projectId: row.project_id,
   documentId: row.document_id,
   columnId: row.column_id,
