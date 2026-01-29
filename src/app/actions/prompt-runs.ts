@@ -7,6 +7,8 @@ import { renderPromptTemplate } from "@/lib/prompts";
 import { countPromptTokens, estimatePromptCost } from "@/lib/prompt-cost";
 import { enqueuePromptRun } from "@/lib/queue";
 import { RunType, RunStatus } from "@prisma/client";
+import { getFilteredDocumentIds } from "@/lib/document-filters";
+import type { FilterGroup } from "@/lib/document-filters";
 
 interface CountPromptTokensInput {
   prompt: string;
@@ -30,29 +32,32 @@ export async function countPromptTokensAction({
 
 interface CreatePromptRunInput {
   projectId: string;
-  documentIds: string[];
-  promptTemplate: string;
+  promptTemplateId: string;
   model: string;
-  filters: unknown;
 }
 
 export async function createPromptRunAction({
   projectId,
-  documentIds,
-  promptTemplate,
+  promptTemplateId,
   model,
-  filters,
 }: CreatePromptRunInput) {
-  if (!promptTemplate.trim()) {
-    return { error: "Prompt template is required." };
-  }
-
-  if (!documentIds.length) {
-    return { error: "Select at least one document." };
-  }
-
   const { user } = await requireProjectAccess(projectId);
   const validatedModel = isValidChatModel(model) ? model : DEFAULT_CHAT_MODEL;
+
+  const promptTemplateRecord = await prisma.promptTemplate.findFirst({
+    where: { id: promptTemplateId, projectId },
+  });
+
+  if (!promptTemplateRecord) {
+    return { error: "Prompt template not found." };
+  }
+
+  const filters = (promptTemplateRecord.filters as FilterGroup[]) || [];
+  const documentIds = await getFilteredDocumentIds(projectId, filters);
+
+  if (!documentIds.length) {
+    return { error: "No documents matched the selection." };
+  }
 
   const documents = await prisma.document.findMany({
     where: {
@@ -62,11 +67,20 @@ export async function createPromptRunAction({
     orderBy: { createdAt: "desc" },
   });
 
-  if (!documents.length) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!documents.length || !project) {
     return { error: "No documents matched the selection." };
   }
 
   const promptContext = {
+    project: {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+    },
     documents: documents.map((doc) => ({
       id: doc.id,
       title: doc.title,
@@ -80,7 +94,10 @@ export async function createPromptRunAction({
 
   let renderedPrompt: string;
   try {
-    renderedPrompt = renderPromptTemplate(promptTemplate, promptContext);
+    renderedPrompt = renderPromptTemplate(
+      promptTemplateRecord.promptTemplate,
+      promptContext,
+    );
   } catch (error) {
     return { error: "Prompt template could not be rendered." };
   }
@@ -96,9 +113,14 @@ export async function createPromptRunAction({
       type: RunType.prompt,
       status: RunStatus.queued,
       model: validatedModel,
-      promptTemplate,
+      promptTemplate: promptTemplateRecord.promptTemplate,
       renderedPrompt,
-      config: { filters, documentIds },
+      config: {
+        filters,
+        documentIds,
+        promptTemplateId: promptTemplateRecord.id,
+        promptTemplateTitle: promptTemplateRecord.title,
+      },
       // tokenCount and costEstimate will be set after AI response
     },
   });

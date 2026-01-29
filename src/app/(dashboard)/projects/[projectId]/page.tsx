@@ -22,31 +22,36 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  const [project, documents, columns, promptRuns] = await Promise.all([
-    prisma.project.findUnique({
-      where: { id: params.projectId },
-    }),
-    prisma.document.findMany({
-      where: { projectId: params.projectId },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.column.findMany({
-      where: { projectId: params.projectId },
-      orderBy: { position: "asc" },
-    }),
-    prisma.run.findMany({
-      where: { 
-        projectId: params.projectId,
-        type: "prompt",
-      },
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true },
+  const [project, documents, columns, promptRuns, promptTemplates] =
+    await Promise.all([
+      prisma.project.findUnique({
+        where: { id: params.projectId },
+      }),
+      prisma.document.findMany({
+        where: { projectId: params.projectId },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.column.findMany({
+        where: { projectId: params.projectId },
+        orderBy: { position: "asc" },
+      }),
+      prisma.run.findMany({
+        where: {
+          projectId: params.projectId,
+          type: "prompt",
         },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+        include: {
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.promptTemplate.findMany({
+        where: { projectId: params.projectId },
+        orderBy: { updatedAt: "desc" },
+      }),
+    ]);
 
   if (!project) {
     notFound();
@@ -58,6 +63,7 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
       initialDocuments={documents}
       columns={columns}
       promptRuns={promptRuns}
+      promptTemplates={promptTemplates}
     />
   );
 }
