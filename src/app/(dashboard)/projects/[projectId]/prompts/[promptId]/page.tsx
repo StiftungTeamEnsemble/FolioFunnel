@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { requireProjectAccess } from "@/lib/session";
 import prisma from "@/lib/db";
+import { Button } from "@/components/ui";
 
 interface PromptRunPageProps {
   params: { projectId: string; promptId: string };
@@ -45,6 +47,13 @@ export default async function PromptRunPage({ params }: PromptRunPageProps) {
         <div>
           <h1 className="page__title">Prompt Run</h1>
           <p className="page__subtitle">{promptRun.project.name}</p>
+        </div>
+        <div className="page__actions">
+          <Button variant="secondary" asChild>
+            <Link href={`/projects/${promptRun.project.id}`}>
+              Back to Project
+            </Link>
+          </Button>
         </div>
       </div>
 
