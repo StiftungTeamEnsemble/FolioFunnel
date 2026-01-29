@@ -9,6 +9,7 @@ import { documentToMetadata } from "./document-to-metadata";
 import { urlToHtml } from "./url-to-html";
 import { urlToMarkdown } from "./url-to-markdown";
 import { chunkText } from "./chunk-text";
+import { textArraySplit } from "./text-array-split";
 import { createEmbeddings } from "./create-embeddings";
 import { aiTransform } from "./ai-transform";
 import { countTokens } from "./count-tokens";
@@ -39,6 +40,7 @@ const processors: Record<ProcessorType, ProcessorFunction> = {
   url_to_html: urlToHtml,
   url_to_markdown: urlToMarkdown,
   chunk_text: chunkText,
+  text_array_split: textArraySplit,
   create_embeddings: createEmbeddings,
   ai_transform: aiTransform,
   count_tokens: countTokens,

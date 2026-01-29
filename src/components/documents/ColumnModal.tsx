@@ -39,6 +39,12 @@ interface ColumnModalProps {
   onSuccess: () => void;
 }
 
+interface TextArrayReplacement {
+  pattern: string;
+  replacement: string;
+  flags: string;
+}
+
 export function ColumnModal({
   projectId,
   column,
@@ -70,6 +76,13 @@ export function ColumnModal({
   const [useChunks, setUseChunks] = useState<"true" | "false">("true");
   const [promptTemplate, setPromptTemplate] = useState("");
   const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL);
+  const [splitPattern, setSplitPattern] = useState(
+    String.raw`(?:\r?\n)(?=[*-]\s+)`,
+  );
+  const [splitFlags, setSplitFlags] = useState("");
+  const [splitReplacements, setSplitReplacements] = useState<
+    TextArrayReplacement[]
+  >([]);
 
   // Reset form when modal opens or column changes
   useEffect(() => {
@@ -79,6 +92,7 @@ export function ColumnModal({
       // Edit mode: populate from existing column
       setKey(column.key);
       setName(column.name);
+      setDataType(column.type);
       setMode(column.mode);
       if (column.processorType) {
         setProcessorType(column.processorType);
@@ -108,6 +122,33 @@ export function ColumnModal({
       setSelectedModel(
         typeof config.model === "string" ? config.model : DEFAULT_CHAT_MODEL,
       );
+      setSplitPattern(
+        typeof config.splitPattern === "string"
+          ? config.splitPattern
+          : String.raw`(?:\r?\n)(?=[*-]\s+)`,
+      );
+      setSplitFlags(
+        typeof config.splitFlags === "string" ? config.splitFlags : "",
+      );
+      setSplitReplacements(
+        Array.isArray(config.replacements)
+          ? config.replacements
+              .filter(
+                (replacement) =>
+                  replacement &&
+                  typeof replacement.pattern === "string" &&
+                  typeof replacement.replacement === "string",
+              )
+              .map((replacement) => ({
+                pattern: replacement.pattern,
+                replacement: replacement.replacement,
+                flags:
+                  typeof replacement.flags === "string"
+                    ? replacement.flags
+                    : "g",
+              }))
+          : [],
+      );
     } else {
       // Add mode: reset to defaults
       setKey("");
@@ -122,6 +163,9 @@ export function ColumnModal({
       setUseChunks("true");
       setPromptTemplate("");
       setSelectedModel(DEFAULT_CHAT_MODEL);
+      setSplitPattern(String.raw`(?:\r?\n)(?=[*-]\s+)`);
+      setSplitFlags("");
+      setSplitReplacements([]);
     }
     setError(null);
   }, [open, column]);
@@ -150,7 +194,8 @@ export function ColumnModal({
       if (
         processorType === "chunk_text" ||
         processorType === "create_embeddings" ||
-        processorType === "count_tokens"
+        processorType === "count_tokens" ||
+        processorType === "text_array_split"
       ) {
         if (sourceColumnKey) {
           config.sourceColumnKey = sourceColumnKey;
@@ -176,6 +221,24 @@ export function ColumnModal({
         config.model = selectedModel;
         config.outputType = dataType === "number" ? "number" : "text";
         config.autoConvert = dataType === "number";
+      }
+
+      // Text array split config
+      if (processorType === "text_array_split") {
+        config.splitPattern = splitPattern;
+        if (splitFlags) {
+          config.splitFlags = splitFlags;
+        }
+        const replacements = splitReplacements
+          .filter((replacement) => replacement.pattern.trim().length > 0)
+          .map((replacement) => ({
+            pattern: replacement.pattern,
+            replacement: replacement.replacement,
+            flags: replacement.flags,
+          }));
+        if (replacements.length > 0) {
+          config.replacements = replacements;
+        }
       }
 
       // Count tokens config
@@ -217,11 +280,39 @@ export function ColumnModal({
     onSuccess();
   };
 
+  const updateReplacement = (
+    index: number,
+    field: keyof TextArrayReplacement,
+    value: string,
+  ) => {
+    setSplitReplacements((prev) =>
+      prev.map((replacement, currentIndex) =>
+        currentIndex === index
+          ? { ...replacement, [field]: value }
+          : replacement,
+      ),
+    );
+  };
+
+  const addReplacement = () => {
+    setSplitReplacements((prev) => [
+      ...prev,
+      { pattern: "", replacement: "", flags: "g" },
+    ]);
+  };
+
+  const removeReplacement = (index: number) => {
+    setSplitReplacements((prev) =>
+      prev.filter((_, currentIndex) => currentIndex !== index),
+    );
+  };
+
   // Check if we need source column input
   const needsSourceColumn =
     processorType === "chunk_text" ||
     processorType === "create_embeddings" ||
-    processorType === "count_tokens";
+    processorType === "count_tokens" ||
+    processorType === "text_array_split";
 
   // Check if we need model selection
   const needsModelSelection =
@@ -242,7 +333,10 @@ export function ColumnModal({
           { value: "count_tokens", label: "Count Tokens (OpenAI)" },
         ];
       case "text_array":
-        return [{ value: "chunk_text", label: "Chunk Text" }];
+        return [
+          { value: "text_array_split", label: "Split Text (Regex)" },
+          { value: "chunk_text", label: "Chunk Text" },
+        ];
       case "number_array":
         return [{ value: "create_embeddings", label: "Create Embeddings" }];
       default:
@@ -404,6 +498,119 @@ export function ColumnModal({
                     />
                   </InputGroup>
                 </div>
+              )}
+
+              {processorType === "text_array_split" && (
+                <>
+                  <InputGroup
+                    label="Split Regex Pattern"
+                    htmlFor="splitPattern"
+                    hint="Regex used to split the source text. Defaults to splitting on unordered list bullets."
+                  >
+                    <Input
+                      id="splitPattern"
+                      name="splitPattern"
+                      value={splitPattern}
+                      onChange={(e) => setSplitPattern(e.target.value)}
+                    />
+                  </InputGroup>
+                  <InputGroup
+                    label="Split Regex Flags"
+                    htmlFor="splitFlags"
+                    hint="Optional regex flags (e.g., i, m, s). Leave blank for none."
+                  >
+                    <Input
+                      id="splitFlags"
+                      name="splitFlags"
+                      value={splitFlags}
+                      onChange={(e) => setSplitFlags(e.target.value)}
+                    />
+                  </InputGroup>
+                  <div className="form__group">
+                    <div className="form__row form__row--between">
+                      <span className="input-group__label">
+                        Per-item search &amp; replace
+                      </span>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={addReplacement}
+                      >
+                        Add replacement
+                      </Button>
+                    </div>
+                    {splitReplacements.length === 0 && (
+                      <p className="input-group__hint">
+                        Add replacement rules to clean each split item (e.g.,
+                        remove leading bullets).
+                      </p>
+                    )}
+                    {splitReplacements.map((replacement, index) => (
+                      <div key={index} className="form__row">
+                        <InputGroup label="Search" htmlFor={`search-${index}`}>
+                          <Input
+                            id={`search-${index}`}
+                            name={`search-${index}`}
+                            placeholder="^[-*]\\s+"
+                            value={replacement.pattern}
+                            onChange={(e) =>
+                              updateReplacement(
+                                index,
+                                "pattern",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </InputGroup>
+                        <InputGroup
+                          label="Replace"
+                          htmlFor={`replace-${index}`}
+                        >
+                          <Input
+                            id={`replace-${index}`}
+                            name={`replace-${index}`}
+                            placeholder=""
+                            value={replacement.replacement}
+                            onChange={(e) =>
+                              updateReplacement(
+                                index,
+                                "replacement",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </InputGroup>
+                        <InputGroup
+                          label="Flags"
+                          htmlFor={`flags-${index}`}
+                        >
+                          <Input
+                            id={`flags-${index}`}
+                            name={`flags-${index}`}
+                            placeholder="g"
+                            value={replacement.flags}
+                            onChange={(e) =>
+                              updateReplacement(
+                                index,
+                                "flags",
+                                e.target.value,
+                              )
+                            }
+                          />
+                        </InputGroup>
+                        <div className="form__button">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            onClick={() => removeReplacement(index)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
 
               {processorType === "create_embeddings" && (
