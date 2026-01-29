@@ -314,10 +314,9 @@ export function ProjectPromptClient({
             Project Settings
           </Button>
           <Button
-            variant="secondary"
             onClick={() => router.push(`/projects/${project.id}/documents`)}
           >
-            Document Administration
+            Documents
           </Button>
         </div>
       </div>

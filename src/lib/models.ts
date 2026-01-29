@@ -41,7 +41,7 @@ export const CHAT_MODELS: ModelConfig[] = [
   },
   {
     id: "gpt-5-nano-flex",
-    name: "GPT-5 nano (Flex)",
+    name: "GPT-5 nano (50% off – Flex)",
     tiktokenModel: "gpt-5",
     apiModel: "gpt-5-nano",
     serviceTier: "flex",
@@ -65,7 +65,7 @@ export const CHAT_MODELS: ModelConfig[] = [
   },
   {
     id: "gpt-4o-mini-flex",
-    name: "GPT-4o Mini (Flex)",
+    name: "GPT-4o Mini (50% off – Flex)",
     tiktokenModel: "gpt-4o",
     apiModel: "gpt-4o-mini",
     serviceTier: "flex",
