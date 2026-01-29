@@ -22,6 +22,25 @@ export async function signUp(formData: FormData) {
   }
 
   try {
+    const existingUserCount = await prisma.user.count();
+
+    if (existingUserCount > 0) {
+      const pendingInvite = await prisma.projectInvite.findFirst({
+        where: {
+          email,
+          acceptedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!pendingInvite) {
+        return {
+          error:
+            "Signups are invite-only. Please request a project invitation.",
+        };
+      }
+    }
+
     // Check if user exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
