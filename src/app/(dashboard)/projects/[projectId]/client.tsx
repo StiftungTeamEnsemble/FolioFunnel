@@ -26,15 +26,15 @@ import { renderPromptTemplate } from "@/lib/prompts";
 import {
   createPromptRunAction,
   estimatePromptCostAction,
-  softDeletePromptRunAction,
 } from "@/app/actions/prompt-runs";
 import type { FilterGroup } from "@/lib/document-filters";
 import {
   createPromptTemplateAction,
-  deletePromptTemplateAction,
   updatePromptTemplateAction,
 } from "@/app/actions/prompt-templates";
 import { formatDateTime } from "@/lib/date-time";
+import { DeletePromptTemplateModal } from "@/components/prompts/DeletePromptTemplateModal";
+import { DeletePromptRunModal } from "@/components/runs/DeletePromptRunModal";
 
 interface PromptRunWithAuthor extends Run {
   createdBy: { id: string; name: string | null; email: string | null } | null;
@@ -97,9 +97,14 @@ export function ProjectPromptClient({
   const [isCountingTokens, setIsCountingTokens] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [isDeletingRun, startDeleteTransition] = useTransition();
-  const [promptRunError, setPromptRunError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteTemplateModalOpen, setIsDeleteTemplateModalOpen] =
+    useState(false);
+  const [promptTemplateToDelete, setPromptTemplateToDelete] =
+    useState<PromptTemplate | null>(null);
+  const [isDeleteRunModalOpen, setIsDeleteRunModalOpen] = useState(false);
+  const [promptRunToDelete, setPromptRunToDelete] =
+    useState<PromptRunWithAuthor | null>(null);
   const [builderMode, setBuilderMode] = useState<"create" | "edit">("create");
   const [builderTitle, setBuilderTitle] = useState("");
   const [builderPromptTemplate, setBuilderPromptTemplate] = useState("");
@@ -320,21 +325,9 @@ export function ProjectPromptClient({
     });
   };
 
-  const handleHidePromptRun = (runId: string) => {
-    setPromptRunError(null);
-    startDeleteTransition(async () => {
-      const result = await softDeletePromptRunAction({
-        projectId: project.id,
-        promptRunId: runId,
-      });
-
-      if (result?.error) {
-        setPromptRunError(result.error);
-        return;
-      }
-
-      router.refresh();
-    });
+  const handleDeletePromptRun = (run: PromptRunWithAuthor) => {
+    setPromptRunToDelete(run);
+    setIsDeleteRunModalOpen(true);
   };
 
   const handleCopy = async (value: string) => {
@@ -470,22 +463,10 @@ export function ProjectPromptClient({
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={async () => {
+                  onClick={() => {
                     if (!selectedPromptTemplate) return;
-                    const confirmed = window.confirm(
-                      `Delete "${selectedPromptTemplate.title}"?`,
-                    );
-                    if (!confirmed) return;
-                    const result = await deletePromptTemplateAction({
-                      projectId: project.id,
-                      promptTemplateId: selectedPromptTemplate.id,
-                    });
-                    if (result.error) {
-                      setSendError(result.error);
-                      return;
-                    }
-                    setSelectedPromptTemplateId(null);
-                    router.refresh();
+                    setPromptTemplateToDelete(selectedPromptTemplate);
+                    setIsDeleteTemplateModalOpen(true);
                   }}
                   disabled={!selectedPromptTemplate}
                 >
@@ -603,10 +584,6 @@ export function ProjectPromptClient({
         <div className="section__header">
           <h3 className="section__title">Prompt Runs</h3>
         </div>
-
-        {promptRunError && (
-          <p style={{ color: "var(--color-red-500)" }}>{promptRunError}</p>
-        )}
 
         {promptRuns.length === 0 ? (
           <div className="empty-state">
@@ -738,10 +715,9 @@ export function ProjectPromptClient({
                       <Button
                         variant="ghost"
                         size="sm"
-                        isLoading={isDeletingRun}
-                        onClick={() => handleHidePromptRun(run.id)}
+                        onClick={() => handleDeletePromptRun(run)}
                       >
-                        Hide
+                        Delete
                       </Button>
                     </div>
                   </div>
@@ -869,6 +845,37 @@ export function ProjectPromptClient({
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <DeletePromptTemplateModal
+        projectId={project.id}
+        promptTemplate={promptTemplateToDelete}
+        open={isDeleteTemplateModalOpen}
+        onOpenChange={(open) => {
+          setIsDeleteTemplateModalOpen(open);
+          if (!open) {
+            setPromptTemplateToDelete(null);
+          }
+        }}
+        onSuccess={() => {
+          setSelectedPromptTemplateId(null);
+          router.refresh();
+        }}
+      />
+
+      <DeletePromptRunModal
+        projectId={project.id}
+        run={promptRunToDelete}
+        open={isDeleteRunModalOpen}
+        onOpenChange={(open) => {
+          setIsDeleteRunModalOpen(open);
+          if (!open) {
+            setPromptRunToDelete(null);
+          }
+        }}
+        onSuccess={() => {
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
