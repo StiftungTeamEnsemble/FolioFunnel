@@ -20,11 +20,13 @@ import {
   Textarea,
 } from "@/components/ui";
 import { DocumentSelection } from "@/components/documents/DocumentSelection";
+import { RunStatusBadge } from "@/components/runs/RunStatusBadge";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
 import {
   createPromptRunAction,
   estimatePromptCostAction,
+  softDeletePromptRunAction,
 } from "@/app/actions/prompt-runs";
 import type { FilterGroup } from "@/lib/document-filters";
 import {
@@ -32,6 +34,7 @@ import {
   deletePromptTemplateAction,
   updatePromptTemplateAction,
 } from "@/app/actions/prompt-templates";
+import { formatDateTime } from "@/lib/date-time";
 
 interface PromptRunWithAuthor extends Run {
   createdBy: { id: string; name: string | null; email: string | null } | null;
@@ -94,6 +97,8 @@ export function ProjectPromptClient({
   const [isCountingTokens, setIsCountingTokens] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isDeletingRun, startDeleteTransition] = useTransition();
+  const [promptRunError, setPromptRunError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [builderMode, setBuilderMode] = useState<"create" | "edit">("create");
   const [builderTitle, setBuilderTitle] = useState("");
@@ -104,6 +109,9 @@ export function ProjectPromptClient({
   const [builderSelectedDocuments, setBuilderSelectedDocuments] =
     useState<Document[]>(initialDocuments);
   const [builderError, setBuilderError] = useState<string | null>(null);
+  const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const previewLimit = 3;
 
   useEffect(() => {
@@ -283,6 +291,48 @@ export function ProjectPromptClient({
       }
 
       // Do not navigate to detail view. Optionally refresh to show updated prompt run list.
+      router.refresh();
+    });
+  };
+
+  const getPromptTemplateTitle = (run: Run) => {
+    if (!run.config || typeof run.config !== "object") {
+      return null;
+    }
+    const config = run.config as Record<string, unknown>;
+    return typeof config.promptTemplateTitle === "string"
+      ? config.promptTemplateTitle
+      : null;
+  };
+
+  const isRunExpanded = (runId: string, index: number) =>
+    index === 0 || expandedRunIds.has(runId);
+
+  const toggleRunExpanded = (runId: string) => {
+    setExpandedRunIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(runId)) {
+        next.delete(runId);
+      } else {
+        next.add(runId);
+      }
+      return next;
+    });
+  };
+
+  const handleHidePromptRun = (runId: string) => {
+    setPromptRunError(null);
+    startDeleteTransition(async () => {
+      const result = await softDeletePromptRunAction({
+        projectId: project.id,
+        promptRunId: runId,
+      });
+
+      if (result?.error) {
+        setPromptRunError(result.error);
+        return;
+      }
+
       router.refresh();
     });
   };
@@ -554,6 +604,10 @@ export function ProjectPromptClient({
           <h3 className="section__title">Prompt Runs</h3>
         </div>
 
+        {promptRunError && (
+          <p style={{ color: "var(--color-red-500)" }}>{promptRunError}</p>
+        )}
+
         {promptRuns.length === 0 ? (
           <div className="empty-state">
             <h2 className="empty-state__title">No prompts yet</h2>
@@ -563,10 +617,100 @@ export function ProjectPromptClient({
           </div>
         ) : (
           <div style={{ display: "grid", gap: "12px" }}>
-            {promptRuns.map((run) => (
-              <div key={run.id} className="card card--clickable">
-                <div className="card__body">
+            {promptRuns.map((run, index) => {
+              const templateTitle = getPromptTemplateTitle(run);
+              const isExpanded = isRunExpanded(run.id, index);
+              return (
+                <div key={run.id} className="card card--clickable">
+                  <div className="card__body">
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <div style={{ display: "grid", gap: "4px" }}>
+                        <h4>{run.model || "Prompt Run"}</h4>
+                        <p style={{ color: "var(--color-gray-500)" }}>
+                          {run.createdBy?.name ||
+                            run.createdBy?.email ||
+                            "Unknown author"}
+                        </p>
+                        <p style={{ color: "var(--color-gray-500)" }}>
+                          Template: {templateTitle || "Untitled template"}
+                        </p>
+                        <p style={{ color: "var(--color-gray-500)" }}>
+                          Created: {formatDateTime(run.createdAt)}
+                        </p>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {run.result && index !== 0 && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => toggleRunExpanded(run.id)}
+                          >
+                            {isExpanded ? "Collapse" : "Expand"}
+                          </Button>
+                        )}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() =>
+                            router.push(
+                              `/projects/${project.id}/prompts/${run.id}`,
+                            )
+                          }
+                        >
+                          View details
+                        </Button>
+                      </div>
+                    </div>
+                    {run.result && isExpanded && (
+                      <div style={{ marginTop: "12px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            gap: "8px",
+                          }}
+                        >
+                          <strong>Response</strong>
+                          <button
+                            type="button"
+                            className="table__cell__copy"
+                            onClick={() => handleCopy(run.result || "")}
+                            aria-label="Copy response"
+                          >
+                            Copy
+                          </button>
+                        </div>
+                        <div
+                          style={{
+                            marginTop: "8px",
+                            whiteSpace: "pre",
+                            wordWrap: "normal",
+                            color: "var(--color-gray-700)",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          {run.result}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div
+                    className="card__footer"
                     style={{
                       display: "flex",
                       justifyContent: "space-between",
@@ -575,66 +719,35 @@ export function ProjectPromptClient({
                       alignItems: "center",
                     }}
                   >
-                    <div>
-                      <h4>{run.model}</h4>
-                      <p style={{ color: "var(--color-gray-500)" }}>
-                        {run.createdBy.name ||
-                          run.createdBy.email ||
-                          "Unknown author"}
-                      </p>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() =>
-                        router.push(`/projects/${project.id}/prompts/${run.id}`)
-                      }
+                    <RunStatusBadge status={run.status} />
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "12px",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
                     >
-                      View details
-                    </Button>
-                  </div>
-                  {run.result && (
-                    <div style={{ marginTop: "12px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "8px",
-                        }}
+                      <span style={{ color: "var(--color-gray-500)" }}>
+                        Tokens (input): {run.tokenCount ?? 0} · Cost (input):{" "}
+                        {run.costEstimate !== null &&
+                        run.costEstimate !== undefined
+                          ? `$${run.costEstimate.toFixed(4)}`
+                          : "N/A"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        isLoading={isDeletingRun}
+                        onClick={() => handleHidePromptRun(run.id)}
                       >
-                        <strong>Response</strong>
-                        <button
-                          type="button"
-                          className="table__cell__copy"
-                          onClick={() => handleCopy(run.result || "")}
-                          aria-label="Copy response"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <pre
-                        style={{
-                          marginTop: "8px",
-                          whiteSpace: "pre-wrap",
-                          color: "var(--color-gray-700)",
-                        }}
-                      >
-                        {run.result}
-                      </pre>
+                        Hide
+                      </Button>
                     </div>
-                  )}
+                  </div>
                 </div>
-                <div className="card__footer">
-                  <span style={{ color: "var(--color-gray-500)" }}>
-                    {run.status} · Tokens (input): {run.tokenCount ?? 0} · Cost (input):{" "}
-                    {run.costEstimate !== null && run.costEstimate !== undefined
-                      ? `$${run.costEstimate.toFixed(4)}`
-                      : "N/A"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

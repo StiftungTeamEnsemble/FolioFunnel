@@ -126,7 +126,15 @@ export default async function PromptRunPage({ params }: PromptRunPageProps) {
         <div className="card">
           <div className="card__body">
             {promptRun.result ? (
-              <pre style={{ whiteSpace: "pre-wrap" }}>{promptRun.result}</pre>
+              <div
+                style={{
+                  whiteSpace: "pre",
+                  wordWrap: "normal",
+                  fontFamily: "inherit",
+                }}
+              >
+                {promptRun.result}
+              </div>
             ) : (
               <p style={{ color: "var(--color-gray-500)" }}>
                 No result recorded.
