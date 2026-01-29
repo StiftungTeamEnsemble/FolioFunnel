@@ -4,16 +4,14 @@ import { useMemo, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Column, Document, Project, Run } from "@prisma/client";
 import { Button, Select, SelectItem, Textarea } from "@/components/ui";
-import {
-  DocumentSelection,
-  type FilterGroup,
-} from "@/components/documents/DocumentSelection";
+import { DocumentSelection } from "@/components/documents/DocumentSelection";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
 import {
   countPromptTokensAction,
   createPromptRunAction,
 } from "@/app/actions/prompt-runs";
+import type { FilterGroup } from "@/lib/document-filters";
 
 interface PromptRunWithAuthor extends Run {
   createdBy: { id: string; name: string | null; email: string | null } | null;
@@ -50,6 +48,7 @@ export function ProjectPromptClient({
 }: ProjectPromptClientProps) {
   const router = useRouter();
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([]);
+  const [documents, setDocuments] = useState<Document[]>(initialDocuments);
   const [selectedDocuments, setSelectedDocuments] =
     useState<Document[]>(initialDocuments);
   const [promptTemplate, setPromptTemplate] = useState(
@@ -120,6 +119,37 @@ export function ProjectPromptClient({
     };
   }, [expandedPrompt, model]);
 
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/projects/${project.id}/documents/search`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filters: filterGroups, includeRuns: false }),
+            signal: controller.signal,
+          },
+        );
+        if (!response.ok) return;
+        const data = (await response.json()) as { documents: Document[] };
+        if (!isActive) return;
+        setDocuments(data.documents);
+      } catch (error) {
+        if ((error as DOMException).name === "AbortError") return;
+        console.error("Failed to fetch filtered documents", error);
+      }
+    }, 350);
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [filterGroups, project.id]);
+
   const handleSendPrompt = () => {
     setSendError(null);
     startTransition(async () => {
@@ -177,10 +207,11 @@ export function ProjectPromptClient({
           </div>
         </div>
         <DocumentSelection
-          documents={initialDocuments}
+          documents={documents}
           columns={columns}
           onSelectionChange={setSelectedDocuments}
           onFiltersChange={setFilterGroups}
+          serverFiltering
         />
 
         <div style={{ marginTop: "12px" }}>

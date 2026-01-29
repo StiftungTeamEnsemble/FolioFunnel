@@ -5,6 +5,7 @@ import { requireProjectAccess, requireAuth } from "@/lib/session";
 import { enqueueBulkProcess } from "@/lib/queue";
 import { createProcessorRun } from "@/lib/processors";
 import { RunStatus, RunType } from "@prisma/client";
+import { getFilteredDocumentIds, type FilterGroup } from "@/lib/document-filters";
 
 export async function clearPendingTasks() {
   const user = await requireAuth();
@@ -94,6 +95,7 @@ export async function triggerProcessorRun(
 export async function triggerBulkProcessorRun(
   projectId: string,
   columnId: string,
+  filters: FilterGroup[] = [],
 ) {
   await requireProjectAccess(projectId);
 
@@ -110,8 +112,10 @@ export async function triggerBulkProcessorRun(
       return { error: "Column is not a processor column" };
     }
 
+    const documentIds = await getFilteredDocumentIds(projectId, filters);
+
     // Enqueue bulk job
-    await enqueueBulkProcess({ projectId, columnId });
+    await enqueueBulkProcess({ projectId, columnId, documentIds });
 
     return { success: true };
   } catch (error) {
