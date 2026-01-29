@@ -16,3 +16,4 @@ export {
 } from "./Select";
 export { Dropzone, FileItem } from "./Dropzone";
 export { ToastProvider, useToast } from "./Toast";
+export { MetaLine, MetaSeparator } from "./MetaLine";

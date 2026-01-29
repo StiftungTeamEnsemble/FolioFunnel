@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { Button } from "@/components/ui";
+import { Button, MetaLine, MetaSeparator } from "@/components/ui";
 import { ClearPendingTasksButton } from "@/components/tasks/ClearPendingTasksButton";
 import "@/styles/components/tasks.css";
 
@@ -219,7 +219,7 @@ export default async function TasksPage() {
                                 : "Prompt"}
                             </span>
                           </div>
-                          <div className="tasks-list__meta">
+                          <MetaLine>
                             <Link
                               href={`/projects/${task.projectId}`}
                               className="tasks-list__link"
@@ -228,15 +228,15 @@ export default async function TasksPage() {
                             </Link>
                             {task.subtitle && (
                               <>
-                                <span className="tasks-list__separator">•</span>
+                                <MetaSeparator />
                                 <span>{task.subtitle}</span>
                               </>
                             )}
-                            <span className="tasks-list__separator">•</span>
+                            <MetaSeparator />
                             <span className="tasks-list__time">
                               {formatDateTime(task.createdAt)}
                             </span>
-                          </div>
+                          </MetaLine>
                           {task.error && (
                             <div className="tasks-list__error">
                               {task.error}
