@@ -10,21 +10,83 @@ import { RunType, RunStatus } from "@prisma/client";
 import { getFilteredDocumentIds } from "@/lib/document-filters";
 import type { FilterGroup } from "@/lib/document-filters";
 
-interface CountPromptTokensInput {
-  prompt: string;
+interface EstimatePromptCostInput {
+  projectId: string;
+  promptTemplateId: string;
   model: string;
 }
 
-export async function countPromptTokensAction({
-  prompt,
+export async function estimatePromptCostAction({
+  projectId,
+  promptTemplateId,
   model,
-}: CountPromptTokensInput) {
-  if (!prompt.trim()) {
-    return { error: "Prompt is empty." };
-  }
+}: EstimatePromptCostInput) {
+  await requireProjectAccess(projectId);
 
   const validatedModel = isValidChatModel(model) ? model : DEFAULT_CHAT_MODEL;
-  const tokenCount = countPromptTokens(prompt, validatedModel);
+  const promptTemplateRecord = await prisma.promptTemplate.findFirst({
+    where: { id: promptTemplateId, projectId },
+  });
+
+  if (!promptTemplateRecord) {
+    return { error: "Prompt template not found." };
+  }
+
+  const filters = (promptTemplateRecord.filters as FilterGroup[]) || [];
+  const documentIds = await getFilteredDocumentIds(projectId, filters);
+
+  if (!documentIds.length) {
+    return { error: "No documents matched the selection." };
+  }
+
+  const documents = await prisma.document.findMany({
+    where: {
+      projectId,
+      id: { in: documentIds },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!documents.length || !project) {
+    return { error: "No documents matched the selection." };
+  }
+
+  const promptContext = {
+    project: {
+      id: project.id,
+      name: project.name,
+      description: project.description,
+    },
+    documents: documents.map((doc) => ({
+      id: doc.id,
+      title: doc.title,
+      sourceType: doc.sourceType,
+      sourceUrl: doc.sourceUrl,
+      createdAt: doc.createdAt.toISOString(),
+      ...(doc.values as Record<string, unknown>),
+    })),
+    documentCount: documents.length,
+  };
+
+  let renderedPrompt: string;
+  try {
+    renderedPrompt = renderPromptTemplate(
+      promptTemplateRecord.promptTemplate,
+      promptContext,
+    );
+  } catch (error) {
+    return { error: "Prompt template could not be rendered." };
+  }
+
+  if (!renderedPrompt.trim()) {
+    return { error: "Rendered prompt is empty." };
+  }
+
+  const tokenCount = countPromptTokens(renderedPrompt, validatedModel);
   const costEstimate = estimatePromptCost(tokenCount, validatedModel);
 
   return { tokenCount, costEstimate };
