@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserProjects } from "@/lib/session";
+import { formatDateTime } from "@/lib/date-time";
 import { Button } from "@/components/ui";
 import { DeleteProjectButton } from "@/components/projects/DeleteProjectButton";
 
@@ -100,11 +101,7 @@ export default async function ProjectsPage() {
                         color: "var(--color-gray-500)",
                       }}
                     >
-                      {new Date(project.updatedAt).toLocaleDateString("de-CH", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                      })}
+                      {formatDateTime(project.updatedAt)}
                     </span>
                     <DeleteProjectButton
                       projectId={project.id}
