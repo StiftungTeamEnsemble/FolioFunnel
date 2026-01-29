@@ -128,7 +128,7 @@ export default async function PromptRunPage({ params }: PromptRunPageProps) {
             {promptRun.result ? (
               <div
                 style={{
-                  whiteSpace: "pre",
+                  whiteSpace: "pre-wrap",
                   wordWrap: "normal",
                   fontFamily: "inherit",
                 }}

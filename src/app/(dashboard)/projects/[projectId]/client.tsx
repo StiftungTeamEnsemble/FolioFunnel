@@ -698,7 +698,7 @@ export function ProjectPromptClient({
                         <div
                           style={{
                             marginTop: "8px",
-                            whiteSpace: "pre",
+                            whiteSpace: "pre-wrap",
                             wordWrap: "normal",
                             color: "var(--color-gray-700)",
                             fontFamily: "inherit",
