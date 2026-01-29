@@ -23,8 +23,8 @@ import { DocumentSelection } from "@/components/documents/DocumentSelection";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
 import {
-  countPromptTokensAction,
   createPromptRunAction,
+  estimatePromptCostAction,
 } from "@/app/actions/prompt-runs";
 import type { FilterGroup } from "@/lib/document-filters";
 import {
@@ -104,6 +104,7 @@ export function ProjectPromptClient({
   const [builderSelectedDocuments, setBuilderSelectedDocuments] =
     useState<Document[]>(initialDocuments);
   const [builderError, setBuilderError] = useState<string | null>(null);
+  const previewLimit = 3;
 
   useEffect(() => {
     setPromptTemplates(initialPromptTemplates);
@@ -131,6 +132,11 @@ export function ProjectPromptClient({
     setFilterGroups((selectedPromptTemplate.filters as FilterGroup[]) || []);
   }, [selectedPromptTemplate]);
 
+  const previewDocuments = useMemo(
+    () => selectedDocuments.slice(0, previewLimit),
+    [selectedDocuments, previewLimit],
+  );
+
   const promptContext = useMemo(
     () => ({
       project: {
@@ -138,10 +144,10 @@ export function ProjectPromptClient({
         name: project.name,
         description: project.description,
       },
-      documentCount: selectedDocuments.length,
-      documents: selectedDocuments.map(buildDocumentContext),
+      documentCount: previewDocuments.length,
+      documents: previewDocuments.map(buildDocumentContext),
     }),
-    [project, selectedDocuments],
+    [project, previewDocuments],
   );
 
   const expandedPrompt = useMemo(() => {
@@ -156,7 +162,7 @@ export function ProjectPromptClient({
   }, [selectedPromptTemplate, promptContext]);
 
   useEffect(() => {
-    if (!expandedPrompt.trim()) {
+    if (!selectedPromptTemplate) {
       setTokenCount(null);
       setCostEstimate(null);
       setTokenError(null);
@@ -168,8 +174,9 @@ export function ProjectPromptClient({
     setTokenError(null);
 
     const timer = setTimeout(async () => {
-      const result = await countPromptTokensAction({
-        prompt: expandedPrompt,
+      const result = await estimatePromptCostAction({
+        projectId: project.id,
+        promptTemplateId: selectedPromptTemplate.id,
         model,
       });
       if (!isActive) return;
@@ -189,7 +196,7 @@ export function ProjectPromptClient({
       isActive = false;
       clearTimeout(timer);
     };
-  }, [expandedPrompt, model]);
+  }, [model, project.id, selectedPromptTemplate]);
 
   const fetchDocuments = async (
     filters: FilterGroup[],
@@ -349,50 +356,6 @@ export function ProjectPromptClient({
             >
               New Prompt
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                if (!selectedPromptTemplate) return;
-                setBuilderMode("edit");
-                setBuilderTitle(selectedPromptTemplate.title);
-                setBuilderPromptTemplate(selectedPromptTemplate.promptTemplate);
-                setBuilderFilters(
-                  (selectedPromptTemplate.filters as FilterGroup[]) || [],
-                );
-                setBuilderDocuments(initialDocuments);
-                setBuilderSelectedDocuments(initialDocuments);
-                setBuilderError(null);
-                setIsModalOpen(true);
-              }}
-              disabled={!selectedPromptTemplate}
-            >
-              Edit
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={async () => {
-                if (!selectedPromptTemplate) return;
-                const confirmed = window.confirm(
-                  `Delete "${selectedPromptTemplate.title}"?`,
-                );
-                if (!confirmed) return;
-                const result = await deletePromptTemplateAction({
-                  projectId: project.id,
-                  promptTemplateId: selectedPromptTemplate.id,
-                });
-                if (result.error) {
-                  setSendError(result.error);
-                  return;
-                }
-                setSelectedPromptTemplateId(null);
-                router.refresh();
-              }}
-              disabled={!selectedPromptTemplate}
-            >
-              Delete
-            </Button>
           </div>
         </div>
 
@@ -406,22 +369,79 @@ export function ProjectPromptClient({
           </div>
         ) : (
           <div style={{ display: "grid", gap: "12px" }}>
-            <div style={{ maxWidth: "360px" }}>
-              <label className="input__label" htmlFor="promptTemplateSelect">
-                Prompt Template
-              </label>
-              <Select
-                value={selectedPromptTemplate?.id ?? ""}
-                onValueChange={(value) =>
-                  setSelectedPromptTemplateId(value || null)
-                }
-              >
-                {promptTemplates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.title}
-                  </SelectItem>
-                ))}
-              </Select>
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                alignItems: "flex-end",
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ maxWidth: "360px", flex: "1 1 260px" }}>
+                <label className="input__label" htmlFor="promptTemplateSelect">
+                  Prompt Template
+                </label>
+                <Select
+                  value={selectedPromptTemplate?.id ?? ""}
+                  onValueChange={(value) =>
+                    setSelectedPromptTemplateId(value || null)
+                  }
+                >
+                  {promptTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.title}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (!selectedPromptTemplate) return;
+                    setBuilderMode("edit");
+                    setBuilderTitle(selectedPromptTemplate.title);
+                    setBuilderPromptTemplate(
+                      selectedPromptTemplate.promptTemplate,
+                    );
+                    setBuilderFilters(
+                      (selectedPromptTemplate.filters as FilterGroup[]) || [],
+                    );
+                    setBuilderDocuments(initialDocuments);
+                    setBuilderSelectedDocuments(initialDocuments);
+                    setBuilderError(null);
+                    setIsModalOpen(true);
+                  }}
+                  disabled={!selectedPromptTemplate}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={async () => {
+                    if (!selectedPromptTemplate) return;
+                    const confirmed = window.confirm(
+                      `Delete "${selectedPromptTemplate.title}"?`,
+                    );
+                    if (!confirmed) return;
+                    const result = await deletePromptTemplateAction({
+                      projectId: project.id,
+                      promptTemplateId: selectedPromptTemplate.id,
+                    });
+                    if (result.error) {
+                      setSendError(result.error);
+                      return;
+                    }
+                    setSelectedPromptTemplateId(null);
+                    router.refresh();
+                  }}
+                  disabled={!selectedPromptTemplate}
+                >
+                  Delete
+                </Button>
+              </div>
             </div>
             <div style={{ marginTop: "4px" }}>
               <strong>Documents:</strong> {selectedDocuments.length} document
@@ -480,6 +500,17 @@ export function ProjectPromptClient({
             <div className="card__body">
               <h4 style={{ marginBottom: "8px" }}>Preview</h4>
               <Textarea value={expandedPrompt} rows={8} readOnly />
+              <p
+                style={{
+                  marginTop: "8px",
+                  fontSize: "12px",
+                  color: "var(--color-gray-500)",
+                }}
+              >
+                Preview uses {previewDocuments.length} of{" "}
+                {selectedDocuments.length} document
+                {selectedDocuments.length !== 1 ? "s" : ""}.
+              </p>
             </div>
             <div className="card__footer">
               {tokenError ? (
