@@ -100,6 +100,7 @@ model Project {
   invites     ProjectInvite[]
   documents   Document[]
   columns     Column[]
+  promptTemplates PromptTemplate[]
   runs        Run[]
   chunks      Chunk[]
   embeddings  Embedding[]
@@ -226,6 +227,26 @@ model Column {
   @@unique([projectId, key])
   @@index([projectId])
   @@map("columns")
+}
+
+// ============================================================================
+// Prompt Templates
+// ============================================================================
+
+model PromptTemplate {
+  id             String   @id @default(uuid()) @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  title          String
+  promptTemplate String   @map("prompt_template") @db.Text
+  filters        Json?    @db.JsonB
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  project        Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("prompt_templates")
 }
 
 // ============================================================================

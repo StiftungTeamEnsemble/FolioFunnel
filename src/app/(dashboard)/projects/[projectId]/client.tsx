@@ -2,8 +2,23 @@
 
 import { useMemo, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Column, Document, Project, Run } from "@prisma/client";
-import { Button, Select, SelectItem, Textarea } from "@/components/ui";
+import type {
+  Column,
+  Document,
+  Project,
+  Run,
+  PromptTemplate,
+} from "@prisma/client";
+import {
+  Button,
+  Input,
+  Modal,
+  ModalContent,
+  ModalFooter,
+  Select,
+  SelectItem,
+  Textarea,
+} from "@/components/ui";
 import { DocumentSelection } from "@/components/documents/DocumentSelection";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
@@ -12,6 +27,11 @@ import {
   createPromptRunAction,
 } from "@/app/actions/prompt-runs";
 import type { FilterGroup } from "@/lib/document-filters";
+import {
+  createPromptTemplateAction,
+  deletePromptTemplateAction,
+  updatePromptTemplateAction,
+} from "@/app/actions/prompt-templates";
 
 interface PromptRunWithAuthor extends Run {
   createdBy: { id: string; name: string | null; email: string | null } | null;
@@ -22,6 +42,7 @@ interface ProjectPromptClientProps {
   initialDocuments: Document[];
   columns: Column[];
   promptRuns: PromptRunWithAuthor[];
+  promptTemplates: PromptTemplate[];
 }
 
 const buildDocumentContext = (doc: Document) => {
@@ -45,15 +66,26 @@ export function ProjectPromptClient({
   initialDocuments,
   columns,
   promptRuns,
+  promptTemplates: initialPromptTemplates,
 }: ProjectPromptClientProps) {
   const router = useRouter();
-  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([]);
-  const [documents, setDocuments] = useState<Document[]>(initialDocuments);
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>(
+    initialPromptTemplates,
+  );
+  const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState<
+    string | null
+  >(initialPromptTemplates[0]?.id ?? null);
+  const selectedPromptTemplate = useMemo(
+    () =>
+      promptTemplates.find((template) => template.id === selectedPromptTemplateId) ||
+      null,
+    [promptTemplates, selectedPromptTemplateId],
+  );
+  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(
+    (selectedPromptTemplate?.filters as FilterGroup[]) || [],
+  );
   const [selectedDocuments, setSelectedDocuments] =
     useState<Document[]>(initialDocuments);
-  const [promptTemplate, setPromptTemplate] = useState(
-    `{{#each documents}}\nTitle: {{title}}\n{{/each}}`,
-  );
   const [model, setModel] = useState(DEFAULT_CHAT_MODEL);
   const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [costEstimate, setCostEstimate] = useState<number | null>(null);
@@ -61,6 +93,44 @@ export function ProjectPromptClient({
   const [isCountingTokens, setIsCountingTokens] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [builderMode, setBuilderMode] = useState<"create" | "edit">("create");
+  const [builderTitle, setBuilderTitle] = useState("");
+  const [builderPromptTemplate, setBuilderPromptTemplate] = useState("");
+  const [builderFilters, setBuilderFilters] = useState<FilterGroup[]>([]);
+  const [builderDocuments, setBuilderDocuments] =
+    useState<Document[]>(initialDocuments);
+  const [builderSelectedDocuments, setBuilderSelectedDocuments] =
+    useState<Document[]>(initialDocuments);
+  const [builderError, setBuilderError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPromptTemplates(initialPromptTemplates);
+  }, [initialPromptTemplates]);
+
+  useEffect(() => {
+    if (!promptTemplates.length) {
+      setSelectedPromptTemplateId(null);
+      return;
+    }
+
+    const exists = promptTemplates.some(
+      (template) => template.id === selectedPromptTemplateId,
+    );
+    if (!exists) {
+      setSelectedPromptTemplateId(promptTemplates[0].id);
+    }
+  }, [promptTemplates, selectedPromptTemplateId]);
+
+  useEffect(() => {
+    if (!selectedPromptTemplate) {
+      setFilterGroups([]);
+      return;
+    }
+    setFilterGroups(
+      (selectedPromptTemplate.filters as FilterGroup[]) || [],
+    );
+  }, [selectedPromptTemplate]);
 
   const promptContext = useMemo(
     () => ({
@@ -77,11 +147,14 @@ export function ProjectPromptClient({
 
   const expandedPrompt = useMemo(() => {
     try {
-      return renderPromptTemplate(promptTemplate, promptContext);
+      return renderPromptTemplate(
+        selectedPromptTemplate?.promptTemplate ?? "",
+        promptContext,
+      );
     } catch (error) {
       return "";
     }
-  }, [promptTemplate, promptContext]);
+  }, [selectedPromptTemplate, promptContext]);
 
   useEffect(() => {
     if (!expandedPrompt.trim()) {
@@ -119,24 +192,36 @@ export function ProjectPromptClient({
     };
   }, [expandedPrompt, model]);
 
+  const fetchDocuments = async (
+    filters: FilterGroup[],
+    signal: AbortSignal,
+  ) => {
+    const response = await fetch(
+      `/api/projects/${project.id}/documents/search`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filters, includeRuns: false }),
+        signal,
+      },
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = (await response.json()) as { documents: Document[] };
+    return data.documents;
+  };
+
   useEffect(() => {
     let isActive = true;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(
-          `/api/projects/${project.id}/documents/search`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filters: filterGroups, includeRuns: false }),
-            signal: controller.signal,
-          },
-        );
-        if (!response.ok) return;
-        const data = (await response.json()) as { documents: Document[] };
+        const data = await fetchDocuments(filterGroups, controller.signal);
         if (!isActive) return;
-        setDocuments(data.documents);
+        setSelectedDocuments(data);
       } catch (error) {
         if ((error as DOMException).name === "AbortError") return;
         console.error("Failed to fetch filtered documents", error);
@@ -150,15 +235,40 @@ export function ProjectPromptClient({
     };
   }, [filterGroups, project.id]);
 
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const data = await fetchDocuments(builderFilters, controller.signal);
+        if (!isActive) return;
+        setBuilderDocuments(data);
+        setBuilderSelectedDocuments(data);
+      } catch (error) {
+        if ((error as DOMException).name === "AbortError") return;
+        console.error("Failed to fetch builder documents", error);
+      }
+    }, 350);
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [builderFilters, project.id]);
+
   const handleSendPrompt = () => {
     setSendError(null);
+    if (!selectedPromptTemplate) {
+      setSendError("Select a prompt template.");
+      return;
+    }
+
     startTransition(async () => {
       const result = await createPromptRunAction({
         projectId: project.id,
         model,
-        promptTemplate,
-        filters: filterGroups,
-        documentIds: selectedDocuments.map((doc) => doc.id),
+        promptTemplateId: selectedPromptTemplate.id,
       });
 
       if (result.error) {
@@ -169,6 +279,23 @@ export function ProjectPromptClient({
       // Do not navigate to detail view. Optionally refresh to show updated prompt run list.
       router.refresh();
     });
+  };
+
+  const handleCopy = async (value: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (error) {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
   };
 
   return (
@@ -199,61 +326,146 @@ export function ProjectPromptClient({
       <div className="section">
         <div className="section__header">
           <div>
-            <h3 className="section__title">Document Selection</h3>
+            <h3 className="section__title">Prompt Templates</h3>
             <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
-              {selectedDocuments.length} document
-              {selectedDocuments.length !== 1 ? "s" : ""} selected
+              {promptTemplates.length} saved template
+              {promptTemplates.length !== 1 ? "s" : ""}
             </span>
           </div>
-        </div>
-        <DocumentSelection
-          documents={documents}
-          columns={columns}
-          onSelectionChange={setSelectedDocuments}
-          onFiltersChange={setFilterGroups}
-          serverFiltering
-        />
-
-        <div style={{ marginTop: "12px" }}>
-          <strong>Preview:</strong>{" "}
-          {selectedDocuments.slice(0, 5).map((doc) => (
-            <span
-              key={doc.id}
-              style={{ marginLeft: "8px", color: "var(--color-gray-500)" }}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setBuilderMode("create");
+                setBuilderTitle("");
+                setBuilderPromptTemplate(
+                  `{{#each documents}}\nTitle: {{title}}\n{{/each}}`,
+                );
+                setBuilderFilters([]);
+                setBuilderDocuments(initialDocuments);
+                setBuilderSelectedDocuments(initialDocuments);
+                setBuilderError(null);
+                setIsModalOpen(true);
+              }}
             >
-              {doc.title}
-            </span>
-          ))}
-          {selectedDocuments.length > 5 && (
-            <span style={{ marginLeft: "8px", color: "var(--color-gray-500)" }}>
-              +{selectedDocuments.length - 5} more
-            </span>
-          )}
+              New Prompt
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                if (!selectedPromptTemplate) return;
+                setBuilderMode("edit");
+                setBuilderTitle(selectedPromptTemplate.title);
+                setBuilderPromptTemplate(selectedPromptTemplate.promptTemplate);
+                setBuilderFilters(
+                  (selectedPromptTemplate.filters as FilterGroup[]) || [],
+                );
+                setBuilderDocuments(initialDocuments);
+                setBuilderSelectedDocuments(initialDocuments);
+                setBuilderError(null);
+                setIsModalOpen(true);
+              }}
+              disabled={!selectedPromptTemplate}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={async () => {
+                if (!selectedPromptTemplate) return;
+                const confirmed = window.confirm(
+                  `Delete "${selectedPromptTemplate.title}"?`,
+                );
+                if (!confirmed) return;
+                const result = await deletePromptTemplateAction({
+                  projectId: project.id,
+                  promptTemplateId: selectedPromptTemplate.id,
+                });
+                if (result.error) {
+                  setSendError(result.error);
+                  return;
+                }
+                setSelectedPromptTemplateId(null);
+                router.refresh();
+              }}
+              disabled={!selectedPromptTemplate}
+            >
+              Delete
+            </Button>
+          </div>
         </div>
+
+        {promptTemplates.length === 0 ? (
+          <div className="empty-state">
+            <h2 className="empty-state__title">No prompt templates yet</h2>
+            <p className="empty-state__description">
+              Create a prompt template to define your document filters and
+              prompt content.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: "12px" }}>
+            <div style={{ maxWidth: "360px" }}>
+              <label className="input__label" htmlFor="promptTemplateSelect">
+                Prompt Template
+              </label>
+              <Select
+                value={selectedPromptTemplate?.id ?? ""}
+                onValueChange={(value) =>
+                  setSelectedPromptTemplateId(value || null)
+                }
+              >
+                {promptTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.title}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+            <div style={{ marginTop: "4px" }}>
+              <strong>Documents:</strong>{" "}
+              {selectedDocuments.length} document
+              {selectedDocuments.length !== 1 ? "s" : ""} selected
+              {selectedDocuments.length > 0 && (
+                <>
+                  {" "}
+                  ·{" "}
+                  {selectedDocuments.slice(0, 3).map((doc, index) => (
+                    <span
+                      key={doc.id}
+                      style={{
+                        marginLeft: index === 0 ? "4px" : "8px",
+                        color: "var(--color-gray-500)",
+                      }}
+                    >
+                      {doc.title}
+                    </span>
+                  ))}
+                  {selectedDocuments.length > 3 && (
+                    <span
+                      style={{
+                        marginLeft: "8px",
+                        color: "var(--color-gray-500)",
+                      }}
+                    >
+                      +{selectedDocuments.length - 3} more
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="section">
         <div className="section__header">
-          <h3 className="section__title">Prompt Builder</h3>
+          <h3 className="section__title">Prompt Run</h3>
         </div>
         <div style={{ display: "grid", gap: "12px" }}>
-          <div style={{ display: "grid", gap: "8px" }}>
-            <label className="input__label" htmlFor="promptTemplate">
-              Prompt Template (Handlebars)
-            </label>
-            <Textarea
-              id="promptTemplate"
-              value={promptTemplate}
-              rows={8}
-              onChange={(event) => setPromptTemplate(event.target.value)}
-              placeholder="Use {{#each documents}} to iterate."
-            />
-            <span style={{ fontSize: "13px", color: "var(--color-gray-500)" }}>
-              Available fields: project.name, documentCount, documents[].title,
-              documents[].createdAt, documents[].sourceUrl, and column keys.
-            </span>
-          </div>
-
           <div style={{ maxWidth: "280px" }}>
             <label className="input__label" htmlFor="modelSelect">
               Model
@@ -297,7 +509,11 @@ export function ProjectPromptClient({
 
           <Button
             onClick={handleSendPrompt}
-            disabled={!expandedPrompt.trim() || selectedDocuments.length === 0}
+            disabled={
+              !expandedPrompt.trim() ||
+              selectedDocuments.length === 0 ||
+              !selectedPromptTemplate
+            }
             isLoading={isPending}
           >
             Send Prompt
@@ -350,6 +566,37 @@ export function ProjectPromptClient({
                       View details
                     </Button>
                   </div>
+                  {run.result && (
+                    <div style={{ marginTop: "12px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: "8px",
+                        }}
+                      >
+                        <strong>Response</strong>
+                        <button
+                          type="button"
+                          className="table__cell__copy"
+                          onClick={() => handleCopy(run.result || "")}
+                          aria-label="Copy response"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      <pre
+                        style={{
+                          marginTop: "8px",
+                          whiteSpace: "pre-wrap",
+                          color: "var(--color-gray-700)",
+                        }}
+                      >
+                        {run.result}
+                      </pre>
+                    </div>
+                  )}
                 </div>
                 <div className="card__footer">
                   <span style={{ color: "var(--color-gray-500)" }}>
@@ -364,6 +611,111 @@ export function ProjectPromptClient({
           </div>
         )}
       </div>
+
+      <Modal open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <ModalContent
+          title={
+            builderMode === "create" ? "New Prompt Template" : "Edit Prompt Template"
+          }
+          description="Define the title, document filters, and prompt template."
+          size="lg"
+        >
+          <div style={{ display: "grid", gap: "16px" }}>
+            <div style={{ display: "grid", gap: "8px" }}>
+              <label className="input__label" htmlFor="promptTitle">
+                Title
+              </label>
+              <Input
+                id="promptTitle"
+                value={builderTitle}
+                onChange={(event) => setBuilderTitle(event.target.value)}
+                placeholder="e.g. Weekly summary"
+              />
+            </div>
+
+            <div>
+              <h4 style={{ marginBottom: "8px" }}>Document Selection</h4>
+              <DocumentSelection
+                key={`${builderMode}-${selectedPromptTemplate?.id ?? "new"}`}
+                documents={builderDocuments}
+                columns={columns}
+                onSelectionChange={setBuilderSelectedDocuments}
+                onFiltersChange={setBuilderFilters}
+                initialFilterGroups={builderFilters}
+                serverFiltering
+              />
+              <div style={{ marginTop: "10px", color: "var(--color-gray-500)" }}>
+                {builderSelectedDocuments.length} document
+                {builderSelectedDocuments.length !== 1 ? "s" : ""} selected
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: "8px" }}>
+              <label className="input__label" htmlFor="promptTemplateInput">
+                Prompt Template (Handlebars)
+              </label>
+              <Textarea
+                id="promptTemplateInput"
+                value={builderPromptTemplate}
+                rows={8}
+                onChange={(event) =>
+                  setBuilderPromptTemplate(event.target.value)
+                }
+                placeholder="Use {{#each documents}} to iterate."
+              />
+              <span style={{ fontSize: "13px", color: "var(--color-gray-500)" }}>
+                Available fields: project.name, documentCount, documents[].title,
+                documents[].createdAt, documents[].sourceUrl, and column keys.
+              </span>
+            </div>
+
+            {builderError && (
+              <p style={{ color: "var(--color-red-500)" }}>{builderError}</p>
+            )}
+          </div>
+
+          <ModalFooter>
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+              <Button variant="secondary" onClick={() => setIsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  setBuilderError(null);
+                  const payload = {
+                    projectId: project.id,
+                    title: builderTitle,
+                    promptTemplate: builderPromptTemplate,
+                    filters: builderFilters,
+                  };
+
+                  const result =
+                    builderMode === "create"
+                      ? await createPromptTemplateAction(payload)
+                      : await updatePromptTemplateAction({
+                          ...payload,
+                          promptTemplateId: selectedPromptTemplate?.id ?? "",
+                        });
+
+                  if (result.error) {
+                    setBuilderError(result.error);
+                    return;
+                  }
+
+                  if (result.template) {
+                    setSelectedPromptTemplateId(result.template.id);
+                  }
+
+                  setIsModalOpen(false);
+                  router.refresh();
+                }}
+              >
+                {builderMode === "create" ? "Create" : "Save"}
+              </Button>
+            </div>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
