@@ -2,10 +2,15 @@
 
 import { Column, Document } from "@prisma/client";
 import { Modal, ModalContent } from "@/components/ui";
+import { formatDateTime } from "@/lib/date-time";
 import "@/styles/components/table.css";
 
+interface DocumentWithUploader extends Document {
+  uploadedBy?: { name: string | null; email: string | null } | null;
+}
+
 interface DocumentDetailModalProps {
-  document: Document | null;
+  document: DocumentWithUploader | null;
   columns: Column[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +38,8 @@ export function DocumentDetailModal({
     document.sourceType === "url"
       ? document.sourceUrl || "URL"
       : document.filePath || "Upload";
+  const uploaderLabel =
+    document.uploadedBy?.name || document.uploadedBy?.email || "Unknown";
 
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
@@ -54,15 +61,19 @@ export function DocumentDetailModal({
                 <dd>{sourceLabel}</dd>
               </div>
               <div className="document-detail__row">
+                <dt>Uploader</dt>
+                <dd>{uploaderLabel}</dd>
+              </div>
+              <div className="document-detail__row">
                 <dt>Created</dt>
                 <dd>
-                  {new Date(document.createdAt).toISOString().split("T")[0]}
+                  {formatDateTime(document.createdAt)}
                 </dd>
               </div>
               <div className="document-detail__row">
                 <dt>Updated</dt>
                 <dd>
-                  {new Date(document.updatedAt).toISOString().split("T")[0]}
+                  {formatDateTime(document.updatedAt)}
                 </dd>
               </div>
               {document.mimeType && (

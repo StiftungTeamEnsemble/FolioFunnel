@@ -10,9 +10,11 @@ import { ColumnModal } from "@/components/documents/ColumnModal";
 import { DeleteColumnModal } from "@/components/documents/DeleteColumnModal";
 import { DeleteDocumentModal } from "@/components/documents/DeleteDocumentModal";
 import { triggerBulkProcessorRun } from "@/app/actions/runs";
+import { formatDateTime } from "@/lib/date-time";
 
 interface DocumentWithRuns extends Document {
   latestRuns?: Record<string, { status: string; error: string | null }>;
+  uploadedBy?: { name: string | null; email: string | null } | null;
 }
 
 interface ProjectDocumentsClientProps {
@@ -56,7 +58,7 @@ export function ProjectDocumentsClient({
 
     return documents.filter((doc) => {
       const values = (doc.values as Record<string, unknown>) || {};
-      const createdDate = new Date(doc.createdAt).toISOString().split("T")[0];
+      const createdDate = formatDateTime(doc.createdAt);
       const sourceText = `${doc.sourceType}${doc.sourceUrl ? " " + doc.sourceUrl : ""}`;
 
       if (searchField === "title") {

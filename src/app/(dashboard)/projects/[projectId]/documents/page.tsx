@@ -29,6 +29,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     prisma.document.findMany({
       where: { projectId: params.projectId },
       orderBy: { createdAt: "desc" },
+      include: {
+        uploadedBy: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
     }),
     prisma.column.findMany({
       where: { projectId: params.projectId },

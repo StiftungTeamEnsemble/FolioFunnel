@@ -11,6 +11,7 @@ import {
   getDocumentThumbnailUrl,
   PDF_THUMBNAIL_COLUMN_KEY,
 } from "@/lib/thumbnails";
+import { formatDateTime } from "@/lib/date-time";
 import "@/styles/components/table.css";
 
 interface DocumentWithRuns extends Document {
@@ -21,6 +22,7 @@ interface DocumentWithRuns extends Document {
       error: string | null;
     }
   >;
+  uploadedBy?: { name: string | null; email: string | null } | null;
 }
 
 interface KnowledgeTableProps {
@@ -32,6 +34,13 @@ interface KnowledgeTableProps {
   onDeleteColumn?: (column: Column) => void;
   onDeleteDocument?: (document: Document) => void;
 }
+
+const BASE_COLUMNS = [
+  { key: "title", label: "Title" },
+  { key: "source", label: "Source" },
+  { key: "uploader", label: "Uploader" },
+  { key: "created", label: "Created" },
+];
 
 export function KnowledgeTable({
   projectId,
@@ -48,7 +57,11 @@ export function KnowledgeTable({
   } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [runningCells, setRunningCells] = useState<Set<string>>(new Set());
-  const [detailDocument, setDetailDocument] = useState<Document | null>(null);
+  const [detailDocument, setDetailDocument] =
+    useState<DocumentWithRuns | null>(null);
+  const [hiddenBaseColumns, setHiddenBaseColumns] = useState<Set<string>>(
+    new Set(),
+  );
 
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hidden),
@@ -59,10 +72,27 @@ export function KnowledgeTable({
     () => columns.filter((column) => column.hidden),
     [columns],
   );
+  const hiddenBaseColumnEntries = useMemo(
+    () => BASE_COLUMNS.filter((column) => hiddenBaseColumns.has(column.key)),
+    [hiddenBaseColumns],
+  );
+  const isBaseColumnVisible = (key: string) => !hiddenBaseColumns.has(key);
 
   const handleHideColumn = async (columnId: string) => {
     await updateColumnVisibility(projectId, columnId, true);
     onRefresh();
+  };
+
+  const handleHideBaseColumn = (key: string) => {
+    setHiddenBaseColumns((prev) => new Set(prev).add(key));
+  };
+
+  const handleShowBaseColumn = (key: string) => {
+    setHiddenBaseColumns((prev) => {
+      const next = new Set(prev);
+      next.delete(key);
+      return next;
+    });
   };
 
   const handleShowColumn = async (columnId: string) => {
@@ -164,6 +194,9 @@ export function KnowledgeTable({
     return doc.latestRuns[columnKey] || null;
   };
 
+  const getUploaderLabel = (doc: DocumentWithRuns) =>
+    doc.uploadedBy?.name || doc.uploadedBy?.email || "Unknown";
+
   if (documents.length === 0) {
     return (
       <div className="table__empty">
@@ -185,10 +218,22 @@ export function KnowledgeTable({
 
   return (
     <div className="table-wrapper">
-      {hiddenColumns.length > 0 && (
+      {(hiddenColumns.length > 0 || hiddenBaseColumnEntries.length > 0) && (
         <div className="table__hidden-columns">
           <span className="table__hidden-columns__label">Hidden columns:</span>
           <div className="table__hidden-columns__list">
+            {hiddenBaseColumnEntries.map((column) => (
+              <div key={column.key} className="table__hidden-columns__chip">
+                <span>{column.label}</span>
+                <button
+                  type="button"
+                  className="table__column-menu__trigger"
+                  onClick={() => handleShowBaseColumn(column.key)}
+                >
+                  Show
+                </button>
+              </div>
+            ))}
             {hiddenColumns.map((column) => (
               <div key={column.id} className="table__hidden-columns__chip">
                 <span>{column.name}</span>
@@ -216,9 +261,70 @@ export function KnowledgeTable({
       <table className="table">
         <thead className="table__header">
           <tr className="table__header-row">
-            <th className="table__header-cell">Title</th>
-            <th className="table__header-cell">Source</th>
-            <th className="table__header-cell">Created</th>
+            {isBaseColumnVisible("title") && (
+              <th className="table__header-cell">
+                <div className="table__header-cell__content">
+                  <div className="table__column-menu">
+                    <span>Title</span>
+                    <button
+                      type="button"
+                      className="table__column-menu__trigger"
+                      onClick={() => handleHideBaseColumn("title")}
+                    >
+                      Hide
+                    </button>
+                  </div>
+                </div>
+              </th>
+            )}
+            {isBaseColumnVisible("source") && (
+              <th className="table__header-cell">
+                <div className="table__header-cell__content">
+                  <div className="table__column-menu">
+                    <span>Source</span>
+                    <button
+                      type="button"
+                      className="table__column-menu__trigger"
+                      onClick={() => handleHideBaseColumn("source")}
+                    >
+                      Hide
+                    </button>
+                  </div>
+                </div>
+              </th>
+            )}
+            {isBaseColumnVisible("uploader") && (
+              <th className="table__header-cell">
+                <div className="table__header-cell__content">
+                  <div className="table__column-menu">
+                    <span>Uploader</span>
+                    <button
+                      type="button"
+                      className="table__column-menu__trigger"
+                      onClick={() => handleHideBaseColumn("uploader")}
+                    >
+                      Hide
+                    </button>
+                  </div>
+                </div>
+              </th>
+            )}
+            {isBaseColumnVisible("created") && (
+              <th className="table__header-cell">
+                <div className="table__header-cell__content">
+                  <div className="table__column-menu">
+                    <span>Created</span>
+                    <button
+                      type="button"
+                      className="table__column-menu__trigger"
+                      onClick={() => handleHideBaseColumn("created")}
+                    >
+                      Hide
+                    </button>
+                  </div>
+                </div>
+              </th>
+            )}
             {visibleColumns.map((column) => (
               <th key={column.id} className="table__header-cell">
                 <div className="table__header-cell__content">
@@ -266,93 +372,38 @@ export function KnowledgeTable({
         <tbody className="table__body">
           {documents.map((doc) => (
             <tr key={doc.id} className="table__row">
-              <td className="table__cell">
-                <div className="table__cell__layout">
-                  <div className="table__cell__main">
-                    {(() => {
-                      const values =
-                        (doc.values as Record<string, unknown>) || {};
-                      const thumbnailValue = values[PDF_THUMBNAIL_COLUMN_KEY];
-                      const hasThumbnail =
-                        typeof thumbnailValue === "string" &&
-                        thumbnailValue.length > 0;
+              {isBaseColumnVisible("title") && (
+                <td className="table__cell">
+                  <div className="table__cell__layout">
+                    <div className="table__cell__main">
+                      {(() => {
+                        const values =
+                          (doc.values as Record<string, unknown>) || {};
+                        const thumbnailValue = values[PDF_THUMBNAIL_COLUMN_KEY];
+                        const hasThumbnail =
+                          typeof thumbnailValue === "string" &&
+                          thumbnailValue.length > 0;
 
-                      if (!hasThumbnail) {
-                        return null;
-                      }
+                        if (!hasThumbnail) {
+                          return null;
+                        }
 
-                      return (
-                        <img
-                          src={getDocumentThumbnailUrl(projectId, doc.id)}
-                          alt=""
-                          className="table__cell__thumbnail"
-                          loading="lazy"
-                          aria-hidden="true"
-                        />
-                      );
-                    })()}
-                    <span className="table__cell__value">{doc.title}</span>
-                  </div>
-                  <div className="table__cell__footer">
-                    {(() => {
-                      if (doc.sourceType !== "url") {
                         return (
-                          <button
-                            type="button"
-                            className="table__cell__copy"
-                            onClick={() => handleCopy(doc.title)}
-                            aria-label="Copy title"
-                          >
-                            Copy
-                          </button>
+                          <img
+                            src={getDocumentThumbnailUrl(projectId, doc.id)}
+                            alt=""
+                            className="table__cell__thumbnail"
+                            loading="lazy"
+                            aria-hidden="true"
+                          />
                         );
-                      }
-
-                      const htmlSourceRun = getRunStatus(doc, "html_source");
-                      const isRedownloadRunning = runningCells.has(
-                        `${doc.id}-redownload`,
-                      );
-                      const displayStatus = isRedownloadRunning
-                        ? "running"
-                        : htmlSourceRun?.status;
-
-                      return (
-                        <>
-                          <div className="table__cell__status">
-                            <StatusIcon status={displayStatus || "pending"} />
-                            <span className="table__cell__status-label">
-                              Status:{" "}
-                              {displayStatus === "running" && "Processing"}
-                              {displayStatus === "queued" && "Queued"}
-                              {displayStatus === "success" && "Done"}
-                              {displayStatus === "error" && "Error"}
-                              {!displayStatus && "Not run"}
-                            </span>
-                          </div>
-                          <div className="table__cell__footer-actions">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              isLoading={isRedownloadRunning}
-                              disabled={
-                                displayStatus === "queued" ||
-                                displayStatus === "running"
-                              }
-                              onClick={() => handleRedownloadUrl(doc.id)}
-                              title={
-                                htmlSourceRun
-                                  ? "Rerun HTML download"
-                                  : "Download HTML source"
-                              }
-                            >
-                              {displayStatus === "queued"
-                                ? "⏳"
-                                : displayStatus === "running"
-                                  ? "⚙️"
-                                  : htmlSourceRun
-                                    ? "🔄"
-                                    : "▶️"}
-                            </Button>
+                      })()}
+                      <span className="table__cell__value">{doc.title}</span>
+                    </div>
+                    <div className="table__cell__footer">
+                      {(() => {
+                        if (doc.sourceType !== "url") {
+                          return (
                             <button
                               type="button"
                               className="table__cell__copy"
@@ -361,72 +412,152 @@ export function KnowledgeTable({
                             >
                               Copy
                             </button>
-                          </div>
-                        </>
-                      );
-                    })()}
+                          );
+                        }
+
+                        const htmlSourceRun = getRunStatus(doc, "html_source");
+                        const isRedownloadRunning = runningCells.has(
+                          `${doc.id}-redownload`,
+                        );
+                        const displayStatus = isRedownloadRunning
+                          ? "running"
+                          : htmlSourceRun?.status;
+
+                        return (
+                          <>
+                            <div className="table__cell__status">
+                              <StatusIcon status={displayStatus || "pending"} />
+                              <span className="table__cell__status-label">
+                                Status:{" "}
+                                {displayStatus === "running" && "Processing"}
+                                {displayStatus === "queued" && "Queued"}
+                                {displayStatus === "success" && "Done"}
+                                {displayStatus === "error" && "Error"}
+                                {!displayStatus && "Not run"}
+                              </span>
+                            </div>
+                            <div className="table__cell__footer-actions">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                isLoading={isRedownloadRunning}
+                                disabled={
+                                  displayStatus === "queued" ||
+                                  displayStatus === "running"
+                                }
+                                onClick={() => handleRedownloadUrl(doc.id)}
+                                title={
+                                  htmlSourceRun
+                                    ? "Rerun HTML download"
+                                    : "Download HTML source"
+                                }
+                              >
+                                {displayStatus === "queued"
+                                  ? "⏳"
+                                  : displayStatus === "running"
+                                    ? "⚙️"
+                                    : htmlSourceRun
+                                      ? "🔄"
+                                      : "▶️"}
+                              </Button>
+                              <button
+                                type="button"
+                                className="table__cell__copy"
+                                onClick={() => handleCopy(doc.title)}
+                                aria-label="Copy title"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="table__cell">
-                <div className="table__cell__layout">
-                  <div className="table__cell__main">
-                    <span className="table__cell__value">
-                      {doc.sourceType === "url" ? (
-                        <a
-                          href={doc.sourceUrl || "#"}
-                          target="_blank"
-                          rel="noopener"
-                        >
-                          {doc.sourceUrl
-                            ? new URL(doc.sourceUrl).hostname
-                            : "URL"}
-                        </a>
-                      ) : (
-                        "Upload"
-                      )}
-                    </span>
+                </td>
+              )}
+              {isBaseColumnVisible("source") && (
+                <td className="table__cell">
+                  <div className="table__cell__layout">
+                    <div className="table__cell__main">
+                      <span className="table__cell__value">
+                        {doc.sourceType === "url" ? (
+                          <a
+                            href={doc.sourceUrl || "#"}
+                            target="_blank"
+                            rel="noopener"
+                          >
+                            {doc.sourceUrl
+                              ? new URL(doc.sourceUrl).hostname
+                              : "URL"}
+                          </a>
+                        ) : (
+                          "Upload"
+                        )}
+                      </span>
+                    </div>
+                    <div className="table__cell__footer">
+                      <button
+                        type="button"
+                        className="table__cell__copy"
+                        onClick={() =>
+                          handleCopy(
+                            doc.sourceUrl ||
+                              (doc.sourceType === "url" ? "URL" : "Upload"),
+                          )
+                        }
+                        aria-label="Copy source"
+                      >
+                        Copy
+                      </button>
+                    </div>
                   </div>
-                  <div className="table__cell__footer">
-                    <button
-                      type="button"
-                      className="table__cell__copy"
-                      onClick={() =>
-                        handleCopy(
-                          doc.sourceUrl ||
-                            (doc.sourceType === "url" ? "URL" : "Upload"),
-                        )
-                      }
-                      aria-label="Copy source"
-                    >
-                      Copy
-                    </button>
+                </td>
+              )}
+              {isBaseColumnVisible("uploader") && (
+                <td className="table__cell">
+                  <div className="table__cell__layout">
+                    <div className="table__cell__main">
+                      <span className="table__cell__value">
+                        {getUploaderLabel(doc)}
+                      </span>
+                    </div>
+                    <div className="table__cell__footer">
+                      <button
+                        type="button"
+                        className="table__cell__copy"
+                        onClick={() => handleCopy(getUploaderLabel(doc))}
+                        aria-label="Copy uploader"
+                      >
+                        Copy
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="table__cell">
-                <div className="table__cell__layout">
-                  <div className="table__cell__main">
-                    <span className="table__cell__value">
-                      {new Date(doc.createdAt).toISOString().split("T")[0]}
-                    </span>
+                </td>
+              )}
+              {isBaseColumnVisible("created") && (
+                <td className="table__cell">
+                  <div className="table__cell__layout">
+                    <div className="table__cell__main">
+                      <span className="table__cell__value">
+                        {formatDateTime(doc.createdAt)}
+                      </span>
+                    </div>
+                    <div className="table__cell__footer">
+                      <button
+                        type="button"
+                        className="table__cell__copy"
+                        onClick={() =>
+                          handleCopy(formatDateTime(doc.createdAt))
+                        }
+                        aria-label="Copy created date"
+                      >
+                        Copy
+                      </button>
+                    </div>
                   </div>
-                  <div className="table__cell__footer">
-                    <button
-                      type="button"
-                      className="table__cell__copy"
-                      onClick={() =>
-                        handleCopy(
-                          new Date(doc.createdAt).toISOString().split("T")[0],
-                        )
-                      }
-                      aria-label="Copy created date"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-              </td>
+                </td>
+              )}
               {visibleColumns.map((column) => {
                 const isEditing =
                   editingCell?.docId === doc.id &&

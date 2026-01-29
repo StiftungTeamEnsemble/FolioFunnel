@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDateTime } from "@/lib/date-time";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -220,7 +221,7 @@ export default async function TasksPage() {
                             )}
                             <span className="tasks-list__separator">•</span>
                             <span className="tasks-list__time">
-                              {new Date(task.createdAt).toLocaleString()}
+                              {formatDateTime(task.createdAt)}
                             </span>
                           </div>
                           {task.error && (
