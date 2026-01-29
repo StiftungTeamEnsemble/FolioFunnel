@@ -11,6 +11,10 @@ export interface ModelConfig {
   name: string;
   // tiktoken model name for token counting
   tiktokenModel: string;
+  // API model override (e.g., flex processing uses base model ID)
+  apiModel?: string;
+  // Optional service tier for OpenAI requests
+  serviceTier?: "flex";
   // Model category for grouping
   category: "chat" | "embedding";
   // Context window size
@@ -36,6 +40,19 @@ export const CHAT_MODELS: ModelConfig[] = [
     },
   },
   {
+    id: "gpt-5-nano-flex",
+    name: "GPT-5 nano (Flex)",
+    tiktokenModel: "gpt-5",
+    apiModel: "gpt-5-nano",
+    serviceTier: "flex",
+    category: "chat",
+    contextWindow: 400000,
+    pricing: {
+      inputPerMillion: 0.025,
+      outputPerMillion: 0.2,
+    },
+  },
+  {
     id: "gpt-4o-mini",
     name: "GPT-4o Mini",
     tiktokenModel: "gpt-4o",
@@ -44,6 +61,19 @@ export const CHAT_MODELS: ModelConfig[] = [
     pricing: {
       inputPerMillion: 0.15,
       outputPerMillion: 0.6,
+    },
+  },
+  {
+    id: "gpt-4o-mini-flex",
+    name: "GPT-4o Mini (Flex)",
+    tiktokenModel: "gpt-4o",
+    apiModel: "gpt-4o-mini",
+    serviceTier: "flex",
+    category: "chat",
+    contextWindow: 128000,
+    pricing: {
+      inputPerMillion: 0.075,
+      outputPerMillion: 0.3,
     },
   },
   // {

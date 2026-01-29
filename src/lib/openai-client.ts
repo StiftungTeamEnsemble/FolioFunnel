@@ -6,7 +6,11 @@
  */
 
 import OpenAI from "openai";
-import { isValidChatModel, DEFAULT_CHAT_MODEL } from "@/lib/models";
+import {
+  getModelConfig,
+  isValidChatModel,
+  DEFAULT_CHAT_MODEL,
+} from "@/lib/models";
 import { calculatePromptCost } from "@/lib/prompt-cost";
 
 // ============================================================================
@@ -68,6 +72,9 @@ export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIRes
   // Validate and normalize model
   const requestedModel = config.model || DEFAULT_CHAT_MODEL;
   const model = isValidChatModel(requestedModel) ? requestedModel : DEFAULT_CHAT_MODEL;
+  const modelConfig = getModelConfig(model);
+  const apiModel = modelConfig?.apiModel ?? model;
+  const serviceTier = modelConfig?.serviceTier;
 
   const systemPrompt = config.systemPrompt || DEFAULT_SYSTEM_PROMPT;
   const maxTokens = config.maxTokens || DEFAULT_MAX_TOKENS;
@@ -105,7 +112,8 @@ export async function callOpenAI(config: OpenAIRequestConfig): Promise<OpenAIRes
     console.log(`[OpenAI] Calling model ${model} with ${config.userPrompt.length} char prompt`);
 
     const response = await openai.chat.completions.create({
-      model,
+      model: apiModel,
+      service_tier: serviceTier,
       max_completion_tokens: maxTokens,
       messages: [
         { role: "system", content: systemPrompt },
