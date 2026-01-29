@@ -627,7 +627,7 @@ export function ProjectPromptClient({
                 </div>
                 <div className="card__footer">
                   <span style={{ color: "var(--color-gray-500)" }}>
-                    {run.status} · Tokens: {run.tokenCount ?? 0} · Cost:{" "}
+                    {run.status} · Tokens (input): {run.tokenCount ?? 0} · Cost (input):{" "}
                     {run.costEstimate !== null && run.costEstimate !== undefined
                       ? `$${run.costEstimate.toFixed(4)}`
                       : "N/A"}
