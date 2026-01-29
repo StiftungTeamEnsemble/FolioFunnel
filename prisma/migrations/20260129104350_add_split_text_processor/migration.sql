@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "runs" ALTER COLUMN "id" DROP DEFAULT;

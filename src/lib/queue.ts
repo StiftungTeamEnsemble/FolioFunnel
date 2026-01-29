@@ -78,8 +78,6 @@ export async function enqueueProcessJob(data: ProcessJobData) {
   try {
     const boss = await ensureBossReady();
     const id = await boss.send(QUEUE_NAMES.PROCESS_JOB, data, {
-      retryLimit: 2,
-      retryDelay: 10,
       expireInMinutes: 60,
     });
     console.log("[Queue] Job enqueued with id", id);
