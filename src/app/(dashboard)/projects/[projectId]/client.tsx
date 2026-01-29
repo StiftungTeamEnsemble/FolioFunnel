@@ -571,7 +571,7 @@ export function ProjectPromptClient({
                 <span style={{ color: "var(--color-gray-500)" }}>
                   {isCountingTokens
                     ? "Counting tokens..."
-                    : `Tokens: ${tokenCount ?? 0} · Cost estimate: ${
+                    : `Tokens (input): ${tokenCount ?? 0} · Cost estimate (input): ${
                         costEstimate !== null
                           ? `$${costEstimate.toFixed(4)}`
                           : "N/A"
@@ -729,7 +729,7 @@ export function ProjectPromptClient({
                       }}
                     >
                       <span style={{ color: "var(--color-gray-500)" }}>
-                        Tokens (input): {run.tokenCount ?? 0} · Cost (input):{" "}
+                        Tokens: {run.tokenCount ?? 0} · Cost:{" "}
                         {run.costEstimate !== null &&
                         run.costEstimate !== undefined
                           ? `$${run.costEstimate.toFixed(4)}`
