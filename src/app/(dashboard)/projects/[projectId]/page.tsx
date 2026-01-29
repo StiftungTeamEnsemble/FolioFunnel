@@ -9,6 +9,11 @@ interface ProjectPageProps {
   params: { projectId: string };
 }
 
+const isPromptRunHidden = (meta: unknown) => {
+  if (!meta || typeof meta !== "object") return false;
+  return Boolean((meta as Record<string, unknown>).hiddenAt);
+};
+
 export default async function ProjectPromptPage({ params }: ProjectPageProps) {
   const session = await getServerSession(authOptions);
 
@@ -62,7 +67,7 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
       project={project}
       initialDocuments={documents}
       columns={columns}
-      promptRuns={promptRuns}
+      promptRuns={promptRuns.filter((run) => !isPromptRunHidden(run.meta))}
       promptTemplates={promptTemplates}
     />
   );

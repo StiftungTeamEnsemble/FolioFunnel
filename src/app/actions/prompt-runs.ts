@@ -203,3 +203,44 @@ export async function createPromptRunAction({
 
   return { promptRunId: run.id };
 }
+
+interface SoftDeletePromptRunInput {
+  projectId: string;
+  promptRunId: string;
+}
+
+export async function softDeletePromptRunAction({
+  projectId,
+  promptRunId,
+}: SoftDeletePromptRunInput) {
+  await requireProjectAccess(projectId);
+
+  const run = await prisma.run.findFirst({
+    where: {
+      id: promptRunId,
+      projectId,
+      type: RunType.prompt,
+    },
+  });
+
+  if (!run) {
+    return { error: "Prompt run not found." };
+  }
+
+  const meta =
+    run.meta && typeof run.meta === "object"
+      ? (run.meta as Record<string, unknown>)
+      : {};
+
+  await prisma.run.update({
+    where: { id: promptRunId },
+    data: {
+      meta: {
+        ...meta,
+        hiddenAt: new Date().toISOString(),
+      },
+    },
+  });
+
+  return { success: true };
+}
