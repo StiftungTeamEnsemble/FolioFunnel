@@ -542,6 +542,7 @@ export function ProjectPromptClient({
                       justifyContent: "space-between",
                       gap: "12px",
                       flexWrap: "wrap",
+                      alignItems: "center",
                     }}
                   >
                     <div>

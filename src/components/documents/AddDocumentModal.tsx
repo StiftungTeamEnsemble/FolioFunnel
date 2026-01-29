@@ -137,48 +137,51 @@ export function AddDocumentModal({
           )}
 
           <Tabs.Content value="upload" className="tabs__content">
-            <Dropzone
-              onFilesSelected={handleFilesSelected}
-              accept=".pdf"
-              multiple
-            />
-            {files.length > 0 && (
-              <div className="dropzone__files">
-                {files.map((file, index) => (
-                  <FileItem
-                    key={`${file.name}-${index}`}
-                    file={file}
-                    progress={uploadProgress[file.name]}
-                    onRemove={() => handleRemoveFile(index)}
+            <div className="form">
+              <Dropzone
+                onFilesSelected={handleFilesSelected}
+                accept=".pdf"
+                multiple
+              />
+              {files.length > 0 && (
+                <div className="dropzone__files">
+                  {files.map((file, index) => (
+                    <FileItem
+                      key={`${file.name}-${index}`}
+                      file={file}
+                      progress={uploadProgress[file.name]}
+                      onRemove={() => handleRemoveFile(index)}
+                    />
+                  ))}
+                </div>
+              )}
+              <form id="upload-form">
+                <InputGroup label="Comment (optional)" htmlFor="upload-comment">
+                  <Input
+                    id="upload-comment"
+                    name="comment"
+                    placeholder="Add a note about this document"
                   />
-                ))}
-              </div>
-            )}
-            <form id="upload-form">
-              <InputGroup label="Comment (optional)" htmlFor="upload-comment">
-                <Input
-                  id="upload-comment"
-                  name="comment"
-                  placeholder="Add a note about this document"
-                />
-              </InputGroup>
-            </form>
-            <ModalFooter>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUpload}
-                isLoading={loading}
-                disabled={files.length === 0}
-              >
-                Upload {files.length > 0 && `(${files.length})`}
-              </Button>
-            </ModalFooter>
+                </InputGroup>
+              </form>
+
+              <ModalFooter>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  isLoading={loading}
+                  disabled={files.length === 0}
+                >
+                  Upload {files.length > 0 && `(${files.length})`}
+                </Button>
+              </ModalFooter>
+            </div>
           </Tabs.Content>
 
           <Tabs.Content value="url" className="tabs__content">
