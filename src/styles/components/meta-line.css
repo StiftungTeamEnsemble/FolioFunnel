@@ -1,0 +1,13 @@
+.tasks-list__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-gray-500);
+}
+
+.tasks-list__separator {
+  color: var(--color-gray-300);
+}

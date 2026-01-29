@@ -18,6 +18,8 @@ import {
   Select,
   SelectItem,
   Textarea,
+  MetaLine,
+  MetaSeparator,
 } from "@/components/ui";
 import { DocumentSelection } from "@/components/documents/DocumentSelection";
 import { RunStatusBadge } from "@/components/runs/RunStatusBadge";
@@ -545,19 +547,28 @@ export function ProjectPromptClient({
             </div>
             <div className="card__footer">
               {tokenError ? (
-                <span style={{ color: "var(--color-red-500)" }}>
+                <MetaLine
+                  style={{ color: "var(--color-red-500)", marginTop: 0 }}
+                >
                   {tokenError}
-                </span>
+                </MetaLine>
               ) : (
-                <span style={{ color: "var(--color-gray-500)" }}>
-                  {isCountingTokens
-                    ? "Counting tokens..."
-                    : `Tokens (input): ${tokenCount ?? 0} · Cost estimate (input): ${
-                        costEstimate !== null
+                <MetaLine style={{ marginTop: 0 }}>
+                  {isCountingTokens ? (
+                    <span>Counting tokens...</span>
+                  ) : (
+                    <>
+                      <span>Tokens (input): {tokenCount ?? 0}</span>
+                      <MetaSeparator />
+                      <span>
+                        Cost estimate (input):{" "}
+                        {costEstimate !== null
                           ? `$${costEstimate.toFixed(4)}`
-                          : "N/A"
-                      }`}
-                </span>
+                          : "N/A"}
+                      </span>
+                    </>
+                  )}
+                </MetaLine>
               )}
             </div>
           </div>
@@ -611,17 +622,17 @@ export function ProjectPromptClient({
                     >
                       <div style={{ display: "grid", gap: "4px" }}>
                         <h4>{templateTitle || "Untitled template"}</h4>
-                        <p style={{ color: "var(--color-gray-500)" }}>
-                          {run.createdBy?.name ||
-                            run.createdBy?.email ||
-                            "Unknown author"}
-                        </p>
-                        <p style={{ color: "var(--color-gray-500)" }}>
-                          Created: {formatDateTime(run.createdAt)}
-                        </p>
-                        <p style={{ color: "var(--color-gray-500)" }}>
-                          Model: {run.model || "Prompt Run"}
-                        </p>
+                        <MetaLine style={{ marginTop: 0 }}>
+                          <span>
+                            {run.createdBy?.name ||
+                              run.createdBy?.email ||
+                              "Unknown author"}
+                          </span>
+                          <MetaSeparator />
+                          <span>Created: {formatDateTime(run.createdAt)}</span>
+                          <MetaSeparator />
+                          <span>Model: {run.model || "Prompt Run"}</span>
+                        </MetaLine>
                       </div>
                       <div
                         style={{
@@ -705,13 +716,17 @@ export function ProjectPromptClient({
                         alignItems: "center",
                       }}
                     >
-                      <span style={{ color: "var(--color-gray-500)" }}>
-                        Tokens: {run.tokenCount ?? 0} · Cost:{" "}
-                        {run.costEstimate !== null &&
-                        run.costEstimate !== undefined
-                          ? `$${run.costEstimate.toFixed(4)}`
-                          : "N/A"}
-                      </span>
+                      <MetaLine style={{ marginTop: 0 }}>
+                        <span>Tokens: {run.tokenCount ?? 0}</span>
+                        <MetaSeparator />
+                        <span>
+                          Cost:{" "}
+                          {run.costEstimate !== null &&
+                          run.costEstimate !== undefined
+                            ? `$${run.costEstimate.toFixed(4)}`
+                            : "N/A"}
+                        </span>
+                      </MetaLine>
                       <Button
                         variant="ghost"
                         size="sm"
