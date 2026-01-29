@@ -6,6 +6,9 @@
  * - Token counting (tiktoken encoding)
  */
 
+// Pricing reference:
+// https://platform.openai.com/docs/pricing
+
 export interface ModelConfig {
   id: string;
   name: string;
@@ -61,19 +64,6 @@ export const CHAT_MODELS: ModelConfig[] = [
     pricing: {
       inputPerMillion: 0.15,
       outputPerMillion: 0.6,
-    },
-  },
-  {
-    id: "gpt-4o-mini-flex",
-    name: "GPT-4o Mini (50% off – Flex)",
-    tiktokenModel: "gpt-4o",
-    apiModel: "gpt-4o-mini",
-    serviceTier: "flex",
-    category: "chat",
-    contextWindow: 128000,
-    pricing: {
-      inputPerMillion: 0.075,
-      outputPerMillion: 0.3,
     },
   },
   // {
