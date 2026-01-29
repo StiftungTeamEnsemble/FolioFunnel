@@ -156,6 +156,22 @@
   flex: 1;
 }
 
+.form__row--between {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form__button {
+  display: flex;
+  align-items: flex-end;
+}
+
 .form__actions {
   display: flex;
   justify-content: flex-end;

@@ -38,6 +38,7 @@ const createColumnSchema = z
         "pdf_to_metadata",
         "url_to_markdown",
         "chunk_text",
+        "text_array_split",
         "create_embeddings",
         "ai_transform",
         "count_tokens",
