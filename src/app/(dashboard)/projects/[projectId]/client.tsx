@@ -633,17 +633,17 @@ export function ProjectPromptClient({
                       }}
                     >
                       <div style={{ display: "grid", gap: "4px" }}>
-                        <h4>{run.model || "Prompt Run"}</h4>
+                        <h4>{templateTitle || "Untitled template"}</h4>
                         <p style={{ color: "var(--color-gray-500)" }}>
                           {run.createdBy?.name ||
                             run.createdBy?.email ||
                             "Unknown author"}
                         </p>
                         <p style={{ color: "var(--color-gray-500)" }}>
-                          Template: {templateTitle || "Untitled template"}
+                          Created: {formatDateTime(run.createdAt)}
                         </p>
                         <p style={{ color: "var(--color-gray-500)" }}>
-                          Created: {formatDateTime(run.createdAt)}
+                          Model: {run.model || "Prompt Run"}
                         </p>
                       </div>
                       <div
