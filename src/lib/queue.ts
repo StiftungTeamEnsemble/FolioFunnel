@@ -64,6 +64,7 @@ export type ProcessJobData = ColumnProcessorJob | PromptRunJob;
 export interface BulkProcessJobData {
   projectId: string;
   columnId: string;
+  documentIds?: string[];
 }
 
 // ============================================================================
