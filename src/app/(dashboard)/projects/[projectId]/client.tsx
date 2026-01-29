@@ -3,29 +3,17 @@
 import { useMemo, useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Column, Document, Project, Run } from "@prisma/client";
-import { Button, Input, Select, SelectItem, Textarea } from "@/components/ui";
+import { Button, Select, SelectItem, Textarea } from "@/components/ui";
+import {
+  DocumentSelection,
+  type FilterGroup,
+} from "@/components/documents/DocumentSelection";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
 import {
   countPromptTokensAction,
   createPromptRunAction,
 } from "@/app/actions/prompt-runs";
-
-type FilterOperator = "contains" | "equals" | "lt" | "gt";
-type FilterJoin = "and" | "or";
-
-interface FilterRule {
-  id: string;
-  field: string;
-  operator: FilterOperator;
-  value: string;
-}
-
-interface FilterGroup {
-  id: string;
-  join: FilterJoin;
-  rules: FilterRule[];
-}
 
 interface PromptRunWithAuthor extends Run {
   createdBy: { id: string; name: string | null; email: string | null } | null;
@@ -37,107 +25,6 @@ interface ProjectPromptClientProps {
   columns: Column[];
   promptRuns: PromptRunWithAuthor[];
 }
-
-const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-const createRule = (): FilterRule => ({
-  id: createId(),
-  field: "title",
-  operator: "contains",
-  value: "",
-});
-
-const createGroup = (): FilterGroup => ({
-  id: createId(),
-  join: "and",
-  rules: [createRule()],
-});
-
-const normalizeString = (value: unknown) =>
-  (value ?? "").toString().toLowerCase();
-
-const toComparableNumber = (value: unknown) => {
-  if (value === null || value === undefined) return null;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
-};
-
-const toComparableDate = (value: unknown) => {
-  if (!value) return null;
-  const date = new Date(value as string);
-  return Number.isNaN(date.getTime()) ? null : date.getTime();
-};
-
-const getDocumentFieldValue = (
-  doc: Document,
-  field: string,
-): unknown | null => {
-  const values = (doc.values as Record<string, unknown>) || {};
-
-  if (field.startsWith("column:")) {
-    const key = field.replace("column:", "");
-    return values[key];
-  }
-
-  switch (field) {
-    case "title":
-      return doc.title;
-    case "source":
-      return `${doc.sourceType}${doc.sourceUrl ? ` ${doc.sourceUrl}` : ""}`;
-    case "created":
-      return doc.createdAt;
-    default:
-      return null;
-  }
-};
-
-const matchesRule = (doc: Document, rule: FilterRule) => {
-  const value = getDocumentFieldValue(doc, rule.field);
-  const input = rule.value.trim();
-
-  if (!input) {
-    return true;
-  }
-
-  if (rule.operator === "contains") {
-    return normalizeString(value).includes(normalizeString(input));
-  }
-
-  if (rule.operator === "equals") {
-    return normalizeString(value) === normalizeString(input);
-  }
-
-  if (rule.operator === "lt" || rule.operator === "gt") {
-    const numericValue = toComparableNumber(value);
-    const numericInput = toComparableNumber(input);
-
-    if (numericValue !== null && numericInput !== null) {
-      return rule.operator === "lt"
-        ? numericValue < numericInput
-        : numericValue > numericInput;
-    }
-
-    const dateValue = toComparableDate(value);
-    const dateInput = toComparableDate(input);
-
-    if (dateValue !== null && dateInput !== null) {
-      return rule.operator === "lt"
-        ? dateValue < dateInput
-        : dateValue > dateInput;
-    }
-
-    return false;
-  }
-
-  return false;
-};
-
-const matchesGroup = (doc: Document, group: FilterGroup) => {
-  if (group.rules.length === 0) return true;
-  return group.join === "and"
-    ? group.rules.every((rule) => matchesRule(doc, rule))
-    : group.rules.some((rule) => matchesRule(doc, rule));
-};
 
 const buildDocumentContext = (doc: Document) => {
   const values = (doc.values as Record<string, unknown>) || {};
@@ -162,9 +49,9 @@ export function ProjectPromptClient({
   promptRuns,
 }: ProjectPromptClientProps) {
   const router = useRouter();
-  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([
-    createGroup(),
-  ]);
+  const [filterGroups, setFilterGroups] = useState<FilterGroup[]>([]);
+  const [selectedDocuments, setSelectedDocuments] =
+    useState<Document[]>(initialDocuments);
   const [promptTemplate, setPromptTemplate] = useState(
     `{{#each documents}}\nTitle: {{title}}\n{{/each}}`,
   );
@@ -175,13 +62,6 @@ export function ProjectPromptClient({
   const [isCountingTokens, setIsCountingTokens] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  const selectedDocuments = useMemo(() => {
-    if (!filterGroups.length) return initialDocuments;
-    return initialDocuments.filter((doc) =>
-      filterGroups.every((group) => matchesGroup(doc, group)),
-    );
-  }, [filterGroups, initialDocuments]);
 
   const promptContext = useMemo(
     () => ({
@@ -240,64 +120,6 @@ export function ProjectPromptClient({
     };
   }, [expandedPrompt, model]);
 
-  const addGroup = () => {
-    setFilterGroups((prev) => [...prev, createGroup()]);
-  };
-
-  const updateGroup = (groupId: string, updates: Partial<FilterGroup>) => {
-    setFilterGroups((prev) =>
-      prev.map((group) =>
-        group.id === groupId ? { ...group, ...updates } : group,
-      ),
-    );
-  };
-
-  const removeGroup = (groupId: string) => {
-    setFilterGroups((prev) => prev.filter((group) => group.id !== groupId));
-  };
-
-  const addRule = (groupId: string) => {
-    setFilterGroups((prev) =>
-      prev.map((group) =>
-        group.id === groupId
-          ? { ...group, rules: [...group.rules, createRule()] }
-          : group,
-      ),
-    );
-  };
-
-  const updateRule = (
-    groupId: string,
-    ruleId: string,
-    updates: Partial<FilterRule>,
-  ) => {
-    setFilterGroups((prev) =>
-      prev.map((group) =>
-        group.id === groupId
-          ? {
-              ...group,
-              rules: group.rules.map((rule) =>
-                rule.id === ruleId ? { ...rule, ...updates } : rule,
-              ),
-            }
-          : group,
-      ),
-    );
-  };
-
-  const removeRule = (groupId: string, ruleId: string) => {
-    setFilterGroups((prev) =>
-      prev.map((group) =>
-        group.id === groupId
-          ? {
-              ...group,
-              rules: group.rules.filter((rule) => rule.id !== ruleId),
-            }
-          : group,
-      ),
-    );
-  };
-
   const handleSendPrompt = () => {
     setSendError(null);
     startTransition(async () => {
@@ -353,117 +175,13 @@ export function ProjectPromptClient({
               {selectedDocuments.length !== 1 ? "s" : ""} selected
             </span>
           </div>
-          <Button variant="secondary" size="sm" onClick={addGroup}>
-            Add filter group
-          </Button>
         </div>
-
-        {filterGroups.map((group, groupIndex) => (
-          <div key={group.id} className="card" style={{ marginBottom: "16px" }}>
-            <div className="card__body">
-              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                <div style={{ minWidth: "160px" }}>
-                  <Select
-                    value={group.join}
-                    onValueChange={(value) =>
-                      updateGroup(group.id, { join: value as FilterJoin })
-                    }
-                  >
-                    <SelectItem value="and">Match all rules</SelectItem>
-                    <SelectItem value="or">Match any rule</SelectItem>
-                  </Select>
-                </div>
-                {filterGroups.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeGroup(group.id)}
-                  >
-                    Remove group
-                  </Button>
-                )}
-              </div>
-
-              <div style={{ marginTop: "12px", display: "grid", gap: "12px" }}>
-                {group.rules.map((rule, ruleIndex) => (
-                  <div
-                    key={rule.id}
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr auto",
-                      gap: "12px",
-                      alignItems: "center",
-                    }}
-                  >
-                    <Select
-                      value={rule.field}
-                      onValueChange={(value) =>
-                        updateRule(group.id, rule.id, { field: value })
-                      }
-                    >
-                      <SelectItem value="title">Title</SelectItem>
-                      <SelectItem value="source">Source</SelectItem>
-                      <SelectItem value="created">Created date</SelectItem>
-                      {columns.map((column) => (
-                        <SelectItem
-                          key={column.id}
-                          value={`column:${column.key}`}
-                        >
-                          {column.name}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                    <Select
-                      value={rule.operator}
-                      onValueChange={(value) =>
-                        updateRule(group.id, rule.id, {
-                          operator: value as FilterOperator,
-                        })
-                      }
-                    >
-                      <SelectItem value="contains">Contains</SelectItem>
-                      <SelectItem value="equals">Equals</SelectItem>
-                      <SelectItem value="lt">Less than</SelectItem>
-                      <SelectItem value="gt">Greater than</SelectItem>
-                    </Select>
-                    <Input
-                      value={rule.value}
-                      onChange={(event) =>
-                        updateRule(group.id, rule.id, {
-                          value: event.target.value,
-                        })
-                      }
-                      placeholder="Value"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeRule(group.id, rule.id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ marginTop: "12px" }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => addRule(group.id)}
-                >
-                  Add rule
-                </Button>
-              </div>
-            </div>
-            <div className="card__footer">
-              <span style={{ color: "var(--color-gray-500)" }}>
-                Group {groupIndex + 1}: {group.rules.length} rule
-                {group.rules.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-          </div>
-        ))}
+        <DocumentSelection
+          documents={initialDocuments}
+          columns={columns}
+          onSelectionChange={setSelectedDocuments}
+          onFiltersChange={setFilterGroups}
+        />
 
         <div style={{ marginTop: "12px" }}>
           <strong>Preview:</strong>{" "}
