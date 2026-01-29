@@ -194,7 +194,12 @@ export function DocumentSelection<T extends Document>({
     return expertFilteredDocuments.filter((doc) =>
       matchesQuickSearch(doc, quickSearch),
     );
-  }, [isExpertMode, quickFilteredDocuments, expertFilteredDocuments, quickSearch]);
+  }, [
+    isExpertMode,
+    quickFilteredDocuments,
+    expertFilteredDocuments,
+    quickSearch,
+  ]);
 
   const activeFilters = useMemo(() => {
     if (isExpertMode) return filterGroups;
@@ -294,6 +299,7 @@ export function DocumentSelection<T extends Document>({
           variant="secondary"
           size="sm"
           onClick={() => setIsExpertMode((prev) => !prev)}
+          style={{ marginBottom: "8px" }}
         >
           {isExpertMode ? "Hide expert filters" : "Enable expert filters"}
         </Button>
@@ -346,7 +352,9 @@ export function DocumentSelection<T extends Document>({
                   )}
                 </div>
 
-                <div style={{ marginTop: "12px", display: "grid", gap: "12px" }}>
+                <div
+                  style={{ marginTop: "12px", display: "grid", gap: "12px" }}
+                >
                   {group.rules.map((rule) => (
                     <div
                       key={rule.id}
