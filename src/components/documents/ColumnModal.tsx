@@ -76,9 +76,7 @@ export function ColumnModal({
   const [useChunks, setUseChunks] = useState<"true" | "false">("true");
   const [promptTemplate, setPromptTemplate] = useState("");
   const [selectedModel, setSelectedModel] = useState(DEFAULT_CHAT_MODEL);
-  const [splitPattern, setSplitPattern] = useState(
-    String.raw`(?:\r?\n)(?=[*-]\s+)`,
-  );
+  const [splitPattern, setSplitPattern] = useState("");
   const [splitFlags, setSplitFlags] = useState("");
   const [splitReplacements, setSplitReplacements] = useState<
     TextArrayReplacement[]
@@ -94,8 +92,18 @@ export function ColumnModal({
       setName(column.name);
       setDataType(column.type);
       setMode(column.mode);
-      if (column.processorType) {
+      const processorOptions = getProcessorTypesForDataType(column.type);
+      if (
+        column.processorType &&
+        processorOptions.some(
+          (processor) => processor.value === column.processorType,
+        )
+      ) {
         setProcessorType(column.processorType);
+      } else if (processorOptions.length > 0) {
+        setProcessorType(processorOptions[0].value as ProcessorType);
+      } else {
+        setProcessorType("document_to_markdown");
       }
 
       const config = (column.processorConfig as Record<string, unknown>) || {};
@@ -123,9 +131,7 @@ export function ColumnModal({
         typeof config.model === "string" ? config.model : DEFAULT_CHAT_MODEL,
       );
       setSplitPattern(
-        typeof config.splitPattern === "string"
-          ? config.splitPattern
-          : String.raw`(?:\r?\n)(?=[*-]\s+)`,
+        typeof config.splitPattern === "string" ? config.splitPattern : "",
       );
       setSplitFlags(
         typeof config.splitFlags === "string" ? config.splitFlags : "",
@@ -163,7 +169,7 @@ export function ColumnModal({
       setUseChunks("true");
       setPromptTemplate("");
       setSelectedModel(DEFAULT_CHAT_MODEL);
-      setSplitPattern(String.raw`(?:\r?\n)(?=[*-]\s+)`);
+      setSplitPattern("");
       setSplitFlags("");
       setSplitReplacements([]);
     }
@@ -225,7 +231,9 @@ export function ColumnModal({
 
       // Text array split config
       if (processorType === "text_array_split") {
-        config.splitPattern = splitPattern;
+        if (splitPattern.trim().length > 0) {
+          config.splitPattern = splitPattern;
+        }
         if (splitFlags) {
           config.splitFlags = splitFlags;
         }
@@ -319,8 +327,10 @@ export function ColumnModal({
     processorType === "ai_transform" || processorType === "count_tokens";
 
   // Get available processor types based on data type
-  const getProcessorTypesForDataType = () => {
-    switch (dataType) {
+  const getProcessorTypesForDataType = (
+    type: "text" | "number" | "text_array" | "number_array" = dataType,
+  ) => {
+    switch (type) {
       case "text":
         return [
           { value: "document_to_markdown", label: "Document → Text" },
@@ -388,7 +398,7 @@ export function ColumnModal({
                       v as "text" | "number" | "text_array" | "number_array",
                     );
                     // Reset processor type when data type changes
-                    const availableProcessors = getProcessorTypesForDataType();
+                    const availableProcessors = getProcessorTypesForDataType(v);
                     if (availableProcessors.length > 0) {
                       setProcessorType(
                         availableProcessors[0].value as ProcessorType,
@@ -505,7 +515,7 @@ export function ColumnModal({
                   <InputGroup
                     label="Split Regex Pattern"
                     htmlFor="splitPattern"
-                    hint="Regex used to split the source text. Defaults to splitting on unordered list bullets."
+                    hint="Regex used to split the source text."
                   >
                     <Input
                       id="splitPattern"
