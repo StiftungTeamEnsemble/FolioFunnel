@@ -390,7 +390,7 @@ export function ProjectPromptClient({
           <div style={{ display: "flex", gap: "8px" }}>
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               onClick={() => {
                 setBuilderMode("create");
                 setBuilderTitle("");
