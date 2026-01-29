@@ -4,22 +4,12 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import type { Column, Document } from "@prisma/client";
 import { Button, Input, Select, SelectItem } from "@/components/ui";
 import { formatDateTime } from "@/lib/date-time";
-
-export type FilterOperator = "contains" | "equals" | "lt" | "gt";
-export type FilterJoin = "and" | "or";
-
-export interface FilterRule {
-  id: string;
-  field: string;
-  operator: FilterOperator;
-  value: string;
-}
-
-export interface FilterGroup {
-  id: string;
-  join: FilterJoin;
-  rules: FilterRule[];
-}
+import type {
+  FilterGroup,
+  FilterJoin,
+  FilterOperator,
+  FilterRule,
+} from "@/lib/document-filters";
 
 interface DocumentSelectionProps<T extends Document> {
   documents: T[];
@@ -27,6 +17,7 @@ interface DocumentSelectionProps<T extends Document> {
   onSelectionChange?: (selectedDocuments: T[]) => void;
   onFiltersChange?: (filters: FilterGroup[]) => void;
   initialFilterGroups?: FilterGroup[];
+  serverFiltering?: boolean;
 }
 
 const createId = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -167,6 +158,7 @@ export function DocumentSelection<T extends Document>({
   onSelectionChange,
   onFiltersChange,
   initialFilterGroups,
+  serverFiltering = false,
 }: DocumentSelectionProps<T>) {
   const [quickSearch, setQuickSearch] = useState("");
   const [isExpertMode, setIsExpertMode] = useState(false);
@@ -178,23 +170,32 @@ export function DocumentSelection<T extends Document>({
   const quickRuleId = useRef(createId());
 
   const expertFilteredDocuments = useMemo(() => {
+    if (serverFiltering) return documents;
     if (!filterGroups.length) return documents;
     return documents.filter((doc) =>
       filterGroups.every((group) => matchesGroup(doc, group)),
     );
-  }, [documents, filterGroups]);
+  }, [documents, filterGroups, serverFiltering]);
 
-  const quickFilteredDocuments = useMemo(
-    () => documents.filter((doc) => matchesQuickSearch(doc, quickSearch)),
-    [documents, quickSearch],
-  );
+  const quickFilteredDocuments = useMemo(() => {
+    if (serverFiltering) return documents;
+    return documents.filter((doc) => matchesQuickSearch(doc, quickSearch));
+  }, [documents, quickSearch, serverFiltering]);
 
   const selectedDocuments = useMemo(() => {
+    if (serverFiltering) return documents;
     if (!isExpertMode) return quickFilteredDocuments;
     return expertFilteredDocuments.filter((doc) =>
       matchesQuickSearch(doc, quickSearch),
     );
-  }, [isExpertMode, quickFilteredDocuments, expertFilteredDocuments, quickSearch]);
+  }, [
+    documents,
+    serverFiltering,
+    isExpertMode,
+    quickFilteredDocuments,
+    expertFilteredDocuments,
+    quickSearch,
+  ]);
 
   const activeFilters = useMemo(() => {
     if (isExpertMode) return filterGroups;

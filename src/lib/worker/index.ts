@@ -162,7 +162,7 @@ async function handleBulkProcess(jobs: PgBossJob<BulkProcessJobData>[]) {
   console.log(`[Worker] handleBulkProcess called with ${jobs.length} job(s)`);
 
   for (const job of jobs) {
-    const { projectId, columnId } = job.data;
+    const { projectId, columnId, documentIds } = job.data;
 
     console.log(
       `[Worker] Starting bulk process for column ${columnId} in project ${projectId}`,
@@ -178,7 +178,10 @@ async function handleBulkProcess(jobs: PgBossJob<BulkProcessJobData>[]) {
       }
 
       const documents = await prisma.document.findMany({
-        where: { projectId },
+        where: {
+          projectId,
+          ...(documentIds?.length ? { id: { in: documentIds } } : {}),
+        },
       });
 
       const boss = getBoss();

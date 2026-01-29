@@ -11,6 +11,7 @@ import { ColumnModal } from "@/components/documents/ColumnModal";
 import { DeleteColumnModal } from "@/components/documents/DeleteColumnModal";
 import { DeleteDocumentModal } from "@/components/documents/DeleteDocumentModal";
 import { triggerBulkProcessorRun } from "@/app/actions/runs";
+import type { FilterGroup } from "@/lib/document-filters";
 
 interface DocumentWithRuns extends Document {
   latestRuns?: Record<string, { status: string; error: string | null }>;
@@ -44,6 +45,7 @@ export function ProjectDocumentsClient({
   );
   const [filteredDocuments, setFilteredDocuments] =
     useState<DocumentWithRuns[]>(initialDocuments);
+  const [filters, setFilters] = useState<FilterGroup[]>([]);
 
   useEffect(() => {
     setDocuments(initialDocuments);
@@ -53,6 +55,10 @@ export function ProjectDocumentsClient({
     setColumns(initialColumns);
   }, [initialColumns]);
 
+  useEffect(() => {
+    setFilteredDocuments(documents);
+  }, [documents]);
+
   const handleRefresh = useCallback(() => {
     router.refresh();
   }, [router]);
@@ -60,7 +66,7 @@ export function ProjectDocumentsClient({
   const handleBulkRun = async (columnId: string) => {
     setBulkRunningColumn(columnId);
     try {
-      await triggerBulkProcessorRun(project.id, columnId);
+      await triggerBulkProcessorRun(project.id, columnId, filters);
       setTimeout(handleRefresh, 2000);
     } finally {
       setBulkRunningColumn(null);
@@ -84,6 +90,40 @@ export function ProjectDocumentsClient({
       setSelectedBulkColumn("");
     }
   }, [processorColumns, selectedBulkColumn]);
+
+  useEffect(() => {
+    let isActive = true;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/projects/${project.id}/documents/search`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ filters, includeRuns: true }),
+            signal: controller.signal,
+          },
+        );
+
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          documents: DocumentWithRuns[];
+        };
+        if (!isActive) return;
+        setDocuments(data.documents);
+      } catch (error) {
+        if ((error as DOMException).name === "AbortError") return;
+        console.error("Failed to fetch filtered documents", error);
+      }
+    }, 350);
+
+    return () => {
+      isActive = false;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [filters, project.id]);
 
   return (
     <div className="page">
@@ -154,18 +194,16 @@ export function ProjectDocumentsClient({
             <h3 className="section__title">Documents</h3>
             <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
               {filteredDocuments.length} document
-              {filteredDocuments.length !== 1 ? "s" : ""}
-              {filteredDocuments.length !== documents.length && (
-                <> of {documents.length}</>
-              )}
-              , {columns.length} column{columns.length !== 1 ? "s" : ""}
+              {filteredDocuments.length !== 1 ? "s" : ""},{" "}
+              {columns.length} column{columns.length !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
         <DocumentSelection
           documents={documents}
           columns={columns}
-          onSelectionChange={setFilteredDocuments}
+          onFiltersChange={setFilters}
+          serverFiltering
         />
 
         <KnowledgeTable
