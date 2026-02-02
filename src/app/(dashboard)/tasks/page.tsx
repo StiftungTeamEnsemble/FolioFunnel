@@ -125,6 +125,21 @@ export default async function TasksPage() {
     }
   });
 
+  const openTaskCount = await prisma.run.count({
+    where: {
+      status: {
+        in: ["queued", "running"],
+      },
+      project: {
+        memberships: {
+          some: {
+            userId: session.user.id,
+          },
+        },
+      },
+    },
+  });
+
   return (
     <div className="page">
       <div className="page__header">
@@ -186,6 +201,9 @@ export default async function TasksPage() {
                 <p className="card__subtitle">
                   Latest processor runs and prompt executions from the unified
                   queue.
+                </p>
+                <p className="card__subtitle">
+                  Open tasks in queue: {openTaskCount}
                 </p>
               </div>
             </div>
