@@ -228,36 +228,39 @@ export function ProjectDocumentsClient({
       </div>
 
       {/* Bulk actions */}
-      {processorColumns.length > 0 && documents.length > 0 && (
+      {documents.length > 0 &&
+        (processorColumns.length > 0 || copyableColumns.length > 0) && (
         <div className="section">
           <div className="section__header">
             <h3 className="section__title">Bulk Actions</h3>
           </div>
           <div style={{ display: "grid", gap: "12px" }}>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <div style={{ minWidth: "220px" }}>
-                <Select
-                  value={selectedBulkColumn}
-                  onValueChange={setSelectedBulkColumn}
-                  placeholder="Select processor column"
+            {processorColumns.length > 0 && (
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <div style={{ minWidth: "220px" }}>
+                  <Select
+                    value={selectedBulkColumn}
+                    onValueChange={setSelectedBulkColumn}
+                    placeholder="Select processor column"
+                  >
+                    {processorColumns.map((column) => (
+                      <SelectItem key={column.id} value={column.id}>
+                        {column.name}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!selectedBulkColumn}
+                  isLoading={bulkRunningColumn === selectedBulkColumn}
+                  onClick={() => handleBulkRun(selectedBulkColumn)}
                 >
-                  {processorColumns.map((column) => (
-                    <SelectItem key={column.id} value={column.id}>
-                      {column.name}
-                    </SelectItem>
-                  ))}
-                </Select>
+                  Run processor on all docs
+                </Button>
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!selectedBulkColumn}
-                isLoading={bulkRunningColumn === selectedBulkColumn}
-                onClick={() => handleBulkRun(selectedBulkColumn)}
-              >
-                Run processor on all docs
-              </Button>
-            </div>
+            )}
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               <div style={{ minWidth: "220px" }}>
                 <Select
