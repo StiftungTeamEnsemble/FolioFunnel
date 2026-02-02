@@ -17,7 +17,7 @@ export function Dropzone({
   accept = ".pdf",
   multiple = false,
   disabled = false,
-  maxSize = 50 * 1024 * 1024, // 50MB default
+  maxSize = 250 * 1024 * 1024, // 250MB default
   children,
 }: DropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
