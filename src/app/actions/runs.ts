@@ -3,12 +3,17 @@
 import prisma from "@/lib/db";
 import { requireProjectAccess, requireAuth } from "@/lib/session";
 import { enqueueBulkProcess } from "@/lib/queue";
-import { createProcessorRun } from "@/lib/processors";
+import { createProcessorRun, expandTemplate } from "@/lib/processors";
 import { RunStatus, RunType } from "@prisma/client";
 import {
   getFilteredDocumentIds,
   type FilterGroup,
 } from "@/lib/document-filters";
+import { DEFAULT_CHAT_MODEL, isValidChatModel } from "@/lib/models";
+import { countPromptTokens, estimatePromptCost } from "@/lib/prompt-cost";
+
+const DEFAULT_PROCESSOR_SYSTEM_PROMPT =
+  "You are a helpful assistant that processes documents.";
 
 export async function clearPendingTasks() {
   const user = await requireAuth();
@@ -125,6 +130,104 @@ export async function triggerBulkProcessorRun(
     console.error("Trigger bulk processor run error:", error);
     return { error: "Failed to trigger bulk processor run" };
   }
+}
+
+export async function estimateBulkProcessorCostAction({
+  projectId,
+  columnId,
+  filters = [],
+}: {
+  projectId: string;
+  columnId: string;
+  filters?: FilterGroup[];
+}) {
+  await requireProjectAccess(projectId);
+
+  const column = await prisma.column.findFirst({
+    where: { id: columnId, projectId },
+  });
+
+  if (!column) {
+    return { error: "Column not found" };
+  }
+
+  if (column.mode !== "processor") {
+    return { error: "Column is not a processor column" };
+  }
+
+  if (column.processorType !== "ai_transform") {
+    return { tokenCount: null, costEstimate: null };
+  }
+
+  const config = (column.processorConfig as Record<string, unknown>) || {};
+  const promptTemplate =
+    typeof config.promptTemplate === "string" ? config.promptTemplate : "";
+
+  if (!promptTemplate.trim()) {
+    return { error: "Processor prompt template is empty." };
+  }
+
+  const requestedModel =
+    typeof config.model === "string" ? config.model : DEFAULT_CHAT_MODEL;
+  const validatedModel = isValidChatModel(requestedModel)
+    ? requestedModel
+    : DEFAULT_CHAT_MODEL;
+  const systemPrompt =
+    typeof config.systemPrompt === "string" && config.systemPrompt.trim()
+      ? config.systemPrompt
+      : DEFAULT_PROCESSOR_SYSTEM_PROMPT;
+
+  const documentIds = await getFilteredDocumentIds(projectId, filters);
+
+  if (!documentIds.length) {
+    return { error: "No documents matched the selection." };
+  }
+
+  const documents = await prisma.document.findMany({
+    where: {
+      projectId,
+      id: { in: documentIds },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!documents.length) {
+    return { error: "No documents matched the selection." };
+  }
+
+  let totalTokens = 0;
+
+  try {
+    for (const doc of documents) {
+      const values = (doc.values as Record<string, unknown>) || {};
+      const documentContext: Record<string, unknown> = {
+        id: doc.id,
+        title: doc.title,
+        sourceType: doc.sourceType,
+        sourceUrl: doc.sourceUrl,
+        ...values,
+      };
+      const contextValues: Record<string, unknown> = {
+        document: documentContext,
+        ...documentContext,
+      };
+
+      const userPrompt = expandTemplate(promptTemplate, contextValues);
+
+      if (!userPrompt.trim()) {
+        return { error: "Rendered prompt is empty." };
+      }
+
+      const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
+      totalTokens += countPromptTokens(combinedPrompt, validatedModel);
+    }
+  } catch (error) {
+    return { error: "Prompt template could not be rendered." };
+  }
+
+  const costEstimate = estimatePromptCost(totalTokens, validatedModel);
+
+  return { tokenCount: totalTokens, costEstimate };
 }
 
 export async function getProcessorRuns(
