@@ -10,7 +10,10 @@ import { AddDocumentModal } from "@/components/documents/AddDocumentModal";
 import { ColumnModal } from "@/components/documents/ColumnModal";
 import { DeleteColumnModal } from "@/components/documents/DeleteColumnModal";
 import { DeleteDocumentModal } from "@/components/documents/DeleteDocumentModal";
-import { triggerBulkProcessorRun } from "@/app/actions/runs";
+import {
+  estimateBulkProcessorCostAction,
+  triggerBulkProcessorRun,
+} from "@/app/actions/runs";
 import type { FilterGroup } from "@/lib/document-filters";
 import { formatDateTime } from "@/lib/date-time";
 
@@ -39,6 +42,10 @@ export function ProjectDocumentsClient({
     null,
   );
   const [selectedBulkColumn, setSelectedBulkColumn] = useState<string>("");
+  const [bulkTokenCount, setBulkTokenCount] = useState<number | null>(null);
+  const [bulkCostEstimate, setBulkCostEstimate] = useState<number | null>(null);
+  const [bulkTokenError, setBulkTokenError] = useState<string | null>(null);
+  const [isCountingBulkTokens, setIsCountingBulkTokens] = useState(false);
   const [selectedCopyColumn, setSelectedCopyColumn] = useState<string>("");
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
@@ -119,6 +126,47 @@ export function ProjectDocumentsClient({
       setSelectedBulkColumn("");
     }
   }, [processorColumns, selectedBulkColumn]);
+
+  useEffect(() => {
+    if (!selectedBulkColumn) {
+      setBulkTokenCount(null);
+      setBulkCostEstimate(null);
+      setBulkTokenError(null);
+      setIsCountingBulkTokens(false);
+      return;
+    }
+
+    let isActive = true;
+    setIsCountingBulkTokens(true);
+    setBulkTokenError(null);
+
+    const timer = setTimeout(async () => {
+      const result = await estimateBulkProcessorCostAction({
+        projectId: project.id,
+        columnId: selectedBulkColumn,
+        filters,
+      });
+
+      if (!isActive) return;
+
+      if (result.error) {
+        setBulkTokenError(result.error);
+        setBulkTokenCount(null);
+        setBulkCostEstimate(null);
+      } else {
+        setBulkTokenCount(result.tokenCount ?? null);
+        setBulkCostEstimate(result.costEstimate ?? null);
+      }
+
+      setIsCountingBulkTokens(false);
+    }, 350);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+      setIsCountingBulkTokens(false);
+    };
+  }, [filters, project.id, selectedBulkColumn]);
 
   useEffect(() => {
     if (!copyableColumns.length) {
@@ -259,6 +307,30 @@ export function ProjectDocumentsClient({
                 >
                   Run processor on all docs
                 </Button>
+                {selectedBulkColumn && (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color: "var(--color-gray-500)",
+                      alignSelf: "center",
+                    }}
+                  >
+                    {bulkTokenError ? (
+                      bulkTokenError
+                    ) : isCountingBulkTokens ? (
+                      "Counting tokens..."
+                    ) : (
+                      <>
+                        Tokens (input):{" "}
+                        {bulkTokenCount !== null ? bulkTokenCount : "N/A"} ·
+                        Cost (input):{" "}
+                        {bulkCostEstimate !== null
+                          ? `$${bulkCostEstimate.toFixed(4)}`
+                          : "N/A"}
+                      </>
+                    )}
+                  </span>
+                )}
               </div>
             )}
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
