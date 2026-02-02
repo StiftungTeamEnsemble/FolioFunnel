@@ -125,9 +125,20 @@ export default async function TasksPage() {
     }
   });
 
-  const openTaskCount = allTasks.filter((task) =>
-    ["queued", "running"].includes(task.status.toLowerCase()),
-  ).length;
+  const openTaskCount = await prisma.run.count({
+    where: {
+      status: {
+        in: ["queued", "running"],
+      },
+      project: {
+        memberships: {
+          some: {
+            userId: session.user.id,
+          },
+        },
+      },
+    },
+  });
 
   return (
     <div className="page">
