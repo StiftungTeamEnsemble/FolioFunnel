@@ -22,6 +22,7 @@ import {
   MetaSeparator,
 } from "@/components/ui";
 import { DocumentSelection } from "@/components/documents/DocumentSelection";
+import { DocumentPreviewList } from "@/components/documents/DocumentPreviewList";
 import { RunStatusBadge } from "@/components/runs/RunStatusBadge";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
 import { renderPromptTemplate } from "@/lib/prompts";
@@ -119,6 +120,7 @@ export function ProjectPromptClient({
   const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const previewLimit = 3;
 
   useEffect(() => {
@@ -152,8 +154,11 @@ export function ProjectPromptClient({
     [selectedDocuments, previewLimit],
   );
 
-  const promptContext = useMemo(
-    () => ({
+  const promptContext = useMemo(() => {
+    if (!isPreviewModalOpen) {
+      return null;
+    }
+    return {
       project: {
         id: project.id,
         name: project.name,
@@ -161,20 +166,22 @@ export function ProjectPromptClient({
       },
       documentCount: previewDocuments.length,
       documents: previewDocuments.map(buildDocumentContext),
-    }),
-    [project, previewDocuments],
-  );
+    };
+  }, [isPreviewModalOpen, project, previewDocuments]);
 
   const expandedPrompt = useMemo(() => {
+    if (!isPreviewModalOpen || !selectedPromptTemplate || !promptContext) {
+      return "";
+    }
     try {
       return renderPromptTemplate(
-        selectedPromptTemplate?.promptTemplate ?? "",
+        selectedPromptTemplate.promptTemplate ?? "",
         promptContext,
       );
     } catch (error) {
       return "";
     }
-  }, [selectedPromptTemplate, promptContext]);
+  }, [isPreviewModalOpen, selectedPromptTemplate, promptContext]);
 
   useEffect(() => {
     if (!selectedPromptTemplate) {
@@ -439,6 +446,18 @@ export function ProjectPromptClient({
                   ))}
                 </Select>
               </div>
+              <div style={{ maxWidth: "280px", flex: "1 1 220px" }}>
+                <label className="input__label" htmlFor="modelSelect">
+                  Model
+                </label>
+                <Select value={model} onValueChange={setModel}>
+                  {CHAT_MODELS.map((chatModel) => (
+                    <SelectItem key={chatModel.id} value={chatModel.id}>
+                      {chatModel.name}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
               <div style={{ display: "flex", gap: "8px" }}>
                 <Button
                   variant="secondary"
@@ -476,37 +495,10 @@ export function ProjectPromptClient({
                 </Button>
               </div>
             </div>
-            <div style={{ marginTop: "4px" }}>
-              <strong>Documents:</strong> {selectedDocuments.length} document
-              {selectedDocuments.length !== 1 ? "s" : ""} selected
-              {selectedDocuments.length > 0 && (
-                <>
-                  {" "}
-                  ·{" "}
-                  {selectedDocuments.slice(0, 3).map((doc, index) => (
-                    <span
-                      key={doc.id}
-                      style={{
-                        marginLeft: index === 0 ? "4px" : "8px",
-                        color: "var(--color-gray-500)",
-                      }}
-                    >
-                      {doc.title}
-                    </span>
-                  ))}
-                  {selectedDocuments.length > 3 && (
-                    <span
-                      style={{
-                        marginLeft: "8px",
-                        color: "var(--color-gray-500)",
-                      }}
-                    >
-                      +{selectedDocuments.length - 3} more
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
+            <DocumentPreviewList
+              documents={selectedDocuments}
+              projectId={project.id}
+            />
           </div>
         )}
       </div>
@@ -516,36 +508,9 @@ export function ProjectPromptClient({
           <h3 className="section__title">Prompt Run</h3>
         </div>
         <div style={{ display: "grid", gap: "12px" }}>
-          <div style={{ maxWidth: "280px" }}>
-            <label className="input__label" htmlFor="modelSelect">
-              Model
-            </label>
-            <Select value={model} onValueChange={setModel}>
-              {CHAT_MODELS.map((chatModel) => (
-                <SelectItem key={chatModel.id} value={chatModel.id}>
-                  {chatModel.name}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-
           <div className="card">
             <div className="card__body">
-              <h4 style={{ marginBottom: "8px" }}>Preview</h4>
-              <Textarea value={expandedPrompt} rows={8} readOnly />
-              <p
-                style={{
-                  marginTop: "8px",
-                  fontSize: "12px",
-                  color: "var(--color-gray-500)",
-                }}
-              >
-                Preview uses {previewDocuments.length} of{" "}
-                {selectedDocuments.length} document
-                {selectedDocuments.length !== 1 ? "s" : ""}.
-              </p>
-            </div>
-            <div className="card__footer">
+              <h4 style={{ marginBottom: "8px" }}>Cost estimate</h4>
               {tokenError ? (
                 <MetaLine
                   style={{ color: "var(--color-red-500)", marginTop: 0 }}
@@ -577,17 +542,22 @@ export function ProjectPromptClient({
             <p style={{ color: "var(--color-red-500)" }}>{sendError}</p>
           )}
 
-          <Button
-            onClick={handleSendPrompt}
-            disabled={
-              !expandedPrompt.trim() ||
-              selectedDocuments.length === 0 ||
-              !selectedPromptTemplate
-            }
-            isLoading={isPending}
-          >
-            Send Prompt
-          </Button>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            <Button
+              variant="secondary"
+              onClick={() => setIsPreviewModalOpen(true)}
+              disabled={!selectedPromptTemplate || selectedDocuments.length === 0}
+            >
+              View prompt preview
+            </Button>
+            <Button
+              onClick={handleSendPrompt}
+              disabled={!selectedPromptTemplate || selectedDocuments.length === 0}
+              isLoading={isPending}
+            >
+              Send Prompt
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -777,11 +747,12 @@ export function ProjectPromptClient({
                 initialFilterGroups={builderFilters}
                 serverFiltering
               />
-              <div
-                style={{ marginTop: "10px", color: "var(--color-gray-500)" }}
-              >
-                {builderSelectedDocuments.length} document
-                {builderSelectedDocuments.length !== 1 ? "s" : ""} selected
+              <div style={{ marginTop: "10px" }}>
+                <DocumentPreviewList
+                  documents={builderSelectedDocuments}
+                  projectId={project.id}
+                  label="Selected documents"
+                />
               </div>
             </div>
 
@@ -891,6 +862,25 @@ export function ProjectPromptClient({
           router.refresh();
         }}
       />
+
+      <Modal open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
+        <ModalContent
+          title="Prompt preview"
+          description={
+            selectedPromptTemplate?.title || "Selected prompt template"
+          }
+          size="lg"
+        >
+          <div style={{ display: "grid", gap: "12px" }}>
+            <Textarea value={expandedPrompt} rows={10} readOnly />
+            <p style={{ fontSize: "12px", color: "var(--color-gray-500)" }}>
+              Preview uses {previewDocuments.length} of{" "}
+              {selectedDocuments.length} document
+              {selectedDocuments.length !== 1 ? "s" : ""}.
+            </p>
+          </div>
+        </ModalContent>
+      </Modal>
     </div>
   );
 }
