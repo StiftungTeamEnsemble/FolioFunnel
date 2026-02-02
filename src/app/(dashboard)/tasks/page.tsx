@@ -125,6 +125,10 @@ export default async function TasksPage() {
     }
   });
 
+  const openTaskCount = allTasks.filter((task) =>
+    ["queued", "running"].includes(task.status.toLowerCase()),
+  ).length;
+
   return (
     <div className="page">
       <div className="page__header">
@@ -186,6 +190,9 @@ export default async function TasksPage() {
                 <p className="card__subtitle">
                   Latest processor runs and prompt executions from the unified
                   queue.
+                </p>
+                <p className="card__subtitle">
+                  Open tasks in queue: {openTaskCount}
                 </p>
               </div>
             </div>
