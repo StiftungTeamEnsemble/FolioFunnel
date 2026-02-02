@@ -139,13 +139,7 @@ export function ProjectDocumentsClient({
             variant="secondary"
             onClick={() => router.push(`/projects/${project.id}`)}
           >
-            Prompt Processor
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => router.push(`/projects/${project.id}/edit`)}
-          >
-            Project Settings
+            Back to Project
           </Button>
           <Button variant="secondary" onClick={() => setShowAddColumn(true)}>
             Add Column
@@ -176,7 +170,7 @@ export function ProjectDocumentsClient({
             </div>
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               disabled={!selectedBulkColumn}
               isLoading={bulkRunningColumn === selectedBulkColumn}
               onClick={() => handleBulkRun(selectedBulkColumn)}

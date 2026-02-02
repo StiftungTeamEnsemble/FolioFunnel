@@ -442,7 +442,7 @@ export function ProjectPromptClient({
               <div style={{ display: "flex", gap: "8px" }}>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="md"
                   onClick={() => {
                     if (!selectedPromptTemplate) return;
                     setBuilderMode("edit");
@@ -464,7 +464,7 @@ export function ProjectPromptClient({
                 </Button>
                 <Button
                   variant="secondary"
-                  size="sm"
+                  size="md"
                   onClick={() => {
                     if (!selectedPromptTemplate) return;
                     setPromptTemplateToDelete(selectedPromptTemplate);
@@ -593,7 +593,7 @@ export function ProjectPromptClient({
 
       <div className="section">
         <div className="section__header">
-          <h3 className="section__title">Prompt Runs</h3>
+          <h3 className="section__title">Results</h3>
         </div>
 
         {promptRuns.length === 0 ? (
@@ -629,9 +629,9 @@ export function ProjectPromptClient({
                               "Unknown author"}
                           </span>
                           <MetaSeparator />
-                          <span>Created: {formatDateTime(run.createdAt)}</span>
+                          <span>{formatDateTime(run.createdAt)}</span>
                           <MetaSeparator />
-                          <span>Model: {run.model || "Prompt Run"}</span>
+                          <span>{run.model || "Prompt Run"}</span>
                         </MetaLine>
                       </div>
                       <div
