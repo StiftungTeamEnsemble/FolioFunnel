@@ -285,12 +285,14 @@ export function DocumentSelection<T extends Document>({
   return (
     <div style={{ display: "grid", gap: "12px" }}>
       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-        <Input
-          value={quickSearch}
-          onChange={(event) => setQuickSearch(event.target.value)}
-          placeholder="Search all fields"
-          aria-label="Search all fields"
-        />
+        {!isExpertMode && (
+          <Input
+            value={quickSearch}
+            onChange={(event) => setQuickSearch(event.target.value)}
+            placeholder="Search all fields"
+            aria-label="Search all fields"
+          />
+        )}
         <Button
           variant="secondary"
           size="sm"
