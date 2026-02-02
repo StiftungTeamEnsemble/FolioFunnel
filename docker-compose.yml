@@ -28,7 +28,6 @@ services:
       DOCUMENT_CONVERTER_API_KEY: ${DOCUMENT_CONVERTER_API_KEY:-converter_secret_key}
     volumes:
       - ./data/documents:/data
-      - marker_cache:/root/.cache
     ports:
       - "8080:8080"
     deploy:
@@ -87,6 +86,3 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-
-volumes:
-  marker_cache:
