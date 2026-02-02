@@ -188,8 +188,7 @@ export default async function TasksPage() {
               <div>
                 <h2 className="card__title">Recent Activity</h2>
                 <p className="card__subtitle">
-                  Latest processor runs and prompt executions from the unified
-                  queue.
+                  Latest processor runs and prompts.
                 </p>
                 <p className="card__subtitle">
                   Open tasks in queue: {openTaskCount}
