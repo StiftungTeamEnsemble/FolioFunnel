@@ -12,6 +12,7 @@ import { DeleteColumnModal } from "@/components/documents/DeleteColumnModal";
 import { DeleteDocumentModal } from "@/components/documents/DeleteDocumentModal";
 import { triggerBulkProcessorRun } from "@/app/actions/runs";
 import type { FilterGroup } from "@/lib/document-filters";
+import { formatDateTime } from "@/lib/date-time";
 
 interface DocumentWithRuns extends Document {
   latestRuns?: Record<string, { status: string; error: string | null }>;
@@ -38,6 +39,7 @@ export function ProjectDocumentsClient({
     null,
   );
   const [selectedBulkColumn, setSelectedBulkColumn] = useState<string>("");
+  const [selectedCopyColumn, setSelectedCopyColumn] = useState<string>("");
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
   const [documentToDelete, setDocumentToDelete] = useState<Document | null>(
@@ -73,7 +75,34 @@ export function ProjectDocumentsClient({
     }
   };
 
+  const handleCopyToClipboard = async (value: string) => {
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (error) {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
+  };
+
   const processorColumns = columns.filter((c) => c.mode === "processor");
+  const copyableColumns = [
+    { key: "title", label: "Title" },
+    { key: "source", label: "Source" },
+    { key: "uploader", label: "Uploader" },
+    { key: "created", label: "Created" },
+    ...columns.map((column) => ({
+      key: `column:${column.key}`,
+      label: column.name,
+    })),
+  ];
 
   useEffect(() => {
     if (!processorColumns.length) {
@@ -90,6 +119,22 @@ export function ProjectDocumentsClient({
       setSelectedBulkColumn("");
     }
   }, [processorColumns, selectedBulkColumn]);
+
+  useEffect(() => {
+    if (!copyableColumns.length) {
+      if (selectedCopyColumn) {
+        setSelectedCopyColumn("");
+      }
+      return;
+    }
+
+    const stillValid = copyableColumns.some(
+      (column) => column.key === selectedCopyColumn,
+    );
+    if (!stillValid && selectedCopyColumn) {
+      setSelectedCopyColumn("");
+    }
+  }, [copyableColumns, selectedCopyColumn]);
 
   useEffect(() => {
     let isActive = true;
@@ -125,6 +170,40 @@ export function ProjectDocumentsClient({
     };
   }, [filters, project.id]);
 
+  const getColumnValue = (doc: DocumentWithRuns, columnKey: string) => {
+    const values = (doc.values as Record<string, unknown>) || {};
+
+    if (columnKey.startsWith("column:")) {
+      const key = columnKey.replace("column:", "");
+      const value = values[key];
+      if (value === undefined || value === null) return "";
+      if (typeof value === "string") return value;
+      return JSON.stringify(value);
+    }
+
+    switch (columnKey) {
+      case "title":
+        return doc.title;
+      case "source":
+        if (doc.sourceType === "url") return doc.sourceUrl || "URL";
+        return "Upload";
+      case "uploader":
+        return doc.uploadedBy?.name || doc.uploadedBy?.email || "Unknown";
+      case "created":
+        return formatDateTime(doc.createdAt);
+      default:
+        return "";
+    }
+  };
+
+  const handleCopyColumn = () => {
+    if (!selectedCopyColumn) return;
+    const values = filteredDocuments.map((doc) =>
+      getColumnValue(doc, selectedCopyColumn),
+    );
+    handleCopyToClipboard(values.join("\n\n"));
+  };
+
   return (
     <div className="page">
       <div className="page__header">
@@ -154,29 +233,54 @@ export function ProjectDocumentsClient({
           <div className="section__header">
             <h3 className="section__title">Bulk Actions</h3>
           </div>
-          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-            <div style={{ minWidth: "220px" }}>
-              <Select
-                value={selectedBulkColumn}
-                onValueChange={setSelectedBulkColumn}
-                placeholder="Select processor column"
+          <div style={{ display: "grid", gap: "12px" }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div style={{ minWidth: "220px" }}>
+                <Select
+                  value={selectedBulkColumn}
+                  onValueChange={setSelectedBulkColumn}
+                  placeholder="Select processor column"
+                >
+                  {processorColumns.map((column) => (
+                    <SelectItem key={column.id} value={column.id}>
+                      {column.name}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={!selectedBulkColumn}
+                isLoading={bulkRunningColumn === selectedBulkColumn}
+                onClick={() => handleBulkRun(selectedBulkColumn)}
               >
-                {processorColumns.map((column) => (
-                  <SelectItem key={column.id} value={column.id}>
-                    {column.name}
-                  </SelectItem>
-                ))}
-              </Select>
+                Run processor on all docs
+              </Button>
             </div>
-            <Button
-              variant="secondary"
-              size="md"
-              disabled={!selectedBulkColumn}
-              isLoading={bulkRunningColumn === selectedBulkColumn}
-              onClick={() => handleBulkRun(selectedBulkColumn)}
-            >
-              Run processor on all docs
-            </Button>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div style={{ minWidth: "220px" }}>
+                <Select
+                  value={selectedCopyColumn}
+                  onValueChange={setSelectedCopyColumn}
+                  placeholder="Select column to copy"
+                >
+                  {copyableColumns.map((column) => (
+                    <SelectItem key={column.key} value={column.key}>
+                      {column.label}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={!selectedCopyColumn}
+                onClick={handleCopyColumn}
+              >
+                Copy column values
+              </Button>
+            </div>
           </div>
         </div>
       )}
