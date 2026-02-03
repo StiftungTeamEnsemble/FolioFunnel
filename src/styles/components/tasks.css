@@ -75,3 +75,69 @@
   font-size: 12px;
   color: var(--color-error);
 }
+
+.tasks-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.tasks-filters__label {
+  color: var(--color-gray-500);
+}
+
+.tasks-filters__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tasks-filter {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-gray-200);
+  color: var(--color-gray-600);
+  background-color: white;
+  font-weight: 500;
+}
+
+.tasks-filter:hover {
+  border-color: var(--color-gray-300);
+  color: var(--color-gray-800);
+}
+
+.tasks-filter--active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.tasks-pager__label {
+  font-size: 13px;
+  color: var(--color-gray-500);
+}
+
+.tasks-pager__controls {
+  display: flex;
+  gap: 8px;
+}
+
+.tasks-pager__link {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--color-gray-200);
+  font-size: 13px;
+  color: var(--color-gray-700);
+  background-color: white;
+}
+
+.tasks-pager__link:hover {
+  border-color: var(--color-gray-300);
+  color: var(--color-gray-900);
+}
+
+.tasks-pager__link--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

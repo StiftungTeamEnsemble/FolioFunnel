@@ -42,24 +42,78 @@ type UnifiedTask = {
   error?: string | null;
 };
 
-export default async function TasksPage() {
+type TaskFilterType = "all" | "processor" | "prompt";
+
+type TasksPageProps = {
+  searchParams?: {
+    page?: string;
+    type?: string;
+  };
+};
+
+const taskFilters: { label: string; value: TaskFilterType }[] = [
+  { label: "All tasks", value: "all" },
+  { label: "Processor runs", value: "processor" },
+  { label: "Prompt runs", value: "prompt" },
+];
+
+const PAGE_SIZE = 50;
+
+function resolveFilterType(value?: string): TaskFilterType {
+  if (value === "processor" || value === "prompt") {
+    return value;
+  }
+  return "all";
+}
+
+function resolvePageNumber(value?: string) {
+  const parsed = Number.parseInt(value ?? "1", 10);
+  return Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
+}
+
+export default async function TasksPage({ searchParams }: TasksPageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session) {
     redirect("/auth/signin");
   }
 
-  // Fetch all runs (both processor and prompt) from unified table
-  const runs = await prisma.run.findMany({
-    where: {
-      project: {
-        memberships: {
-          some: {
-            userId: session.user.id,
-          },
+  const currentFilter = resolveFilterType(searchParams?.type);
+  const requestedPage = resolvePageNumber(searchParams?.page);
+
+  const baseWhere = {
+    project: {
+      memberships: {
+        some: {
+          userId: session.user.id,
         },
       },
     },
+  };
+
+  const where =
+    currentFilter === "all" ? baseWhere : { ...baseWhere, type: currentFilter };
+
+  const totalTaskCount = await prisma.run.count({ where });
+  const totalPages = Math.max(1, Math.ceil(totalTaskCount / PAGE_SIZE));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const skip = (currentPage - 1) * PAGE_SIZE;
+
+  const buildTasksUrl = (page: number, filter: TaskFilterType) => {
+    const params = new URLSearchParams();
+    if (page > 1) {
+      params.set("page", String(page));
+    }
+    if (filter !== "all") {
+      params.set("type", filter);
+    }
+    const query = params.toString();
+    return query ? `/tasks?${query}` : "/tasks";
+  };
+
+  // Fetch all runs (both processor and prompt) from unified table
+  const runs = await prisma.run.findMany({
+    where,
     include: {
       project: {
         select: {
@@ -89,7 +143,8 @@ export default async function TasksPage() {
     orderBy: {
       createdAt: "desc",
     },
-    take: 20,
+    take: PAGE_SIZE,
+    skip,
   });
 
   // Convert runs to unified task format
@@ -205,6 +260,26 @@ export default async function TasksPage() {
                   Open tasks in queue: {openTaskCount}
                 </p>
               </div>
+              <div className="tasks-filters">
+                <span className="tasks-filters__label">Filter:</span>
+                <div className="tasks-filters__options">
+                  {taskFilters.map((filter) => {
+                    const isActive = currentFilter === filter.value;
+                    return (
+                      <Link
+                        key={filter.value}
+                        href={buildTasksUrl(1, filter.value)}
+                        className={`tasks-filter ${
+                          isActive ? "tasks-filter--active" : ""
+                        }`}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        {filter.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             <div className="card__body card__body--compact">
               <ul className="tasks-list">
@@ -268,6 +343,37 @@ export default async function TasksPage() {
                   );
                 })}
               </ul>
+            </div>
+            <div className="card__footer">
+              <span className="tasks-pager__label">
+                Page {currentPage} of {totalPages}
+              </span>
+              <div className="tasks-pager__controls">
+                {currentPage > 1 ? (
+                  <Link
+                    href={buildTasksUrl(currentPage - 1, currentFilter)}
+                    className="tasks-pager__link"
+                  >
+                    Previous
+                  </Link>
+                ) : (
+                  <span className="tasks-pager__link tasks-pager__link--disabled">
+                    Previous
+                  </span>
+                )}
+                {currentPage < totalPages ? (
+                  <Link
+                    href={buildTasksUrl(currentPage + 1, currentFilter)}
+                    className="tasks-pager__link"
+                  >
+                    Next
+                  </Link>
+                ) : (
+                  <span className="tasks-pager__link tasks-pager__link--disabled">
+                    Next
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
