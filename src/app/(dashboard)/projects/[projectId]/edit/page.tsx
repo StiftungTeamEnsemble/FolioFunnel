@@ -29,7 +29,7 @@ export default async function ProjectEditPage({
     notFound();
   }
 
-  const [project, members] = await Promise.all([
+  const [project, members, pendingInvites] = await Promise.all([
     prisma.project.findUnique({
       where: { id: params.projectId },
     }),
@@ -46,6 +46,14 @@ export default async function ProjectEditPage({
       },
       orderBy: { createdAt: "asc" },
     }),
+    prisma.projectInvite.findMany({
+      where: {
+        projectId: params.projectId,
+        acceptedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
   if (!project) {
@@ -56,6 +64,7 @@ export default async function ProjectEditPage({
     <ProjectEditClient
       project={project}
       members={members}
+      pendingInvites={pendingInvites}
       currentUserId={access.user.id}
     />
   );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MemberRole, Project, ProjectMembership } from "@prisma/client";
+import { MemberRole, Project, ProjectMembership, ProjectInvite } from "@prisma/client";
 import {
   Button,
   Input,
@@ -28,6 +28,7 @@ interface MemberWithUser extends ProjectMembership {
 interface ProjectEditClientProps {
   project: Project;
   members: MemberWithUser[];
+  pendingInvites: ProjectInvite[];
   currentUserId: string;
 }
 
@@ -40,6 +41,7 @@ const roleLabels: Record<MemberRole, string> = {
 export function ProjectEditClient({
   project,
   members,
+  pendingInvites,
   currentUserId,
 }: ProjectEditClientProps) {
   const router = useRouter();
@@ -229,6 +231,10 @@ export function ProjectEditClient({
                   <SelectItem value="member">Member</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </Select>
+                <p style={{ fontSize: "13px", color: "var(--color-gray-500)", marginTop: "6px" }}>
+                  <strong>Member:</strong> Can view and upload documents, run prompts, and view results.<br />
+                  <strong>Admin:</strong> Can do everything a member can, plus manage project settings and invite others.
+                </p>
               </InputGroup>
               <div className="form__actions">
                 <Button type="submit" isLoading={sharing}>
@@ -245,6 +251,9 @@ export function ProjectEditClient({
           <h3 className="section__title">Project Members</h3>
           <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
             {members.length} member{members.length !== 1 ? "s" : ""}
+            {pendingInvites.length > 0 && (
+              <>, {pendingInvites.length} pending invite{pendingInvites.length !== 1 ? "s" : ""}</>
+            )}
           </span>
         </div>
         <div className="table-wrapper">
@@ -300,6 +309,26 @@ export function ProjectEditClient({
                   </tr>
                 );
               })}
+              {pendingInvites.map((invite) => (
+                <tr key={invite.id} className="table__row" style={{ opacity: 0.7 }}>
+                  <td className="table__cell">
+                    <span style={{ fontStyle: "italic", color: "var(--color-gray-500)" }}>
+                      Pending invite
+                    </span>
+                  </td>
+                  <td className="table__cell">{invite.email}</td>
+                  <td className="table__cell">
+                    <span className="badge badge--default">
+                      {roleLabels[invite.role]}
+                    </span>
+                  </td>
+                  <td className="table__cell">
+                    <span style={{ fontSize: "13px", color: "var(--color-gray-500)" }}>
+                      Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
