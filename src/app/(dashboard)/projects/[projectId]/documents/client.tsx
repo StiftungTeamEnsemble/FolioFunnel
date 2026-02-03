@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Project, Document, Column } from "@prisma/client";
 import { Button, Select, SelectItem } from "@/components/ui";
@@ -11,7 +11,8 @@ import { ColumnModal } from "@/components/documents/ColumnModal";
 import { DeleteColumnModal } from "@/components/documents/DeleteColumnModal";
 import { DeleteDocumentModal } from "@/components/documents/DeleteDocumentModal";
 import {
-  estimateBulkProcessorCostAction,
+  estimateBulkProcessorCostBatchAction,
+  prepareBulkProcessorCostEstimate,
   triggerBulkProcessorRun,
 } from "@/app/actions/runs";
 import type { FilterGroup } from "@/lib/document-filters";
@@ -46,6 +47,11 @@ export function ProjectDocumentsClient({
   const [bulkCostEstimate, setBulkCostEstimate] = useState<number | null>(null);
   const [bulkTokenError, setBulkTokenError] = useState<string | null>(null);
   const [isCountingBulkTokens, setIsCountingBulkTokens] = useState(false);
+  const [bulkEstimateProgress, setBulkEstimateProgress] = useState<{
+    processed: number;
+    total: number;
+  } | null>(null);
+  const bulkEstimateRunId = useRef(0);
   const [selectedCopyColumn, setSelectedCopyColumn] = useState<string>("");
   const [columnToEdit, setColumnToEdit] = useState<Column | null>(null);
   const [columnToDelete, setColumnToDelete] = useState<Column | null>(null);
@@ -81,6 +87,83 @@ export function ProjectDocumentsClient({
       setBulkRunningColumn(null);
     }
   };
+
+  const cancelBulkEstimate = useCallback(() => {
+    bulkEstimateRunId.current += 1;
+    setIsCountingBulkTokens(false);
+    setBulkEstimateProgress(null);
+  }, []);
+
+  const handleBulkEstimate = useCallback(async () => {
+    if (!selectedBulkColumn || isCountingBulkTokens) return;
+
+    const runId = bulkEstimateRunId.current + 1;
+    bulkEstimateRunId.current = runId;
+    setIsCountingBulkTokens(true);
+    setBulkTokenError(null);
+    setBulkTokenCount(null);
+    setBulkCostEstimate(null);
+    setBulkEstimateProgress(null);
+
+    const prepResult = await prepareBulkProcessorCostEstimate({
+      projectId: project.id,
+      columnId: selectedBulkColumn,
+      filters,
+    });
+
+    if (bulkEstimateRunId.current !== runId) return;
+
+    if (prepResult.error) {
+      setBulkTokenError(prepResult.error);
+      setIsCountingBulkTokens(false);
+      return;
+    }
+
+    const documentIds = prepResult.documentIds ?? [];
+    const totalDocuments = prepResult.totalDocuments ?? documentIds.length;
+
+    if (!documentIds.length) {
+      setBulkTokenError("No documents matched the selection.");
+      setIsCountingBulkTokens(false);
+      return;
+    }
+
+    setBulkEstimateProgress({ processed: 0, total: totalDocuments });
+
+    let totalTokens = 0;
+    let totalCost = 0;
+    const batchSize = 20;
+
+    for (let i = 0; i < documentIds.length; i += batchSize) {
+      if (bulkEstimateRunId.current !== runId) return;
+
+      const batchIds = documentIds.slice(i, i + batchSize);
+      const batchResult = await estimateBulkProcessorCostBatchAction({
+        projectId: project.id,
+        columnId: selectedBulkColumn,
+        documentIds: batchIds,
+      });
+
+      if (bulkEstimateRunId.current !== runId) return;
+
+      if (batchResult.error) {
+        setBulkTokenError(batchResult.error);
+        setIsCountingBulkTokens(false);
+        return;
+      }
+
+      totalTokens += batchResult.tokenCount ?? 0;
+      totalCost += batchResult.costEstimate ?? 0;
+      setBulkEstimateProgress({
+        processed: Math.min(i + batchIds.length, totalDocuments),
+        total: totalDocuments,
+      });
+    }
+
+    setBulkTokenCount(totalTokens);
+    setBulkCostEstimate(totalCost);
+    setIsCountingBulkTokens(false);
+  }, [filters, isCountingBulkTokens, project.id, selectedBulkColumn]);
 
   const handleCopyToClipboard = async (value: string) => {
     if (!value) return;
@@ -128,45 +211,17 @@ export function ProjectDocumentsClient({
   }, [processorColumns, selectedBulkColumn]);
 
   useEffect(() => {
-    if (!selectedBulkColumn) {
-      setBulkTokenCount(null);
-      setBulkCostEstimate(null);
-      setBulkTokenError(null);
-      setIsCountingBulkTokens(false);
-      return;
-    }
-
-    let isActive = true;
-    setIsCountingBulkTokens(true);
+    cancelBulkEstimate();
+    setBulkTokenCount(null);
+    setBulkCostEstimate(null);
     setBulkTokenError(null);
+  }, [cancelBulkEstimate, filters, selectedBulkColumn]);
 
-    const timer = setTimeout(async () => {
-      const result = await estimateBulkProcessorCostAction({
-        projectId: project.id,
-        columnId: selectedBulkColumn,
-        filters,
-      });
-
-      if (!isActive) return;
-
-      if (result.error) {
-        setBulkTokenError(result.error);
-        setBulkTokenCount(null);
-        setBulkCostEstimate(null);
-      } else {
-        setBulkTokenCount(result.tokenCount ?? null);
-        setBulkCostEstimate(result.costEstimate ?? null);
-      }
-
-      setIsCountingBulkTokens(false);
-    }, 350);
-
+  useEffect(() => {
     return () => {
-      isActive = false;
-      clearTimeout(timer);
-      setIsCountingBulkTokens(false);
+      cancelBulkEstimate();
     };
-  }, [filters, project.id, selectedBulkColumn]);
+  }, [cancelBulkEstimate]);
 
   useEffect(() => {
     if (!copyableColumns.length) {
@@ -307,6 +362,24 @@ export function ProjectDocumentsClient({
                 >
                   Run processor on all docs
                 </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!selectedBulkColumn || isCountingBulkTokens}
+                  isLoading={isCountingBulkTokens}
+                  onClick={handleBulkEstimate}
+                >
+                  Estimate cost
+                </Button>
+                {isCountingBulkTokens && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={cancelBulkEstimate}
+                  >
+                    Stop estimate
+                  </Button>
+                )}
                 {selectedBulkColumn && (
                   <span
                     style={{
@@ -318,7 +391,9 @@ export function ProjectDocumentsClient({
                     {bulkTokenError ? (
                       bulkTokenError
                     ) : isCountingBulkTokens ? (
-                      "Counting tokens..."
+                      bulkEstimateProgress
+                        ? `Estimating... ${bulkEstimateProgress.processed}/${bulkEstimateProgress.total}`
+                        : "Estimating..."
                     ) : (
                       <>
                         Tokens (input):{" "}
