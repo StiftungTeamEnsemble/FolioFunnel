@@ -429,6 +429,18 @@ export function ProjectPromptClient({
                 flexWrap: "wrap",
               }}
             >
+              <div style={{ maxWidth: "280px", flex: "1 1 220px" }}>
+                <label className="input__label" htmlFor="modelSelect">
+                  Model
+                </label>
+                <Select value={model} onValueChange={setModel}>
+                  {CHAT_MODELS.map((chatModel) => (
+                    <SelectItem key={chatModel.id} value={chatModel.id}>
+                      {chatModel.name}
+                    </SelectItem>
+                  ))}
+                </Select>
+              </div>
               <div style={{ maxWidth: "360px", flex: "1 1 260px" }}>
                 <label className="input__label" htmlFor="promptTemplateSelect">
                   Prompt Template
@@ -442,18 +454,6 @@ export function ProjectPromptClient({
                   {promptTemplates.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.title}
-                    </SelectItem>
-                  ))}
-                </Select>
-              </div>
-              <div style={{ maxWidth: "280px", flex: "1 1 220px" }}>
-                <label className="input__label" htmlFor="modelSelect">
-                  Model
-                </label>
-                <Select value={model} onValueChange={setModel}>
-                  {CHAT_MODELS.map((chatModel) => (
-                    <SelectItem key={chatModel.id} value={chatModel.id}>
-                      {chatModel.name}
                     </SelectItem>
                   ))}
                 </Select>
