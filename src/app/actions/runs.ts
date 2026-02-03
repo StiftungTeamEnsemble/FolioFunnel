@@ -36,10 +36,9 @@ export async function clearPendingTasks() {
     // Clear orphaned jobs from pg-boss queue
     try {
       const boss = await getBoss();
-      // Delete all process-job and prompt-run jobs
-      await boss.deleteQueue("process-job");
-      await boss.deleteQueue("prompt-run");
-      console.log(`[clearPendingTasks] Cleared pg-boss queues`);
+      // Cancel all jobs in the queues
+      await boss.cancel(["process-job", "prompt-run"]);
+      console.log(`[clearPendingTasks] Cancelled orphaned pg-boss jobs`);
     } catch (queueError) {
       console.error("Failed to clear pg-boss queues:", queueError);
       // Don't fail the operation if queue cleanup fails
