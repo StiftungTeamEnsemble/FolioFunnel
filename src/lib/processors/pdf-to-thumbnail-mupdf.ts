@@ -3,7 +3,7 @@ import { readFile, writeFile, getDocumentThumbnailPath } from "@/lib/storage";
 import { PDF_THUMBNAIL_FILENAME } from "@/lib/thumbnails";
 
 const DOCUMENT_CONVERTER_API_URL =
-  process.env.DOCUMENT_CONVERTER_API_URL || "http://document-converter:8080";
+  process.env.DOCUMENT_CONVERTER_API_URL || "http://document-converter:8180";
 const DOCUMENT_CONVERTER_API_KEY =
   process.env.DOCUMENT_CONVERTER_API_KEY || "converter_secret_key";
 

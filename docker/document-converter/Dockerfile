@@ -12,6 +12,6 @@ RUN pip install --no-cache-dir pymupdf4llm flask gunicorn
 
 COPY server.py /app/server.py
 
-EXPOSE 8080
+EXPOSE 8180
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--timeout", "300", "--workers", "2", "server:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8180", "--timeout", "300", "--workers", "2", "server:app"]
