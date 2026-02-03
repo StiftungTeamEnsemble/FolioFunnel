@@ -1,7 +1,7 @@
 import pg from 'pg';
 import PgBoss from 'pg-boss';
 
-const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://foliofunnel:foliofunnel@postgres:5432/foliofunnel';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://foliofunnel:foliofunnel@postgres:5433/foliofunnel';
 
 async function reenqueueStuckJobs() {
   console.log('Connecting to database...');
