@@ -141,6 +141,118 @@ export async function estimateBulkProcessorCostAction({
   columnId: string;
   filters?: FilterGroup[];
 }) {
+  const getProcessorConfig = (column: {
+    processorType: string | null;
+    processorConfig: unknown;
+  }) => {
+    if (column.processorType !== "ai_transform") {
+      return { error: "Cost estimates are only available for AI processors." };
+    }
+
+    const config = (column.processorConfig as Record<string, unknown>) || {};
+    const promptTemplate =
+      typeof config.promptTemplate === "string" ? config.promptTemplate : "";
+
+    if (!promptTemplate.trim()) {
+      return { error: "Processor prompt template is empty." };
+    }
+
+    const requestedModel =
+      typeof config.model === "string" ? config.model : DEFAULT_CHAT_MODEL;
+    const validatedModel = isValidChatModel(requestedModel)
+      ? requestedModel
+      : DEFAULT_CHAT_MODEL;
+    const systemPrompt =
+      typeof config.systemPrompt === "string" && config.systemPrompt.trim()
+        ? config.systemPrompt
+        : DEFAULT_PROCESSOR_SYSTEM_PROMPT;
+
+    return { promptTemplate, validatedModel, systemPrompt };
+  };
+
+  await requireProjectAccess(projectId);
+
+  const column = await prisma.column.findFirst({
+    where: { id: columnId, projectId },
+  });
+
+  if (!column) {
+    return { error: "Column not found" };
+  }
+
+  if (column.mode !== "processor") {
+    return { error: "Column is not a processor column" };
+  }
+
+  const configResult = getProcessorConfig(column);
+  if ("error" in configResult) {
+    return { error: configResult.error };
+  }
+
+  const { promptTemplate, validatedModel, systemPrompt } = configResult;
+
+  const documentIds = await getFilteredDocumentIds(projectId, filters);
+
+  if (!documentIds.length) {
+    return { error: "No documents matched the selection." };
+  }
+
+  const documents = await prisma.document.findMany({
+    where: {
+      projectId,
+      id: { in: documentIds },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (!documents.length) {
+    return { error: "No documents matched the selection." };
+  }
+
+  let totalTokens = 0;
+
+  try {
+    for (const doc of documents) {
+      const values = (doc.values as Record<string, unknown>) || {};
+      const documentContext: Record<string, unknown> = {
+        id: doc.id,
+        title: doc.title,
+        sourceType: doc.sourceType,
+        sourceUrl: doc.sourceUrl,
+        ...values,
+      };
+      const contextValues: Record<string, unknown> = {
+        document: documentContext,
+        ...documentContext,
+      };
+
+      const userPrompt = expandTemplate(promptTemplate, contextValues);
+
+      if (!userPrompt.trim()) {
+        return { error: "Rendered prompt is empty." };
+      }
+
+      const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
+      totalTokens += countPromptTokens(combinedPrompt, validatedModel);
+    }
+  } catch (error) {
+    return { error: "Prompt template could not be rendered." };
+  }
+
+  const costEstimate = estimatePromptCost(totalTokens, validatedModel);
+
+  return { tokenCount: totalTokens, costEstimate };
+}
+
+export async function prepareBulkProcessorCostEstimate({
+  projectId,
+  columnId,
+  filters = [],
+}: {
+  projectId: string;
+  columnId: string;
+  filters?: FilterGroup[];
+}) {
   await requireProjectAccess(projectId);
 
   const column = await prisma.column.findFirst({
@@ -156,7 +268,55 @@ export async function estimateBulkProcessorCostAction({
   }
 
   if (column.processorType !== "ai_transform") {
-    return { tokenCount: null, costEstimate: null };
+    return { error: "Cost estimates are only available for AI processors." };
+  }
+
+  const config = (column.processorConfig as Record<string, unknown>) || {};
+  const promptTemplate =
+    typeof config.promptTemplate === "string" ? config.promptTemplate : "";
+
+  if (!promptTemplate.trim()) {
+    return { error: "Processor prompt template is empty." };
+  }
+
+  const documentIds = await getFilteredDocumentIds(projectId, filters);
+
+  if (!documentIds.length) {
+    return { error: "No documents matched the selection." };
+  }
+
+  return { documentIds, totalDocuments: documentIds.length };
+}
+
+export async function estimateBulkProcessorCostBatchAction({
+  projectId,
+  columnId,
+  documentIds,
+}: {
+  projectId: string;
+  columnId: string;
+  documentIds: string[];
+}) {
+  await requireProjectAccess(projectId);
+
+  if (!documentIds.length) {
+    return { tokenCount: 0, costEstimate: 0 };
+  }
+
+  const column = await prisma.column.findFirst({
+    where: { id: columnId, projectId },
+  });
+
+  if (!column) {
+    return { error: "Column not found" };
+  }
+
+  if (column.mode !== "processor") {
+    return { error: "Column is not a processor column" };
+  }
+
+  if (column.processorType !== "ai_transform") {
+    return { error: "Cost estimates are only available for AI processors." };
   }
 
   const config = (column.processorConfig as Record<string, unknown>) || {};
@@ -176,12 +336,6 @@ export async function estimateBulkProcessorCostAction({
     typeof config.systemPrompt === "string" && config.systemPrompt.trim()
       ? config.systemPrompt
       : DEFAULT_PROCESSOR_SYSTEM_PROMPT;
-
-  const documentIds = await getFilteredDocumentIds(projectId, filters);
-
-  if (!documentIds.length) {
-    return { error: "No documents matched the selection." };
-  }
 
   const documents = await prisma.document.findMany({
     where: {
