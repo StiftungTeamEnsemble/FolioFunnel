@@ -51,6 +51,9 @@ RUN [ ! -e /lib/libcrypto.so.3 ] && ln -s /usr/lib/libcrypto.so.3 /lib/libcrypto
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Create data directory with proper ownership
+RUN mkdir -p /data && chown -R nextjs:nodejs /data
+
 # Create public directory and copy files if they exist
 RUN mkdir -p ./public
 # Copy public directory from builder (now guaranteed to exist)
@@ -71,14 +74,15 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 # Install tsx for running TypeScript worker
 RUN npm install -g tsx
 
+# Install su-exec for user switching in entrypoint
+RUN apk add --no-cache su-exec
+
 # Script to run migrations and start the app
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
-# Create data directory and set ownership for nextjs user
-RUN mkdir -p /data && chown -R nextjs:nodejs /data
-
-USER nextjs
+# Don't switch user here - entrypoint will handle it after setting permissions
+# USER nextjs
 
 EXPOSE 3000
 
