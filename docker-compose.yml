@@ -50,7 +50,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
-      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your_nextauth_secret_here}
       DOCUMENT_CONVERTER_API_URL: http://document-converter:8080
       DOCUMENT_CONVERTER_API_KEY: ${DOCUMENT_CONVERTER_API_KEY:-converter_secret_key}

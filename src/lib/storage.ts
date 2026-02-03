@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 
-const DATA_DIR = process.env.DATA_DIR || "./data";
+const DATA_DIR = process.env.DATA_DIR || "/data";
 
 export function getProjectDir(projectId: string): string {
   return path.join(DATA_DIR, "projects", projectId);
