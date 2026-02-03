@@ -20,19 +20,58 @@ export default function SignInPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    console.log(`[Signin] Attempting to sign in with email: ${email}`);
 
-    if (result?.error) {
-      setError("Invalid email or password");
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      console.log("[Signin] Result:", result);
+
+      if (result?.error) {
+        console.error("[Signin] Error:", result.error);
+        
+        // Map specific error codes to user-friendly messages
+        switch (result.error) {
+          case "EMAIL_PASSWORD_REQUIRED":
+            setError("Email and password are required");
+            break;
+          case "USER_NOT_FOUND":
+            setError("No account found with this email address. Please sign up first.");
+            break;
+          case "NO_PASSWORD_HASH":
+            setError("Account setup incomplete. Please contact support.");
+            break;
+          case "INVALID_PASSWORD":
+            setError("Invalid password. Please try again.");
+            break;
+          case "CredentialsSignin":
+            setError("Authentication failed. Please check your credentials.");
+            break;
+          default:
+            setError(`Login failed: ${result.error}`);
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (!result?.ok) {
+        console.error("[Signin] Login not OK but no error:", result);
+        setError("Login failed. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      console.log("[Signin] Login successful, redirecting to /projects");
+      router.push("/projects");
+    } catch (err) {
+      console.error("[Signin] Unexpected error:", err);
+      setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setLoading(false);
-      return;
     }
-
-    router.push("/projects");
   };
 
   return (
