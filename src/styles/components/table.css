@@ -58,6 +58,24 @@
   gap: 8px;
 }
 
+.table__header-cell__sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.table__header-cell__sort-button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .table__header-cell__sort-icon {
   color: var(--color-gray-400);
 }

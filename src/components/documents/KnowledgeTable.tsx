@@ -41,7 +41,13 @@ const BASE_COLUMNS = [
   { key: "source", label: "Source" },
   { key: "uploader", label: "Uploader" },
   { key: "created", label: "Created" },
-];
+] as const;
+
+type BaseColumnKey = (typeof BASE_COLUMNS)[number]["key"];
+type SortDirection = "asc" | "desc";
+type SortState =
+  | { type: "base"; key: BaseColumnKey; direction: SortDirection }
+  | { type: "column"; key: string; direction: SortDirection };
 
 export function KnowledgeTable({
   projectId,
@@ -64,6 +70,11 @@ export function KnowledgeTable({
   const [hiddenBaseColumns, setHiddenBaseColumns] = useState<Set<string>>(
     new Set(),
   );
+  const [sortState, setSortState] = useState<SortState>({
+    type: "base",
+    key: "created",
+    direction: "desc",
+  });
 
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hidden),
@@ -199,6 +210,98 @@ export function KnowledgeTable({
   const getUploaderLabel = (doc: DocumentWithRuns) =>
     doc.uploadedBy?.name || doc.uploadedBy?.email || "Unknown";
 
+  const handleSort = (type: SortState["type"], key: string) => {
+    setSortState((prev) => {
+      if (prev.type === type && prev.key === key) {
+        return {
+          ...prev,
+          direction: prev.direction === "asc" ? "desc" : "asc",
+        };
+      }
+
+      return {
+        type,
+        key: key as SortState["key"],
+        direction: "asc",
+      } as SortState;
+    });
+  };
+
+  const getSortValue = (
+    doc: DocumentWithRuns,
+    state: SortState,
+  ): string | number => {
+    if (state.type === "base") {
+      switch (state.key) {
+        case "title":
+          return doc.title || "";
+        case "source":
+          return doc.sourceType === "url" ? doc.sourceUrl || "" : "Upload";
+        case "uploader":
+          return getUploaderLabel(doc);
+        case "created":
+          return doc.createdAt instanceof Date
+            ? doc.createdAt.getTime()
+            : new Date(doc.createdAt).getTime();
+        default:
+          return "";
+      }
+    }
+
+    return getCellValue(doc, state.key);
+  };
+
+  const sortedDocuments = useMemo(() => {
+    const sorted = [...documents];
+    sorted.sort((a, b) => {
+      const valueA = getSortValue(a, sortState);
+      const valueB = getSortValue(b, sortState);
+
+      if (valueA === valueB) return 0;
+      if (valueA === "" || valueA === null || valueA === undefined) return 1;
+      if (valueB === "" || valueB === null || valueB === undefined) return -1;
+
+      let comparison = 0;
+      if (typeof valueA === "number" && typeof valueB === "number") {
+        comparison = valueA - valueB;
+      } else {
+        comparison = String(valueA).localeCompare(String(valueB), undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+      }
+
+      return sortState.direction === "asc" ? comparison : -comparison;
+    });
+    return sorted;
+  }, [documents, sortState]);
+
+  const getHeaderCellClass = (isSorted: boolean) =>
+    [
+      "table__header-cell",
+      "table__header-cell--sortable",
+      isSorted ? "table__header-cell--sorted" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+  const getSortIcon = (isSorted: boolean) => {
+    if (!isSorted) {
+      return <span className="table__header-cell__sort-icon">↕</span>;
+    }
+
+    return (
+      <span className="table__header-cell__sort-icon">
+        {sortState.direction === "asc" ? "▲" : "▼"}
+      </span>
+    );
+  };
+
+  const getAriaSort = (isSorted: boolean) => {
+    if (!isSorted) return "none";
+    return sortState.direction === "asc" ? "ascending" : "descending";
+  };
+
   if (documents.length === 0) {
     return (
       <div className="table__empty">
@@ -264,10 +367,27 @@ export function KnowledgeTable({
         <thead className="table__header">
           <tr className="table__header-row">
             {isBaseColumnVisible("title") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "title",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "title",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Title</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => handleSort("base", "title")}
+                    >
+                      <span>Title</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "title",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -280,10 +400,27 @@ export function KnowledgeTable({
               </th>
             )}
             {isBaseColumnVisible("source") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "source",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "source",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Source</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => handleSort("base", "source")}
+                    >
+                      <span>Source</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "source",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -296,10 +433,27 @@ export function KnowledgeTable({
               </th>
             )}
             {isBaseColumnVisible("uploader") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "uploader",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "uploader",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Uploader</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => handleSort("base", "uploader")}
+                    >
+                      <span>Uploader</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "uploader",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -312,10 +466,27 @@ export function KnowledgeTable({
               </th>
             )}
             {isBaseColumnVisible("created") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "created",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "created",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Created</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => handleSort("base", "created")}
+                    >
+                      <span>Created</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "created",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -328,10 +499,28 @@ export function KnowledgeTable({
               </th>
             )}
             {visibleColumns.map((column) => (
-              <th key={column.id} className="table__header-cell">
+              <th
+                key={column.id}
+                className={getHeaderCellClass(
+                  sortState.type === "column" && sortState.key === column.key,
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "column" && sortState.key === column.key,
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>{column.name}</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => handleSort("column", column.key)}
+                    >
+                      <span>{column.name}</span>
+                      {getSortIcon(
+                        sortState.type === "column" &&
+                          sortState.key === column.key,
+                      )}
+                    </button>
                     {onEditColumn && (
                       <button
                         type="button"
@@ -372,7 +561,7 @@ export function KnowledgeTable({
           </tr>
         </thead>
         <tbody className="table__body">
-          {documents.map((doc) => (
+          {sortedDocuments.map((doc) => (
             <tr key={doc.id} className="table__row">
               {isBaseColumnVisible("title") && (
                 <td className="table__cell">
