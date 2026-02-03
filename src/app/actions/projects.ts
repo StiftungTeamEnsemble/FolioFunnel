@@ -150,7 +150,35 @@ export async function addProjectMember(projectId: string, formData: FormData) {
     });
 
     if (!user) {
-      return { error: "No existing user found with that email" };
+      // User doesn't exist yet - create an invite instead
+      const existingInvite = await prisma.projectInvite.findFirst({
+        where: {
+          projectId,
+          email,
+          acceptedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingInvite) {
+        return { error: "An invite is already pending for this email" };
+      }
+
+      const token = uuid();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+      const invite = await prisma.projectInvite.create({
+        data: {
+          projectId,
+          email,
+          role: role as MemberRole,
+          token,
+          expiresAt,
+        },
+      });
+
+      return { success: true, invite, inviteUrl: `/invite/${token}` };
     }
 
     const existingMembership = await prisma.projectMembership.findUnique({
