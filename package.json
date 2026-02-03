@@ -18,6 +18,7 @@
     "npm:i": "docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npm install",
     "npm:i:worker": "docker compose -f docker-compose.yml -f docker-compose.dev.yml exec worker npm install",
     "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build",
+    "docker:dev:build": "docker compose -f docker-compose.yml -f docker-compose.dev.yml exec next-app npm run build",
     "docker:dev:down": "docker compose -f docker-compose.yml -f docker-compose.dev.yml down",
     "docker:dev:logs": "docker compose -f docker-compose.yml -f docker-compose.dev.yml logs -f",
     "docker:prod": "docker compose up -d --build",

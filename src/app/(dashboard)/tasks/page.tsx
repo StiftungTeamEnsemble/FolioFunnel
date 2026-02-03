@@ -140,9 +140,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         },
       },
     },
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: PAGE_SIZE,
     skip,
   });
