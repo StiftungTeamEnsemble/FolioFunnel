@@ -48,7 +48,6 @@ services:
       dockerfile: Dockerfile
     container_name: foliofunnel-app
     restart: unless-stopped
-    entrypoint: ["/docker-entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
@@ -67,7 +66,7 @@ services:
       document-converter:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || wget --spider -q http://localhost:3000"]
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3000/api/health || wget --spider -q http://127.0.0.1:3000"]
       interval: 10s
       timeout: 5s
       retries: 5
