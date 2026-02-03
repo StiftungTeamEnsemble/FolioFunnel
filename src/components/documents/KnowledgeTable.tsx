@@ -31,6 +31,8 @@ interface KnowledgeTableProps {
   documents: DocumentWithRuns[];
   columns: Column[];
   onRefresh: () => void;
+  sortState: SortState;
+  onSort: (type: SortState["type"], key: string) => void;
   onEditColumn?: (column: Column) => void;
   onDeleteColumn?: (column: Column) => void;
   onDeleteDocument?: (document: Document) => void;
@@ -41,13 +43,21 @@ const BASE_COLUMNS = [
   { key: "source", label: "Source" },
   { key: "uploader", label: "Uploader" },
   { key: "created", label: "Created" },
-];
+] as const;
+
+export type BaseColumnKey = (typeof BASE_COLUMNS)[number]["key"];
+export type SortDirection = "asc" | "desc";
+export type SortState =
+  | { type: "base"; key: BaseColumnKey; direction: SortDirection }
+  | { type: "column"; key: string; direction: SortDirection };
 
 export function KnowledgeTable({
   projectId,
   documents,
   columns,
   onRefresh,
+  sortState,
+  onSort,
   onEditColumn,
   onDeleteColumn,
   onDeleteDocument,
@@ -199,6 +209,32 @@ export function KnowledgeTable({
   const getUploaderLabel = (doc: DocumentWithRuns) =>
     doc.uploadedBy?.name || doc.uploadedBy?.email || "Unknown";
 
+  const getHeaderCellClass = (isSorted: boolean) =>
+    [
+      "table__header-cell",
+      "table__header-cell--sortable",
+      isSorted ? "table__header-cell--sorted" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+  const getSortIcon = (isSorted: boolean) => {
+    if (!isSorted) {
+      return <span className="table__header-cell__sort-icon">↕</span>;
+    }
+
+    return (
+      <span className="table__header-cell__sort-icon">
+        {sortState.direction === "asc" ? "▲" : "▼"}
+      </span>
+    );
+  };
+
+  const getAriaSort = (isSorted: boolean) => {
+    if (!isSorted) return "none";
+    return sortState.direction === "asc" ? "ascending" : "descending";
+  };
+
   if (documents.length === 0) {
     return (
       <div className="table__empty">
@@ -264,10 +300,27 @@ export function KnowledgeTable({
         <thead className="table__header">
           <tr className="table__header-row">
             {isBaseColumnVisible("title") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "title",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "title",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Title</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => onSort("base", "title")}
+                    >
+                      <span>Title</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "title",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -280,10 +333,27 @@ export function KnowledgeTable({
               </th>
             )}
             {isBaseColumnVisible("source") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "source",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "source",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Source</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => onSort("base", "source")}
+                    >
+                      <span>Source</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "source",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -296,10 +366,27 @@ export function KnowledgeTable({
               </th>
             )}
             {isBaseColumnVisible("uploader") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "uploader",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "uploader",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Uploader</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => onSort("base", "uploader")}
+                    >
+                      <span>Uploader</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "uploader",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -312,10 +399,27 @@ export function KnowledgeTable({
               </th>
             )}
             {isBaseColumnVisible("created") && (
-              <th className="table__header-cell">
+              <th
+                className={getHeaderCellClass(
+                  sortState.type === "base" && sortState.key === "created",
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "base" && sortState.key === "created",
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>Created</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => onSort("base", "created")}
+                    >
+                      <span>Created</span>
+                      {getSortIcon(
+                        sortState.type === "base" &&
+                          sortState.key === "created",
+                      )}
+                    </button>
                     <button
                       type="button"
                       className="table__column-menu__trigger"
@@ -328,10 +432,28 @@ export function KnowledgeTable({
               </th>
             )}
             {visibleColumns.map((column) => (
-              <th key={column.id} className="table__header-cell">
+              <th
+                key={column.id}
+                className={getHeaderCellClass(
+                  sortState.type === "column" && sortState.key === column.key,
+                )}
+                aria-sort={getAriaSort(
+                  sortState.type === "column" && sortState.key === column.key,
+                )}
+              >
                 <div className="table__header-cell__content">
                   <div className="table__column-menu">
-                    <span>{column.name}</span>
+                    <button
+                      type="button"
+                      className="table__header-cell__sort-button"
+                      onClick={() => onSort("column", column.key)}
+                    >
+                      <span>{column.name}</span>
+                      {getSortIcon(
+                        sortState.type === "column" &&
+                          sortState.key === column.key,
+                      )}
+                    </button>
                     {onEditColumn && (
                       <button
                         type="button"
