@@ -78,6 +78,7 @@ services:
       dockerfile: Dockerfile
     container_name: foliofunnel-worker
     restart: unless-stopped
+    entrypoint: []
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
