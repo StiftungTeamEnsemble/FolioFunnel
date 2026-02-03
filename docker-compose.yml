@@ -78,7 +78,7 @@ services:
       dockerfile: Dockerfile
     container_name: foliofunnel-worker
     restart: unless-stopped
-    entrypoint: null
+    entrypoint: ["/bin/sh", "-c"]
     environment:
       NODE_ENV: production
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
@@ -90,8 +90,6 @@ services:
       - /DATA/foliofunnel/data/documents:/data
     command:
       [
-        "sh",
-        "-c",
         "npx prisma generate && npx prisma migrate deploy && mkdir -p /data/projects && chown -R nextjs:nodejs /data && su-exec nextjs tsx src/lib/worker/index.ts",
       ]
     depends_on:
