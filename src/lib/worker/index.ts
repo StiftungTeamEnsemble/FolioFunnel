@@ -65,17 +65,25 @@ async function handlePromptRun(job: PromptRunJob) {
   });
 
   if (!promptRun || promptRun.type !== "prompt") {
-    console.error(
-      `[Worker] Prompt run ${promptRunId} not found or invalid type`,
+    console.log(
+      `[Worker] Prompt run ${promptRunId} not found or invalid type - skipping`,
     );
     return;
   }
 
   // Mark as running
-  await prisma.run.update({
-    where: { id: promptRunId },
-    data: { status: "running" },
-  });
+  try {
+    await prisma.run.update({
+      where: { id: promptRunId },
+      data: { status: "running" },
+    });
+  } catch (error: any) {
+    if (error.code === "P2025") {
+      console.log(`[Worker] Prompt run ${promptRunId} was deleted - skipping`);
+      return;
+    }
+    throw error;
+  }
 
   // Use shared OpenAI client for the API call
   const response = await callOpenAI({
@@ -86,35 +94,51 @@ async function handlePromptRun(job: PromptRunJob) {
 
   if (!response.success) {
     // Update with failure details including any partial token stats
-    await prisma.run.update({
-      where: { id: promptRunId },
-      data: {
-        status: "error",
-        error: response.error,
-        // Still save token stats even on failure (useful for debugging)
-        inputTokenCount: response.tokens.inputTokens ?? undefined,
-        outputTokenCount: response.tokens.outputTokens ?? undefined,
-        tokenCount: response.tokens.totalTokens ?? undefined,
-        costEstimate: response.costEstimate,
-      },
-    });
+    try {
+      await prisma.run.update({
+        where: { id: promptRunId },
+        data: {
+          status: "error",
+          error: response.error,
+          // Still save token stats even on failure (useful for debugging)
+          inputTokenCount: response.tokens.inputTokens ?? undefined,
+          outputTokenCount: response.tokens.outputTokens ?? undefined,
+          tokenCount: response.tokens.totalTokens ?? undefined,
+          costEstimate: response.costEstimate,
+        },
+      });
+    } catch (updateError: any) {
+      if (updateError.code === "P2025") {
+        console.log(`[Worker] Prompt run ${promptRunId} was deleted during processing`);
+        return;
+      }
+      throw updateError;
+    }
 
     console.log(`[Worker] Prompt run ${promptRunId} failed: ${response.error}`);
     return;
   }
 
   // Update prompt run with success result and full token stats/cost
-  await prisma.run.update({
-    where: { id: promptRunId },
-    data: {
-      status: "success",
-      result: response.content,
-      inputTokenCount: response.tokens.inputTokens ?? undefined,
-      outputTokenCount: response.tokens.outputTokens ?? undefined,
-      tokenCount: response.tokens.totalTokens ?? undefined,
-      costEstimate: response.costEstimate,
-    },
-  });
+  try {
+    await prisma.run.update({
+      where: { id: promptRunId },
+      data: {
+        status: "success",
+        result: response.content,
+        inputTokenCount: response.tokens.inputTokens ?? undefined,
+        outputTokenCount: response.tokens.outputTokens ?? undefined,
+        tokenCount: response.tokens.totalTokens ?? undefined,
+        costEstimate: response.costEstimate,
+      },
+    });
+  } catch (updateError: any) {
+    if (updateError.code === "P2025") {
+      console.log(`[Worker] Prompt run ${promptRunId} was deleted during processing`);
+      return;
+    }
+    throw updateError;
+  }
 
   console.log(
     `[Worker] Completed prompt run ${promptRunId} - tokens: ${response.tokens.totalTokens}, cost: $${response.costEstimate?.toFixed(6) ?? "N/A"}`,

@@ -69,28 +69,62 @@ export async function runProcessor(
     };
   }
 
-  // Mark as running
-  await prisma.run.update({
-    where: { id: runId },
-    data: {
-      status: RunStatus.running,
-      startedAt: new Date(),
-    },
-  });
+  try {
+    // Check if run still exists before processing
+    const runExists = await prisma.run.findUnique({
+      where: { id: runId },
+      select: { id: true },
+    });
+
+    if (!runExists) {
+      console.log(`[Processor] Run ${runId} no longer exists, skipping`);
+      return {
+        success: false,
+        error: "Run was deleted",
+      };
+    }
+
+    // Mark as running
+    await prisma.run.update({
+      where: { id: runId },
+      data: {
+        status: RunStatus.running,
+        startedAt: new Date(),
+      },
+    });
+  } catch (error: any) {
+    // If run was deleted (P2025), skip this job gracefully
+    if (error.code === "P2025") {
+      console.log(`[Processor] Run ${runId} was deleted, skipping job`);
+      return {
+        success: false,
+        error: "Run was deleted",
+      };
+    }
+    throw error;
+  }
 
   try {
     const result = await processorFn(ctx);
 
-    // Update run status
-    await prisma.run.update({
-      where: { id: runId },
-      data: {
-        status: result.success ? RunStatus.success : RunStatus.error,
-        finishedAt: new Date(),
-        error: result.error,
-        meta: result.meta as any,
-      },
-    });
+    // Update run status (may fail if run was deleted)
+    try {
+      await prisma.run.update({
+        where: { id: runId },
+        data: {
+          status: result.success ? RunStatus.success : RunStatus.error,
+          finishedAt: new Date(),
+          error: result.error,
+          meta: result.meta as any,
+        },
+      });
+    } catch (updateError: any) {
+      if (updateError.code === "P2025") {
+        console.log(`[Processor] Run ${runId} was deleted during processing`);
+        return result;
+      }
+      throw updateError;
+    }
 
     // Update document values if successful
     if (result.success && result.value !== undefined) {
@@ -114,14 +148,22 @@ export async function runProcessor(
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
 
-    await prisma.run.update({
-      where: { id: runId },
-      data: {
-        status: RunStatus.error,
-        finishedAt: new Date(),
-        error: errorMessage,
-      },
-    });
+    try {
+      await prisma.run.update({
+        where: { id: runId },
+        data: {
+          status: RunStatus.error,
+          finishedAt: new Date(),
+          error: errorMessage,
+        },
+      });
+    } catch (updateError: any) {
+      if (updateError.code === "P2025") {
+        console.log(`[Processor] Run ${runId} was deleted, cannot update error status`);
+      } else {
+        throw updateError;
+      }
+    }
 
     return { success: false, error: errorMessage };
   }

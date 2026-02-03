@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/db";
 import { requireProjectAccess, requireAuth } from "@/lib/session";
-import { enqueueBulkProcess } from "@/lib/queue";
+import { enqueueBulkProcess, getBoss } from "@/lib/queue";
 import { createProcessorRun, expandTemplate } from "@/lib/processors";
 import { RunStatus, RunType } from "@prisma/client";
 import {
@@ -32,6 +32,18 @@ export async function clearPendingTasks() {
         },
       },
     });
+
+    // Clear orphaned jobs from pg-boss queue
+    try {
+      const boss = await getBoss();
+      // Delete all process-job and prompt-run jobs
+      await boss.deleteQueue("process-job");
+      await boss.deleteQueue("prompt-run");
+      console.log(`[clearPendingTasks] Cleared pg-boss queues`);
+    } catch (queueError) {
+      console.error("Failed to clear pg-boss queues:", queueError);
+      // Don't fail the operation if queue cleanup fails
+    }
 
     return {
       success: true,
