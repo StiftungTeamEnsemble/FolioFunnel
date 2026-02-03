@@ -5,7 +5,7 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat openssl openssl-dev
 
 # Create symlinks for OpenSSL 1.1 compatibility
-RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+RUN [ ! -e /lib/libssl.so.3 ] && ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3 || true
 
 WORKDIR /app
 
@@ -39,7 +39,7 @@ ENV NODE_ENV=production
 RUN apk add --no-cache openssl openssl-dev
 
 # Create symlinks for OpenSSL 1.1 compatibility
-RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+RUN [ ! -e /lib/libssl.so.3 ] && ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3 || true
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
