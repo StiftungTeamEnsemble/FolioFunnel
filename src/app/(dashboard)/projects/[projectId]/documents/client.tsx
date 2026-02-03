@@ -92,6 +92,8 @@ export function ProjectDocumentsClient({
     bulkEstimateRunId.current += 1;
     setIsCountingBulkTokens(false);
     setBulkEstimateProgress(null);
+    setBulkTokenCount(null);
+    setBulkCostEstimate(null);
   }, []);
 
   const handleBulkEstimate = useCallback(async () => {
@@ -154,14 +156,14 @@ export function ProjectDocumentsClient({
 
       totalTokens += batchResult.tokenCount ?? 0;
       totalCost += batchResult.costEstimate ?? 0;
+      setBulkTokenCount(totalTokens);
+      setBulkCostEstimate(totalCost);
       setBulkEstimateProgress({
         processed: Math.min(i + batchIds.length, totalDocuments),
         total: totalDocuments,
       });
     }
 
-    setBulkTokenCount(totalTokens);
-    setBulkCostEstimate(totalCost);
     setIsCountingBulkTokens(false);
   }, [filters, isCountingBulkTokens, project.id, selectedBulkColumn]);
 
@@ -333,22 +335,91 @@ export function ProjectDocumentsClient({
       {/* Bulk actions */}
       {documents.length > 0 &&
         (processorColumns.length > 0 || copyableColumns.length > 0) && (
-        <div className="section">
-          <div className="section__header">
-            <h3 className="section__title">Bulk Actions</h3>
-          </div>
-          <div style={{ display: "grid", gap: "12px" }}>
-            {processorColumns.length > 0 && (
+          <div className="section">
+            <div className="section__header">
+              <h3 className="section__title">Bulk Actions</h3>
+            </div>
+            <div style={{ display: "grid", gap: "12px" }}>
+              {processorColumns.length > 0 && (
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <div style={{ minWidth: "220px" }}>
+                    <Select
+                      value={selectedBulkColumn}
+                      onValueChange={setSelectedBulkColumn}
+                      placeholder="Select processor column"
+                    >
+                      {processorColumns.map((column) => (
+                        <SelectItem key={column.id} value={column.id}>
+                          {column.name}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!selectedBulkColumn}
+                    isLoading={bulkRunningColumn === selectedBulkColumn}
+                    onClick={() => handleBulkRun(selectedBulkColumn)}
+                  >
+                    Run processor on all docs
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!selectedBulkColumn || isCountingBulkTokens}
+                    isLoading={isCountingBulkTokens}
+                    onClick={handleBulkEstimate}
+                  >
+                    Estimate cost
+                  </Button>
+                  {isCountingBulkTokens && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={cancelBulkEstimate}
+                    >
+                      Stop estimate
+                    </Button>
+                  )}
+                  {selectedBulkColumn && (
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "var(--color-gray-500)",
+                        alignSelf: "center",
+                      }}
+                    >
+                      {bulkTokenError ? (
+                        bulkTokenError
+                      ) : (
+                        <>
+                          {isCountingBulkTokens &&
+                            (bulkEstimateProgress
+                              ? `Estimating... ${bulkEstimateProgress.processed}/${bulkEstimateProgress.total} `
+                              : "Estimating... ")}
+                          Tokens (input):{" "}
+                          {bulkTokenCount !== null ? bulkTokenCount : "N/A"} ·
+                          Cost (input):{" "}
+                          {bulkCostEstimate !== null
+                            ? `$${bulkCostEstimate.toFixed(4)}`
+                            : "N/A"}
+                        </>
+                      )}
+                    </span>
+                  )}
+                </div>
+              )}
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <div style={{ minWidth: "220px" }}>
                   <Select
-                    value={selectedBulkColumn}
-                    onValueChange={setSelectedBulkColumn}
-                    placeholder="Select processor column"
+                    value={selectedCopyColumn}
+                    onValueChange={setSelectedCopyColumn}
+                    placeholder="Select column to copy"
                   >
-                    {processorColumns.map((column) => (
-                      <SelectItem key={column.id} value={column.id}>
-                        {column.name}
+                    {copyableColumns.map((column) => (
+                      <SelectItem key={column.key} value={column.key}>
+                        {column.label}
                       </SelectItem>
                     ))}
                   </Select>
@@ -356,84 +427,15 @@ export function ProjectDocumentsClient({
                 <Button
                   variant="secondary"
                   size="sm"
-                  disabled={!selectedBulkColumn}
-                  isLoading={bulkRunningColumn === selectedBulkColumn}
-                  onClick={() => handleBulkRun(selectedBulkColumn)}
+                  disabled={!selectedCopyColumn}
+                  onClick={handleCopyColumn}
                 >
-                  Run processor on all docs
+                  Copy column values
                 </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={!selectedBulkColumn || isCountingBulkTokens}
-                  isLoading={isCountingBulkTokens}
-                  onClick={handleBulkEstimate}
-                >
-                  Estimate cost
-                </Button>
-                {isCountingBulkTokens && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={cancelBulkEstimate}
-                  >
-                    Stop estimate
-                  </Button>
-                )}
-                {selectedBulkColumn && (
-                  <span
-                    style={{
-                      fontSize: "12px",
-                      color: "var(--color-gray-500)",
-                      alignSelf: "center",
-                    }}
-                  >
-                    {bulkTokenError ? (
-                      bulkTokenError
-                    ) : isCountingBulkTokens ? (
-                      bulkEstimateProgress
-                        ? `Estimating... ${bulkEstimateProgress.processed}/${bulkEstimateProgress.total}`
-                        : "Estimating..."
-                    ) : (
-                      <>
-                        Tokens (input):{" "}
-                        {bulkTokenCount !== null ? bulkTokenCount : "N/A"} ·
-                        Cost (input):{" "}
-                        {bulkCostEstimate !== null
-                          ? `$${bulkCostEstimate.toFixed(4)}`
-                          : "N/A"}
-                      </>
-                    )}
-                  </span>
-                )}
               </div>
-            )}
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              <div style={{ minWidth: "220px" }}>
-                <Select
-                  value={selectedCopyColumn}
-                  onValueChange={setSelectedCopyColumn}
-                  placeholder="Select column to copy"
-                >
-                  {copyableColumns.map((column) => (
-                    <SelectItem key={column.key} value={column.key}>
-                      {column.label}
-                    </SelectItem>
-                  ))}
-                </Select>
-              </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!selectedCopyColumn}
-                onClick={handleCopyColumn}
-              >
-                Copy column values
-              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Knowledge Table */}
       <div className="section">
