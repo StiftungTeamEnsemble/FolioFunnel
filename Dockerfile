@@ -2,11 +2,11 @@ FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-# Install OpenSSL and other dependencies
 RUN apk add --no-cache libc6-compat openssl openssl-dev
+
 # Create symlinks for OpenSSL 1.1 compatibility
-RUN ln -sf /usr/lib/libssl.so.3 /usr/lib/libssl.so.1.1 || true
-RUN ln -sf /usr/lib/libcrypto.so.3 /usr/lib/libcrypto.so.1.1 || true
+RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
+
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
@@ -26,11 +26,6 @@ RUN mkdir -p ./public
 # Generate Prisma client
 RUN npx prisma generate
 
-# Set environment variables for OpenSSL
-ENV OPENSSL_ROOT_DIR=/usr
-ENV OPENSSL_LIBRARIES=/usr/lib
-ENV PRISMA_QUERY_ENGINE_BINARY=/app/node_modules/.prisma/client/libquery_engine-linux-musl-openssl-3.0.x.so.node
-
 # Build application
 RUN npm run build
 
@@ -40,15 +35,11 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Install OpenSSL for Prisma (including 1.1.x compatibility)
+# Install OpenSSL for Prisma
 RUN apk add --no-cache openssl openssl-dev
-# Create symlinks for OpenSSL 1.1 compatibility
-RUN ln -sf /usr/lib/libssl.so.3 /usr/lib/libssl.so.1.1 || true
-RUN ln -sf /usr/lib/libcrypto.so.3 /usr/lib/libcrypto.so.1.1 || true
 
-# Set OpenSSL environment variables
-ENV OPENSSL_ROOT_DIR=/usr
-ENV OPENSSL_LIBRARIES=/usr/lib
+# Create symlinks for OpenSSL 1.1 compatibility
+RUN ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
