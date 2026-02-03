@@ -75,6 +75,9 @@ RUN npm install -g tsx
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+# Create data directory and set ownership for nextjs user
+RUN mkdir -p /data && chown -R nextjs:nodejs /data
+
 USER nextjs
 
 EXPOSE 3000
