@@ -2,10 +2,12 @@ FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
-RUN apk add --no-cache libc6-compat openssl openssl-dev
+RUN apk add --no-cache libc6-compat openssl openssl-dev openssl1.1-compat
 
 # Create symlinks for OpenSSL 1.1 compatibility
+RUN [ ! -e /lib/libssl.so.1.1 ] && ln -s /usr/lib/libssl.so.1.1 /lib/libssl.so.1.1 || true
 RUN [ ! -e /lib/libssl.so.3 ] && ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3 || true
+RUN [ ! -e /lib/libcrypto.so.3 ] && ln -s /usr/lib/libcrypto.so.3 /lib/libcrypto.so.3 || true
 
 WORKDIR /app
 
@@ -17,6 +19,7 @@ RUN npm ci
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+RUN apk add --no-cache libc6-compat openssl openssl1.1-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -34,12 +37,15 @@ FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl openssl-dev
+# Install OpenSSL for Prisma (1.1 for musl binary)
+RUN apk add --no-cache openssl openssl-dev openssl1.1-compat
 
 # Create symlinks for OpenSSL 1.1 compatibility
+RUN [ ! -e /lib/libssl.so.1.1 ] && ln -s /usr/lib/libssl.so.1.1 /lib/libssl.so.1.1 || true
 RUN [ ! -e /lib/libssl.so.3 ] && ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3 || true
+RUN [ ! -e /lib/libcrypto.so.3 ] && ln -s /usr/lib/libcrypto.so.3 /lib/libcrypto.so.3 || true
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
