@@ -88,7 +88,11 @@ services:
     volumes:
       - /DATA/foliofunnel/data/documents:/data
     command:
-      ["sh", "-c", "npx prisma migrate deploy && tsx src/lib/worker/index.ts"]
+      [
+        "sh",
+        "-c",
+        "npx prisma generate && npx prisma migrate deploy && mkdir -p /data/projects && chown -R nextjs:nodejs /data && su-exec nextjs tsx src/lib/worker/index.ts",
+      ]
     depends_on:
       postgres:
         condition: service_healthy
