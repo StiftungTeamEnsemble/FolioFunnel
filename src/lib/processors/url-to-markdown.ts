@@ -64,7 +64,7 @@ export async function urlToMarkdown(
 
     // Add rules for common elements
     turndownService.addRule("strikethrough", {
-      filter: ["del", "s", "strike"],
+      filter: ["del", "s", "strike" as any],
       replacement: (content) => `~~${content}~~`,
     });
 

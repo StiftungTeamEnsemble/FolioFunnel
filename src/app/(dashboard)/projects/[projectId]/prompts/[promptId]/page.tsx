@@ -71,8 +71,8 @@ export default async function PromptRunPage({ params }: PromptRunPageProps) {
             </p>
             <p>
               <strong>Author:</strong>{" "}
-              {promptRun.createdBy.name ||
-                promptRun.createdBy.email ||
+              {promptRun.createdBy?.name ||
+                promptRun.createdBy?.email ||
                 "Unknown"}
             </p>
             <p>

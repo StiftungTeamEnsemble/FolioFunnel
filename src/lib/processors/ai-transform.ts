@@ -18,7 +18,7 @@ export async function aiTransform(
 ): Promise<ProcessorResult> {
   const { document, column } = ctx;
 
-  const config = (column.processorConfig as AITransformConfig) || {};
+  const config = (column.processorConfig as unknown as AITransformConfig) || {};
 
   const promptTemplate = config.promptTemplate;
   const outputType = config.outputType || "text";

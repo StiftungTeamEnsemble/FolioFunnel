@@ -41,7 +41,7 @@ export async function createPromptTemplateAction({
         projectId,
         title: title.trim(),
         promptTemplate,
-        filters,
+        filters: filters as any,
       },
     });
 
@@ -91,7 +91,7 @@ export async function updatePromptTemplateAction({
       data: {
         title: title.trim(),
         promptTemplate,
-        filters,
+        filters: filters as any,
       },
     });
 

@@ -72,19 +72,19 @@ export async function createColumn(projectId: string, formData: FormData) {
       processorConfig = JSON.parse(processorConfigStr);
 
       // Validate and sanitize model in processor config
-      if (processorConfig.model && typeof processorConfig.model === "string") {
+      if (processorConfig && processorConfig.model && typeof processorConfig.model === "string") {
         // For chat-based processors (ai_transform, count_tokens)
         if (
           processorType === "ai_transform" ||
           processorType === "count_tokens"
         ) {
-          if (!isValidChatModel(processorConfig.model)) {
+          if (!isValidChatModel(processorConfig.model as string)) {
             processorConfig.model = DEFAULT_CHAT_MODEL;
           }
         }
         // For embedding processors
         if (processorType === "create_embeddings") {
-          if (!isValidEmbeddingModel(processorConfig.model)) {
+          if (!isValidEmbeddingModel(processorConfig.model as string)) {
             processorConfig.model = DEFAULT_EMBEDDING_MODEL;
           }
         }
@@ -137,7 +137,7 @@ export async function createColumn(projectId: string, formData: FormData) {
         mode: mode as ColumnMode,
         processorType:
           mode === "processor" ? (processorType as ProcessorType) : null,
-        processorConfig: processorConfig || null,
+        processorConfig: processorConfig as any || undefined,
         position: (maxPosition._max.position || 0) + 1,
       },
     });

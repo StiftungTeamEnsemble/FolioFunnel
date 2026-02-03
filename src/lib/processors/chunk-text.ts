@@ -51,7 +51,7 @@ export async function chunkText(
 ): Promise<ProcessorResult> {
   const { document, column } = ctx;
 
-  const config = (column.processorConfig as ChunkConfig) || {};
+  const config = (column.processorConfig as unknown as ChunkConfig) || {};
   const sourceColumnKey = config.sourceColumnKey;
   const chunkSize = config.chunkSize || DEFAULT_CHUNK_SIZE;
   const chunkOverlap = config.chunkOverlap || DEFAULT_CHUNK_OVERLAP;

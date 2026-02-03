@@ -89,7 +89,7 @@ export function ProjectPromptClient({
     [promptTemplates, selectedPromptTemplateId],
   );
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(
-    (selectedPromptTemplate?.filters as FilterGroup[]) || [],
+    (selectedPromptTemplate?.filters as unknown as FilterGroup[]) || [],
   );
   const [selectedDocuments, setSelectedDocuments] =
     useState<Document[]>(initialDocuments);
@@ -146,7 +146,7 @@ export function ProjectPromptClient({
       setFilterGroups([]);
       return;
     }
-    setFilterGroups((selectedPromptTemplate.filters as FilterGroup[]) || []);
+    setFilterGroups((selectedPromptTemplate.filters as unknown as FilterGroup[]) || []);
   }, [selectedPromptTemplate]);
 
   const previewDocuments = useMemo(
@@ -208,8 +208,8 @@ export function ProjectPromptClient({
         setTokenCount(null);
         setCostEstimate(null);
       } else {
-        setTokenCount(result.tokenCount);
-        setCostEstimate(result.costEstimate);
+        setTokenCount(result.tokenCount ?? null);
+        setCostEstimate(result.costEstimate ?? null);
       }
       setIsCountingTokens(false);
     }, 350);
@@ -470,7 +470,7 @@ export function ProjectPromptClient({
                       selectedPromptTemplate.promptTemplate,
                     );
                     setBuilderFilters(
-                      (selectedPromptTemplate.filters as FilterGroup[]) || [],
+                      (selectedPromptTemplate.filters as unknown as FilterGroup[]) || [],
                     );
                     setBuilderDocuments(initialDocuments);
                     setBuilderSelectedDocuments(initialDocuments);

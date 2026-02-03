@@ -221,7 +221,7 @@ export function DocumentSelection<T extends Document>({
   }, [onSelectionChange, selectedDocuments]);
 
   useEffect(() => {
-    onFiltersChange?.(activeFilters);
+    onFiltersChange?.(activeFilters as FilterGroup[]);
   }, [activeFilters, onFiltersChange]);
 
   const addGroup = () => {

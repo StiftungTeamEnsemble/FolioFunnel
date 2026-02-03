@@ -39,7 +39,7 @@ export async function GET(
 
     const fileBuffer = await readFile(thumbnailPath);
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(fileBuffer as any, {
       headers: {
         "Content-Type": "image/png",
         "Cache-Control": "public, max-age=3600",

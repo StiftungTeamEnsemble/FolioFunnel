@@ -167,7 +167,7 @@ export const buildDocumentFilterSql = (filters: FilterGroup[]) => {
         return null;
       }
 
-      const joiner = group.join === "or" ? Prisma.sql` OR ` : Prisma.sql` AND `;
+      const joiner = group.join === "or" ? " OR " : " AND ";
 
       return Prisma.sql`(${Prisma.join(ruleConditions, joiner)})`;
     })
@@ -177,7 +177,7 @@ export const buildDocumentFilterSql = (filters: FilterGroup[]) => {
     return null;
   }
 
-  return Prisma.sql`${Prisma.join(groupConditions, Prisma.sql` AND `)}`;
+  return Prisma.sql`${Prisma.join(groupConditions, " AND ")}`;
 };
 
 export async function getFilteredDocumentIds(

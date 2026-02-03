@@ -398,7 +398,7 @@ export function ColumnModal({
                       v as "text" | "number" | "text_array" | "number_array",
                     );
                     // Reset processor type when data type changes
-                    const availableProcessors = getProcessorTypesForDataType(v);
+                    const availableProcessors = getProcessorTypesForDataType(v as "text" | "number" | "text_array" | "number_array");
                     if (availableProcessors.length > 0) {
                       setProcessorType(
                         availableProcessors[0].value as ProcessorType,

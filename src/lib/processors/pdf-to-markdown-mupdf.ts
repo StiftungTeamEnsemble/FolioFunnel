@@ -36,7 +36,7 @@ export async function pdfToMarkdownMupdf(
 
     // Create form data
     const formData = new FormData();
-    const blob = new Blob([fileBuffer], { type: "application/pdf" });
+    const blob = new Blob([fileBuffer as any], { type: "application/pdf" });
     formData.append("file", blob, "document.pdf");
 
     // Call document converter API with MuPDF endpoint

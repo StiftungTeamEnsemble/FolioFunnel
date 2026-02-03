@@ -104,7 +104,7 @@ export async function runProcessor(
 
         await prisma.document.update({
           where: { id: ctx.document.id },
-          data: { values },
+          data: { values: values as any },
         });
       }
     }

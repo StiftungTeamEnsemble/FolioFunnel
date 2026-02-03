@@ -17,7 +17,7 @@ export async function createEmbeddings(
 ): Promise<ProcessorResult> {
   const { document, column } = ctx;
 
-  const config = (column.processorConfig as EmbeddingsConfig) || {};
+  const config = (column.processorConfig as unknown as EmbeddingsConfig) || {};
   const model = config.model || DEFAULT_MODEL;
   const useChunks = config.useChunks !== false;
   const sourceColumnKey = config.sourceColumnKey;

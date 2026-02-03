@@ -142,7 +142,7 @@ export async function urlToHtml(
 
     const html = new TextDecoder().decode(
       new Uint8Array(
-        chunks.reduce((acc, chunk) => [...acc, ...chunk], [] as number[]),
+        chunks.reduce((acc, chunk) => [...acc, ...Array.from(chunk)], [] as number[]),
       ),
     );
 

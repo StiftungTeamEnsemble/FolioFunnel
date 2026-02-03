@@ -232,13 +232,13 @@ export async function startWorker() {
   // Register handlers
   await boss.work(
     QUEUE_NAMES.PROCESS_JOB,
-    { teamConcurrency: 5 },
+    {},
     handleProcessJob,
   );
 
   await boss.work(
     QUEUE_NAMES.BULK_PROCESS,
-    { teamConcurrency: 1 },
+    {},
     handleBulkProcess,
   );
 

@@ -233,7 +233,7 @@ export async function updateDocumentValue(
 
     await prisma.document.update({
       where: { id: documentId },
-      data: { values },
+      data: { values: values as any },
     });
 
     return { success: true };
