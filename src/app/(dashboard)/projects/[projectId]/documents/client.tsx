@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { Project, Document, Column } from "@prisma/client";
 import { Button, Select, SelectItem } from "@/components/ui";
 import { DocumentSelection } from "@/components/documents/DocumentSelection";
-import { KnowledgeTable } from "@/components/documents/KnowledgeTable";
+import {
+  KnowledgeTable,
+  SortState,
+} from "@/components/documents/KnowledgeTable";
 import { AddDocumentModal } from "@/components/documents/AddDocumentModal";
 import { ColumnModal } from "@/components/documents/ColumnModal";
 import { DeleteColumnModal } from "@/components/documents/DeleteColumnModal";
@@ -61,6 +64,11 @@ export function ProjectDocumentsClient({
   const [filteredDocuments, setFilteredDocuments] =
     useState<DocumentWithRuns[]>(initialDocuments);
   const [filters, setFilters] = useState<FilterGroup[]>([]);
+  const [sortState, setSortState] = useState<SortState>({
+    type: "base",
+    key: "created",
+    direction: "desc",
+  });
 
   useEffect(() => {
     setDocuments(initialDocuments);
@@ -251,7 +259,11 @@ export function ProjectDocumentsClient({
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ filters, includeRuns: true }),
+            body: JSON.stringify({
+              filters,
+              includeRuns: true,
+              sort: sortState,
+            }),
             signal: controller.signal,
           },
         );
@@ -273,7 +285,24 @@ export function ProjectDocumentsClient({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [filters, project.id]);
+  }, [filters, project.id, sortState]);
+
+  const handleSort = (type: SortState["type"], key: string) => {
+    setSortState((prev) => {
+      if (prev.type === type && prev.key === key) {
+        return {
+          ...prev,
+          direction: prev.direction === "asc" ? "desc" : "asc",
+        };
+      }
+
+      return {
+        type,
+        key: key as SortState["key"],
+        direction: "asc",
+      } as SortState;
+    });
+  };
 
   const getColumnValue = (doc: DocumentWithRuns, columnKey: string) => {
     const values = (doc.values as Record<string, unknown>) || {};
@@ -461,6 +490,8 @@ export function ProjectDocumentsClient({
           documents={filteredDocuments as any}
           columns={columns}
           onRefresh={handleRefresh}
+          sortState={sortState}
+          onSort={handleSort}
           onEditColumn={setColumnToEdit}
           onDeleteColumn={setColumnToDelete}
           onDeleteDocument={setDocumentToDelete}

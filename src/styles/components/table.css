@@ -61,7 +61,7 @@
 .table__header-cell__sort-button {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.25em;
   border: none;
   background: none;
   padding: 0;
@@ -78,10 +78,6 @@
 
 .table__header-cell__sort-icon {
   color: var(--color-gray-400);
-}
-
-.table__header-cell--sorted .table__header-cell__sort-icon {
-  color: var(--color-primary);
 }
 
 /* Column type badges */

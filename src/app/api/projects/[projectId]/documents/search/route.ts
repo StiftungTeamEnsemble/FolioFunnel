@@ -7,6 +7,15 @@ import {
 } from "@/lib/document-filters";
 import { Prisma } from "@prisma/client";
 
+type SortDirection = "asc" | "desc";
+type SortState =
+  | {
+      type: "base";
+      key: "title" | "source" | "uploader" | "created";
+      direction: SortDirection;
+    }
+  | { type: "column"; key: string; direction: SortDirection };
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { projectId: string } },
@@ -16,10 +25,12 @@ export async function POST(
     const body = (await request.json().catch(() => ({}))) as {
       filters?: FilterGroup[];
       includeRuns?: boolean;
+      sort?: SortState;
     };
 
     const filters = Array.isArray(body.filters) ? body.filters : [];
     const includeRuns = Boolean(body.includeRuns);
+    const sort = body.sort;
 
     const documentIds = await getFilteredDocumentIds(params.projectId, filters);
 
@@ -27,12 +38,49 @@ export async function POST(
       return NextResponse.json({ documents: [] });
     }
 
+    const orderBy: Prisma.DocumentOrderByWithRelationInput[] = [];
+
+    if (sort) {
+      if (sort.type === "base") {
+        if (sort.key === "created") {
+          orderBy.push({ createdAt: sort.direction });
+        }
+        if (sort.key === "title") {
+          orderBy.push({ title: sort.direction });
+        }
+        if (sort.key === "source") {
+          orderBy.push({ sourceType: sort.direction }, { sourceUrl: sort.direction });
+        }
+        if (sort.key === "uploader") {
+          orderBy.push(
+            { uploadedBy: { name: sort.direction } },
+            { uploadedBy: { email: sort.direction } },
+          );
+        }
+      }
+
+      if (sort.type === "column") {
+        orderBy.push({
+          values: {
+            path: [sort.key],
+            sort: sort.direction,
+          },
+        });
+      }
+    }
+
+    if (!orderBy.length) {
+      orderBy.push({ createdAt: "desc" });
+    } else if (!orderBy.some((item) => "createdAt" in item)) {
+      orderBy.push({ createdAt: "desc" });
+    }
+
     const documents = await prisma.document.findMany({
       where: {
         projectId: params.projectId,
         id: { in: documentIds },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy,
       include: includeRuns
         ? {
             uploadedBy: {

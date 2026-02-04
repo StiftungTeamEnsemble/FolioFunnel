@@ -31,6 +31,8 @@ interface KnowledgeTableProps {
   documents: DocumentWithRuns[];
   columns: Column[];
   onRefresh: () => void;
+  sortState: SortState;
+  onSort: (type: SortState["type"], key: string) => void;
   onEditColumn?: (column: Column) => void;
   onDeleteColumn?: (column: Column) => void;
   onDeleteDocument?: (document: Document) => void;
@@ -43,9 +45,9 @@ const BASE_COLUMNS = [
   { key: "created", label: "Created" },
 ] as const;
 
-type BaseColumnKey = (typeof BASE_COLUMNS)[number]["key"];
-type SortDirection = "asc" | "desc";
-type SortState =
+export type BaseColumnKey = (typeof BASE_COLUMNS)[number]["key"];
+export type SortDirection = "asc" | "desc";
+export type SortState =
   | { type: "base"; key: BaseColumnKey; direction: SortDirection }
   | { type: "column"; key: string; direction: SortDirection };
 
@@ -54,6 +56,8 @@ export function KnowledgeTable({
   documents,
   columns,
   onRefresh,
+  sortState,
+  onSort,
   onEditColumn,
   onDeleteColumn,
   onDeleteDocument,
@@ -70,11 +74,6 @@ export function KnowledgeTable({
   const [hiddenBaseColumns, setHiddenBaseColumns] = useState<Set<string>>(
     new Set(),
   );
-  const [sortState, setSortState] = useState<SortState>({
-    type: "base",
-    key: "created",
-    direction: "desc",
-  });
 
   const visibleColumns = useMemo(
     () => columns.filter((column) => !column.hidden),
@@ -287,7 +286,8 @@ export function KnowledgeTable({
 
   const getSortIcon = (isSorted: boolean) => {
     if (!isSorted) {
-      return <span className="table__header-cell__sort-icon">↕</span>;
+      // return <span className="table__header-cell__sort-icon">↕</span>;
+      return;
     }
 
     return (
@@ -380,12 +380,11 @@ export function KnowledgeTable({
                     <button
                       type="button"
                       className="table__header-cell__sort-button"
-                      onClick={() => handleSort("base", "title")}
+                      onClick={() => onSort("base", "title")}
                     >
                       <span>Title</span>
                       {getSortIcon(
-                        sortState.type === "base" &&
-                          sortState.key === "title",
+                        sortState.type === "base" && sortState.key === "title",
                       )}
                     </button>
                     <button
@@ -413,12 +412,11 @@ export function KnowledgeTable({
                     <button
                       type="button"
                       className="table__header-cell__sort-button"
-                      onClick={() => handleSort("base", "source")}
+                      onClick={() => onSort("base", "source")}
                     >
                       <span>Source</span>
                       {getSortIcon(
-                        sortState.type === "base" &&
-                          sortState.key === "source",
+                        sortState.type === "base" && sortState.key === "source",
                       )}
                     </button>
                     <button
@@ -446,7 +444,7 @@ export function KnowledgeTable({
                     <button
                       type="button"
                       className="table__header-cell__sort-button"
-                      onClick={() => handleSort("base", "uploader")}
+                      onClick={() => onSort("base", "uploader")}
                     >
                       <span>Uploader</span>
                       {getSortIcon(
@@ -479,7 +477,7 @@ export function KnowledgeTable({
                     <button
                       type="button"
                       className="table__header-cell__sort-button"
-                      onClick={() => handleSort("base", "created")}
+                      onClick={() => onSort("base", "created")}
                     >
                       <span>Created</span>
                       {getSortIcon(
@@ -513,7 +511,7 @@ export function KnowledgeTable({
                     <button
                       type="button"
                       className="table__header-cell__sort-button"
-                      onClick={() => handleSort("column", column.key)}
+                      onClick={() => onSort("column", column.key)}
                     >
                       <span>{column.name}</span>
                       {getSortIcon(
