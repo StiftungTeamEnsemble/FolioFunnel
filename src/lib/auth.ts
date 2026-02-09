@@ -36,7 +36,9 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!user.passwordHash) {
-            console.error(`[Auth] User has no password hash: ${credentials.email}`);
+            console.error(
+              `[Auth] User has no password hash: ${credentials.email}`,
+            );
             throw new Error("NO_PASSWORD_HASH");
           }
 

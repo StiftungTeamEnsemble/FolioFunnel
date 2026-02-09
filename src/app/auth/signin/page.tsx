@@ -33,14 +33,16 @@ export default function SignInPage() {
 
       if (result?.error) {
         console.error("[Signin] Error:", result.error);
-        
+
         // Map specific error codes to user-friendly messages
         switch (result.error) {
           case "EMAIL_PASSWORD_REQUIRED":
             setError("Email and password are required");
             break;
           case "USER_NOT_FOUND":
-            setError("No account found with this email address. Please sign up first.");
+            setError(
+              "No account found with this email address. Please sign up first.",
+            );
             break;
           case "NO_PASSWORD_HASH":
             setError("Account setup incomplete. Please contact support.");
@@ -69,7 +71,9 @@ export default function SignInPage() {
       router.push("/projects");
     } catch (err) {
       console.error("[Signin] Unexpected error:", err);
-      setError(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setError(
+        `Unexpected error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      );
       setLoading(false);
     }
   };

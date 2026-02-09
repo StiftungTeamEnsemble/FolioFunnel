@@ -95,7 +95,9 @@ export function DocumentPreviewList({
                 )}
                 <div style={{ display: "grid", gap: "4px" }}>
                   <span style={{ fontWeight: 600 }}>{doc.title}</span>
-                  <span style={{ fontSize: "12px", color: "var(--color-gray-500)" }}>
+                  <span
+                    style={{ fontSize: "12px", color: "var(--color-gray-500)" }}
+                  >
                     {getSourceLabel(doc)} · {formatDateTime(doc.createdAt)}
                   </span>
                 </div>

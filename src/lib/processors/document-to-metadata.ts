@@ -109,7 +109,10 @@ async function fetchHtml(url: string): Promise<string> {
 
   return new TextDecoder().decode(
     new Uint8Array(
-      chunks.reduce((acc, chunk) => [...acc, ...Array.from(chunk)], [] as number[]),
+      chunks.reduce(
+        (acc, chunk) => [...acc, ...Array.from(chunk)],
+        [] as number[],
+      ),
     ),
   );
 }

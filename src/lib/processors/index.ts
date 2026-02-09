@@ -159,7 +159,9 @@ export async function runProcessor(
       });
     } catch (updateError: any) {
       if (updateError.code === "P2025") {
-        console.log(`[Processor] Run ${runId} was deleted, cannot update error status`);
+        console.log(
+          `[Processor] Run ${runId} was deleted, cannot update error status`,
+        );
       } else {
         throw updateError;
       }

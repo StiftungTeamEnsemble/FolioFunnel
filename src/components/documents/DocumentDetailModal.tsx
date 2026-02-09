@@ -22,9 +22,7 @@ const formatValue = (value: unknown): string => {
   if (Array.isArray(value)) {
     const preview = value
       .slice(0, 10)
-      .map((item) =>
-        typeof item === "string" ? item : JSON.stringify(item),
-      )
+      .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
       .join(", ");
     return value.length > 10 ? `${preview}…` : preview || "—";
   }

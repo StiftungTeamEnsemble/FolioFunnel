@@ -76,8 +76,7 @@ export function ManualArrayEditorModal({
             const manualConfig = isTextArray
               ? getManualTextArrayConfig(state.column)
               : null;
-            const isRestricted =
-              isTextArray && manualConfig?.restrictToAllowed;
+            const isRestricted = isTextArray && manualConfig?.restrictToAllowed;
             const allowedValues = manualConfig?.allowedValues ?? [];
             const disableAdd = isRestricted && allowedValues.length === 0;
 

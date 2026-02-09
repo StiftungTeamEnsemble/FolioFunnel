@@ -109,7 +109,9 @@ async function handlePromptRun(job: PromptRunJob) {
       });
     } catch (updateError: any) {
       if (updateError.code === "P2025") {
-        console.log(`[Worker] Prompt run ${promptRunId} was deleted during processing`);
+        console.log(
+          `[Worker] Prompt run ${promptRunId} was deleted during processing`,
+        );
         return;
       }
       throw updateError;
@@ -134,7 +136,9 @@ async function handlePromptRun(job: PromptRunJob) {
     });
   } catch (updateError: any) {
     if (updateError.code === "P2025") {
-      console.log(`[Worker] Prompt run ${promptRunId} was deleted during processing`);
+      console.log(
+        `[Worker] Prompt run ${promptRunId} was deleted during processing`,
+      );
       return;
     }
     throw updateError;
@@ -254,17 +258,9 @@ export async function startWorker() {
   console.log("Queues created");
 
   // Register handlers
-  await boss.work(
-    QUEUE_NAMES.PROCESS_JOB,
-    {},
-    handleProcessJob,
-  );
+  await boss.work(QUEUE_NAMES.PROCESS_JOB, {}, handleProcessJob);
 
-  await boss.work(
-    QUEUE_NAMES.BULK_PROCESS,
-    {},
-    handleBulkProcess,
-  );
+  await boss.work(QUEUE_NAMES.BULK_PROCESS, {}, handleBulkProcess);
 
   console.log("Worker handlers registered");
 

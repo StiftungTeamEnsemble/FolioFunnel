@@ -160,7 +160,10 @@ const matchesQuickSearch = (doc: Document, searchTerm: string) => {
   );
 };
 
-const areFilterRulesEqual = (a: FilterRule | undefined, b: FilterRule | undefined) => {
+const areFilterRulesEqual = (
+  a: FilterRule | undefined,
+  b: FilterRule | undefined,
+) => {
   if (!a || !b) return a === b;
   return (
     a.id === b.id &&
@@ -208,7 +211,12 @@ export function DocumentSelection<T extends Document>({
   const shouldSkipNextFiltersChangeRef = useRef(false);
 
   useEffect(() => {
-    if (areFilterGroupsEqual(initialFilterGroups, lastInitialFilterGroupsRef.current)) {
+    if (
+      areFilterGroupsEqual(
+        initialFilterGroups,
+        lastInitialFilterGroupsRef.current,
+      )
+    ) {
       return;
     }
 
@@ -270,17 +278,17 @@ export function DocumentSelection<T extends Document>({
     return [
       {
         id: quickGroupId.current,
-        join: "and",
+        join: "and" as const,
         rules: [
           {
             id: quickRuleId.current,
             field: "all",
-            operator: "contains",
+            operator: "contains" as const,
             value: quickSearch,
           },
         ],
       },
-    ];
+    ] as FilterGroup[];
   }, [filterGroups, isExpertMode, quickSearch]);
 
   useEffect(() => {

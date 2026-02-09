@@ -49,7 +49,10 @@ export async function POST(
           orderBy.push({ title: sort.direction });
         }
         if (sort.key === "source") {
-          orderBy.push({ sourceType: sort.direction }, { sourceUrl: sort.direction });
+          orderBy.push(
+            { sourceType: sort.direction },
+            { sourceUrl: sort.direction },
+          );
         }
         if (sort.key === "uploader") {
           orderBy.push(
@@ -64,7 +67,7 @@ export async function POST(
           values: {
             path: [sort.key],
             sort: sort.direction,
-          },
+          } as any,
         });
       }
     }

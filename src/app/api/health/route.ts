@@ -5,10 +5,10 @@ export async function GET() {
   try {
     // Test database connection
     await prisma.$queryRaw`SELECT 1`;
-    
+
     // Count users to verify schema
     const userCount = await prisma.user.count();
-    
+
     return NextResponse.json({
       status: "ok",
       database: "connected",
@@ -24,7 +24,7 @@ export async function GET() {
         error: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString(),
       },
-      { status: 503 }
+      { status: 503 },
     );
   }
 }

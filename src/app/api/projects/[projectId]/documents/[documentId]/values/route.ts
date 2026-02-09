@@ -29,7 +29,10 @@ export async function PATCH(
     });
 
     if (!document) {
-      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 },
+      );
     }
 
     const column = await prisma.column.findFirst({

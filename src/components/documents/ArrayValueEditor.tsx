@@ -36,8 +36,7 @@ export function ArrayValueEditor({
     onAddValue(nextValue);
   };
 
-  const getAvailableOptions = (_currentValue: string) =>
-    selectOptions ?? [];
+  const getAvailableOptions = (_currentValue: string) => selectOptions ?? [];
 
   return (
     <div className="form">

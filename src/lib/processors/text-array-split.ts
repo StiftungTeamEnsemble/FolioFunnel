@@ -43,7 +43,8 @@ export async function textArraySplit(
 ): Promise<ProcessorResult> {
   const { document, column } = ctx;
 
-  const config = (column.processorConfig as unknown as TextArraySplitConfig) || {};
+  const config =
+    (column.processorConfig as unknown as TextArraySplitConfig) || {};
   const sourceColumnKey = config.sourceColumnKey;
 
   if (!sourceColumnKey) {

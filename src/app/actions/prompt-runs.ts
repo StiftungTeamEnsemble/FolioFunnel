@@ -37,7 +37,8 @@ export async function estimatePromptCostAction({
     return { error: "Prompt template not found." };
   }
 
-  const filters = (promptTemplateRecord.filters as unknown as FilterGroup[]) || [];
+  const filters =
+    (promptTemplateRecord.filters as unknown as FilterGroup[]) || [];
   const documentIds = await getFilteredDocumentIds(projectId, filters);
 
   if (!documentIds.length) {
@@ -119,7 +120,8 @@ export async function createPromptRunAction({
     return { error: "Prompt template not found." };
   }
 
-  const filters = (promptTemplateRecord.filters as unknown as FilterGroup[]) || [];
+  const filters =
+    (promptTemplateRecord.filters as unknown as FilterGroup[]) || [];
   const documentIds = await getFilteredDocumentIds(projectId, filters);
 
   if (!documentIds.length) {

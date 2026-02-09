@@ -319,9 +319,7 @@ export function ColumnModal({
       const config: Record<string, unknown> = {
         manualTextArrayRestrict: manualTextArrayRestriction === "true",
       };
-      const allowedValues = sanitizeAllowedValues(
-        manualTextArrayAllowedValues,
-      );
+      const allowedValues = sanitizeAllowedValues(manualTextArrayAllowedValues);
       if (allowedValues.length > 0) {
         config.manualTextArrayAllowedValues = allowedValues;
       }
@@ -526,7 +524,9 @@ export function ColumnModal({
                       v as "text" | "number" | "text_array" | "number_array",
                     );
                     // Reset processor type when data type changes
-                    const availableProcessors = getProcessorTypesForDataType(v as "text" | "number" | "text_array" | "number_array");
+                    const availableProcessors = getProcessorTypesForDataType(
+                      v as "text" | "number" | "text_array" | "number_array",
+                    );
                     if (availableProcessors.length > 0) {
                       setProcessorType(
                         availableProcessors[0].value as ProcessorType,
@@ -841,9 +841,7 @@ export function ColumnModal({
                   onChangeValue={(index, value) =>
                     setManualTextArrayAllowedValues((prev) =>
                       prev.map((entry, currentIndex) =>
-                        currentIndex === index
-                          ? { ...entry, value }
-                          : entry,
+                        currentIndex === index ? { ...entry, value } : entry,
                       ),
                     )
                   }
@@ -874,8 +872,7 @@ export function ColumnModal({
               documents.{" "}
               {allowedValueChanges.deleted.length > 0 && (
                 <span>
-                  Deleted values:{" "}
-                  {allowedValueChanges.deleted.join(", ")}.
+                  Deleted values: {allowedValueChanges.deleted.join(", ")}.
                 </span>
               )}{" "}
               {allowedValueChanges.renamed.length > 0 && (

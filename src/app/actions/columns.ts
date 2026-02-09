@@ -65,7 +65,7 @@ const applyAllowedValueChanges = async (
 
     return prisma.document.update({
       where: { id: doc.id },
-      data: { values: { ...values, [columnKey]: next } },
+      data: { values: { ...values, [columnKey]: next } as any },
     });
   });
 
@@ -129,7 +129,11 @@ export async function createColumn(projectId: string, formData: FormData) {
       processorConfig = JSON.parse(processorConfigStr);
 
       // Validate and sanitize model in processor config
-      if (processorConfig && processorConfig.model && typeof processorConfig.model === "string") {
+      if (
+        processorConfig &&
+        processorConfig.model &&
+        typeof processorConfig.model === "string"
+      ) {
         // For chat-based processors (ai_transform, count_tokens)
         if (
           processorType === "ai_transform" ||
@@ -194,7 +198,7 @@ export async function createColumn(projectId: string, formData: FormData) {
         mode: mode as ColumnMode,
         processorType:
           mode === "processor" ? (processorType as ProcessorType) : null,
-        processorConfig: processorConfig as any || undefined,
+        processorConfig: (processorConfig as any) || undefined,
         position: (maxPosition._max.position || 0) + 1,
       },
     });
@@ -262,9 +266,7 @@ export async function updateColumn(
                 typeof entry.to === "string",
             )
             .map((entry) => ({ from: entry.from, to: entry.to })),
-          deleted: parsed.deleted.filter(
-            (entry) => typeof entry === "string",
-          ),
+          deleted: parsed.deleted.filter((entry) => typeof entry === "string"),
         };
       }
     } catch {
@@ -301,7 +303,11 @@ export async function updateColumn(
       column.type === "text_array" &&
       processorConfig?.manualTextArrayRestrict === true
     ) {
-      await applyAllowedValueChanges(projectId, column.key, allowedValueChanges);
+      await applyAllowedValueChanges(
+        projectId,
+        column.key,
+        allowedValueChanges,
+      );
     }
 
     return { success: true, column: updated };

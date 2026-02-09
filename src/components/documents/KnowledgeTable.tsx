@@ -217,9 +217,7 @@ export function KnowledgeTable({
     if (Array.isArray(value)) {
       const preview = value
         .slice(0, 10)
-        .map((item) =>
-          typeof item === "string" ? item : JSON.stringify(item),
-        )
+        .map((item) => (typeof item === "string" ? item : JSON.stringify(item)))
         .join(", ");
       return value.length > 10 ? `${preview}…` : preview;
     }
@@ -345,20 +343,11 @@ export function KnowledgeTable({
     doc.uploadedBy?.name || doc.uploadedBy?.email || "Unknown";
 
   const handleSort = (type: SortState["type"], key: string) => {
-    setSortState((prev) => {
-      if (prev.type === type && prev.key === key) {
-        return {
-          ...prev,
-          direction: prev.direction === "asc" ? "desc" : "asc",
-        };
-      }
-
-      return {
-        type,
-        key: key as SortState["key"],
-        direction: "asc",
-      } as SortState;
-    });
+    if (sortState.type === type && sortState.key === key) {
+      onSort(type, key);
+      return;
+    }
+    onSort(type, key);
   };
 
   const getSortValue = (
