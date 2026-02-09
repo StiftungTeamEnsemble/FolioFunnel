@@ -81,6 +81,11 @@ export function ColumnModal({
   const [splitReplacements, setSplitReplacements] = useState<
     TextArrayReplacement[]
   >([]);
+  const [manualTextArrayRestriction, setManualTextArrayRestriction] = useState<
+    "true" | "false"
+  >("false");
+  const [manualTextArrayAllowedValues, setManualTextArrayAllowedValues] =
+    useState("");
 
   // Reset form when modal opens or column changes
   useEffect(() => {
@@ -155,6 +160,16 @@ export function ColumnModal({
               }))
           : [],
       );
+      setManualTextArrayRestriction(
+        config.manualTextArrayRestrict === true ? "true" : "false",
+      );
+      setManualTextArrayAllowedValues(
+        Array.isArray(config.manualTextArrayAllowedValues)
+          ? config.manualTextArrayAllowedValues
+              .filter((value) => typeof value === "string")
+              .join("\n")
+          : "",
+      );
     } else {
       // Add mode: reset to defaults
       setKey("");
@@ -172,6 +187,8 @@ export function ColumnModal({
       setSplitPattern("");
       setSplitFlags("");
       setSplitReplacements([]);
+      setManualTextArrayRestriction("false");
+      setManualTextArrayAllowedValues("");
     }
     setError(null);
   }, [open, column]);
@@ -267,6 +284,18 @@ export function ColumnModal({
         // URL to Markdown processor doesn't require additional configuration
       }
 
+      formData.set("processorConfig", JSON.stringify(config));
+    } else if (dataType === "text_array") {
+      const config: Record<string, unknown> = {
+        manualTextArrayRestrict: manualTextArrayRestriction === "true",
+      };
+      const allowedValues = manualTextArrayAllowedValues
+        .split(/[\n,]+/)
+        .map((value) => value.trim())
+        .filter(Boolean);
+      if (allowedValues.length > 0) {
+        config.manualTextArrayAllowedValues = allowedValues;
+      }
       formData.set("processorConfig", JSON.stringify(config));
     }
 
@@ -672,6 +701,40 @@ export function ColumnModal({
                   </InputGroup>
                 </div>
               )}
+            </>
+          )}
+
+          {mode === "manual" && dataType === "text_array" && (
+            <>
+              <InputGroup
+                label="Restrict to predefined tags"
+                htmlFor="manualTextArrayRestriction"
+              >
+                <Select
+                  value={manualTextArrayRestriction}
+                  onValueChange={(value) =>
+                    setManualTextArrayRestriction(value as "true" | "false")
+                  }
+                >
+                  <SelectItem value="false">No - free entry</SelectItem>
+                  <SelectItem value="true">Yes - only allowed tags</SelectItem>
+                </Select>
+              </InputGroup>
+              <InputGroup
+                label="Allowed tag values"
+                htmlFor="manualTextArrayAllowedValues"
+                hint="Enter one tag per line. These become the selectable values."
+              >
+                <Textarea
+                  id="manualTextArrayAllowedValues"
+                  name="manualTextArrayAllowedValues"
+                  value={manualTextArrayAllowedValues}
+                  onChange={(event) =>
+                    setManualTextArrayAllowedValues(event.target.value)
+                  }
+                  rows={4}
+                />
+              </InputGroup>
             </>
           )}
 
