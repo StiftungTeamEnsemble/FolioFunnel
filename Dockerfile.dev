@@ -2,7 +2,8 @@
 FROM node:20-alpine
 
 # Install dependencies for native modules and OpenSSL
-RUN apk add --no-cache libc6-compat python3 make g++ openssl openssl-dev
+RUN apk add --no-cache libc6-compat python3 make g++ openssl openssl-dev tzdata
+ENV TZ=Europe/Zurich
 
 WORKDIR /app
 

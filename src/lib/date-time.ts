@@ -1,3 +1,5 @@
+const DEFAULT_TIMEZONE = "Europe/Zurich";
+
 export const formatDateTime = (
   value: Date | string | number | null | undefined,
 ): string => {
@@ -7,5 +9,6 @@ export const formatDateTime = (
   return date.toLocaleString("de-DE", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: DEFAULT_TIMEZONE,
   });
 };
