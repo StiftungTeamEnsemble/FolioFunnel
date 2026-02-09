@@ -16,6 +16,11 @@ interface EstimatePromptCostInput {
   model: string;
 }
 
+const normalizeTags = (tags: string[]) =>
+  Array.from(
+    new Set(tags.map((tag) => tag.trim()).filter((tag) => tag.length > 0)),
+  );
+
 export async function estimatePromptCostAction({
   projectId,
   promptTemplateId,
@@ -243,4 +248,39 @@ export async function softDeletePromptRunAction({
   });
 
   return { success: true };
+}
+
+interface UpdatePromptRunTagsInput {
+  projectId: string;
+  promptRunId: string;
+  tags: string[];
+}
+
+export async function updatePromptRunTagsAction({
+  projectId,
+  promptRunId,
+  tags,
+}: UpdatePromptRunTagsInput) {
+  await requireProjectAccess(projectId);
+
+  const run = await prisma.run.findFirst({
+    where: {
+      id: promptRunId,
+      projectId,
+      type: RunType.prompt,
+    },
+  });
+
+  if (!run) {
+    return { error: "Prompt run not found." };
+  }
+
+  const normalizedTags = normalizeTags(tags);
+
+  await prisma.run.update({
+    where: { id: promptRunId },
+    data: { tags: normalizedTags },
+  });
+
+  return { success: true, tags: normalizedTags };
 }
