@@ -16,6 +16,15 @@ const createProjectSchema = z.object({
   description: z.string().max(500).optional(),
 });
 
+const parseTags = (value?: string | null) => {
+  if (!value) return [];
+  const tags = value
+    .split(/[\n,]/)
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  return Array.from(new Set(tags));
+};
+
 export async function createProject(formData: FormData) {
   const user = await requireAuth();
 
@@ -85,6 +94,8 @@ export async function updateProject(projectId: string, formData: FormData) {
 
   const name = formData.get("name") as string;
   const description = formData.get("description") as string | undefined;
+  const resultTagsInput = formData.get("resultTags") as string | undefined;
+  const resultTags = parseTags(resultTagsInput);
 
   try {
     const project = await prisma.project.update({
@@ -92,6 +103,7 @@ export async function updateProject(projectId: string, formData: FormData) {
       data: {
         name,
         description: description || null,
+        resultTags,
       },
     });
 

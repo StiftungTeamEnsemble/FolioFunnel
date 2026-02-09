@@ -31,7 +31,7 @@ interface MemberWithUser extends ProjectMembership {
 }
 
 interface ProjectEditClientProps {
-  project: Project;
+  project: Project & { resultTags: string[] };
   members: MemberWithUser[];
   pendingInvites: ProjectInvite[];
   currentUserId: string;
@@ -177,6 +177,18 @@ export function ProjectEditClient({
                   rows={3}
                   defaultValue={project.description ?? ""}
                 />
+              </InputGroup>
+              <InputGroup label="Result Tags" htmlFor="resultTags">
+                <Textarea
+                  id="resultTags"
+                  name="resultTags"
+                  rows={3}
+                  placeholder="e.g., Q1, follow-up, needs-review"
+                  defaultValue={(project.resultTags || []).join(", ")}
+                />
+                <p style={{ marginTop: "6px", color: "var(--color-gray-600)" }}>
+                  Add comma or newline-separated tags to apply to results.
+                </p>
               </InputGroup>
               <div className="form__actions">
                 <Button type="submit" isLoading={saving}>
