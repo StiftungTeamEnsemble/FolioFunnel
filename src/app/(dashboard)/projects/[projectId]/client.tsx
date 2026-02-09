@@ -763,7 +763,8 @@ export function ProjectPromptClient({
                                 flexWrap: "wrap",
                               }}
                             >
-                              <strong>Tags</strong>
+                              <MetaLine style={{ marginTop: 0 }}>Tags</MetaLine>
+
                               {projectTags.map((tag) => {
                                 const isSelected = runTags.includes(tag);
                                 return (

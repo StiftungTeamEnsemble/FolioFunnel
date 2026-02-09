@@ -16,7 +16,7 @@
   gap: 16px;
   padding: 14px 16px;
   border: 1px solid var(--color-gray-100);
-  border-radius: 12px;
+  border-radius: 0.3em;
   background-color: var(--color-gray-50);
 }
 
@@ -125,7 +125,7 @@
 
 .tasks-pager__link {
   padding: 6px 12px;
-  border-radius: 8px;
+  border-radius: 0.3em;
   border: 1px solid var(--color-gray-200);
   font-size: 13px;
   color: var(--color-gray-700);
