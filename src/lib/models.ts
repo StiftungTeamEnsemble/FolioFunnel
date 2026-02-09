@@ -22,6 +22,8 @@ export interface ModelConfig {
   category: "chat" | "embedding";
   // Context window size
   contextWindow: number;
+  // Maximum completion tokens supported by the model (chat models only)
+  maxCompletionTokens?: number;
   // Pricing per million tokens (chat models only)
   pricing?: {
     inputPerMillion: number;
@@ -37,6 +39,7 @@ export const CHAT_MODELS: ModelConfig[] = [
     tiktokenModel: "gpt-5",
     category: "chat",
     contextWindow: 400000,
+    maxCompletionTokens: 16384,
     pricing: {
       inputPerMillion: 0.05,
       outputPerMillion: 0.4,
@@ -50,6 +53,7 @@ export const CHAT_MODELS: ModelConfig[] = [
     serviceTier: "flex",
     category: "chat",
     contextWindow: 400000,
+    maxCompletionTokens: 16384,
     pricing: {
       inputPerMillion: 0.025,
       outputPerMillion: 0.2,
@@ -61,6 +65,7 @@ export const CHAT_MODELS: ModelConfig[] = [
     tiktokenModel: "gpt-4o",
     category: "chat",
     contextWindow: 128000,
+    maxCompletionTokens: 16384,
     pricing: {
       inputPerMillion: 0.15,
       outputPerMillion: 0.6,
