@@ -1,15 +1,8 @@
 "use client";
 
 import { Column } from "@prisma/client";
-import {
-  Button,
-  Input,
-  Modal,
-  ModalContent,
-  ModalFooter,
-  Select,
-  SelectItem,
-} from "@/components/ui";
+import { Button, Modal, ModalContent, ModalFooter } from "@/components/ui";
+import { ArrayValueEditor } from "@/components/documents/ArrayValueEditor";
 
 interface ManualArrayEditorState {
   docId: string;
@@ -77,68 +70,23 @@ export function ManualArrayEditorModal({
                 {error && (
                   <div style={{ color: "var(--color-error)" }}>{error}</div>
                 )}
-                {state.values.length === 0 && (
-                  <p className="input-group__hint">No values yet.</p>
-                )}
-                {state.values.map((value, index) => (
-                  <div key={index} className="form__row">
-                    {isRestricted ? (
-                      <Select
-                        value={value}
-                        onValueChange={(nextValue) =>
-                          onChangeValue(index, nextValue)
-                        }
-                      >
-                        {allowedValues.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </Select>
-                    ) : (
-                      <Input
-                        type={
-                          state.column.type === "number_array"
-                            ? "number"
-                            : "text"
-                        }
-                        value={value}
-                        onChange={(event) =>
-                          onChangeValue(index, event.target.value)
-                        }
-                      />
-                    )}
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => onRemoveValue(index)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
                 {isTextArray && isRestricted && allowedValues.length === 0 && (
                   <p className="input-group__hint">
                     Add allowed tag values in the column settings to enable
                     selection.
                   </p>
                 )}
-                <div className="form__row">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      const defaultValue =
-                        isRestricted && allowedValues.length
-                          ? allowedValues[0]
-                          : "";
-                      onAddValue(defaultValue);
-                    }}
-                    disabled={disableAdd}
-                  >
-                    Add value
-                  </Button>
-                </div>
+                <ArrayValueEditor
+                  values={state.values}
+                  onChangeValue={onChangeValue}
+                  onAddValue={onAddValue}
+                  onRemoveValue={onRemoveValue}
+                  inputType={
+                    state.column.type === "number_array" ? "number" : "text"
+                  }
+                  selectOptions={isRestricted ? allowedValues : undefined}
+                  disableAdd={disableAdd}
+                />
               </div>
             );
           })()}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   Input,
@@ -15,6 +15,7 @@ import {
 import { createColumn, updateColumn } from "@/app/actions/columns";
 import { Column, ColumnMode, ProcessorType } from "@prisma/client";
 import { CHAT_MODELS, DEFAULT_CHAT_MODEL } from "@/lib/models";
+import { ArrayValueEditor } from "@/components/documents/ArrayValueEditor";
 
 // Available metadata fields
 const METADATA_FIELDS = [
@@ -44,6 +45,28 @@ interface TextArrayReplacement {
   replacement: string;
   flags: string;
 }
+
+interface AllowedValueEntry {
+  id: string;
+  value: string;
+  originalValue?: string;
+}
+
+const createAllowedValueEntry = (
+  value: string,
+  originalValue?: string,
+): AllowedValueEntry => {
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()}`;
+  return { id, value, originalValue };
+};
+
+const sanitizeAllowedValues = (entries: AllowedValueEntry[]) =>
+  entries
+    .map((entry) => entry.value.trim())
+    .filter((value) => value.length > 0);
 
 export function ColumnModal({
   projectId,
@@ -85,7 +108,8 @@ export function ColumnModal({
     "true" | "false"
   >("false");
   const [manualTextArrayAllowedValues, setManualTextArrayAllowedValues] =
-    useState("");
+    useState<AllowedValueEntry[]>([]);
+  const initialAllowedValuesRef = useRef<string[]>([]);
 
   // Reset form when modal opens or column changes
   useEffect(() => {
@@ -163,13 +187,15 @@ export function ColumnModal({
       setManualTextArrayRestriction(
         config.manualTextArrayRestrict === true ? "true" : "false",
       );
+      const allowedValues = Array.isArray(config.manualTextArrayAllowedValues)
+        ? config.manualTextArrayAllowedValues.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [];
       setManualTextArrayAllowedValues(
-        Array.isArray(config.manualTextArrayAllowedValues)
-          ? config.manualTextArrayAllowedValues
-              .filter((value) => typeof value === "string")
-              .join("\n")
-          : "",
+        allowedValues.map((value) => createAllowedValueEntry(value, value)),
       );
+      initialAllowedValuesRef.current = allowedValues;
     } else {
       // Add mode: reset to defaults
       setKey("");
@@ -188,7 +214,8 @@ export function ColumnModal({
       setSplitFlags("");
       setSplitReplacements([]);
       setManualTextArrayRestriction("false");
-      setManualTextArrayAllowedValues("");
+      setManualTextArrayAllowedValues([]);
+      initialAllowedValuesRef.current = [];
     }
     setError(null);
   }, [open, column]);
@@ -289,14 +316,19 @@ export function ColumnModal({
       const config: Record<string, unknown> = {
         manualTextArrayRestrict: manualTextArrayRestriction === "true",
       };
-      const allowedValues = manualTextArrayAllowedValues
-        .split(/[\n,]+/)
-        .map((value) => value.trim())
-        .filter(Boolean);
+      const allowedValues = sanitizeAllowedValues(
+        manualTextArrayAllowedValues,
+      );
       if (allowedValues.length > 0) {
         config.manualTextArrayAllowedValues = allowedValues;
       }
       formData.set("processorConfig", JSON.stringify(config));
+      if (allowedValueChanges) {
+        formData.set(
+          "allowedValueChanges",
+          JSON.stringify(allowedValueChanges),
+        );
+      }
     }
 
     let result;
@@ -343,6 +375,51 @@ export function ColumnModal({
       prev.filter((_, currentIndex) => currentIndex !== index),
     );
   };
+
+  const allowedValueChanges = useMemo(() => {
+    if (
+      !isEditMode ||
+      mode !== "manual" ||
+      dataType !== "text_array" ||
+      manualTextArrayRestriction !== "true"
+    ) {
+      return null;
+    }
+
+    const initialValues = initialAllowedValuesRef.current
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const renamed = manualTextArrayAllowedValues
+      .filter(
+        (entry) =>
+          entry.originalValue &&
+          entry.value.trim().length > 0 &&
+          entry.value.trim() !== entry.originalValue,
+      )
+      .map((entry) => ({
+        from: entry.originalValue as string,
+        to: entry.value.trim(),
+      }));
+    const deleted = initialValues.filter(
+      (value) =>
+        !manualTextArrayAllowedValues.some(
+          (entry) =>
+            entry.originalValue === value && entry.value.trim().length > 0,
+        ),
+    );
+
+    if (renamed.length === 0 && deleted.length === 0) {
+      return null;
+    }
+
+    return { renamed, deleted };
+  }, [
+    dataType,
+    isEditMode,
+    manualTextArrayAllowedValues,
+    manualTextArrayRestriction,
+    mode,
+  ]);
 
   // Check if we need source column input
   const needsSourceColumn =
@@ -723,19 +800,62 @@ export function ColumnModal({
               <InputGroup
                 label="Allowed tag values"
                 htmlFor="manualTextArrayAllowedValues"
-                hint="Enter one tag per line. These become the selectable values."
+                hint="Add tag values to make them selectable."
               >
-                <Textarea
-                  id="manualTextArrayAllowedValues"
-                  name="manualTextArrayAllowedValues"
-                  value={manualTextArrayAllowedValues}
-                  onChange={(event) =>
-                    setManualTextArrayAllowedValues(event.target.value)
+                <ArrayValueEditor
+                  values={manualTextArrayAllowedValues.map(
+                    (entry) => entry.value,
+                  )}
+                  onChangeValue={(index, value) =>
+                    setManualTextArrayAllowedValues((prev) =>
+                      prev.map((entry, currentIndex) =>
+                        currentIndex === index
+                          ? { ...entry, value }
+                          : entry,
+                      ),
+                    )
                   }
-                  rows={4}
+                  onAddValue={() =>
+                    setManualTextArrayAllowedValues((prev) => [
+                      ...prev,
+                      createAllowedValueEntry(""),
+                    ])
+                  }
+                  onRemoveValue={(index) =>
+                    setManualTextArrayAllowedValues((prev) =>
+                      prev.filter((_, currentIndex) => currentIndex !== index),
+                    )
+                  }
+                  addLabel="Add tag value"
+                  emptyMessage="No tag values yet."
                 />
               </InputGroup>
             </>
+          )}
+
+          {allowedValueChanges && (
+            <div
+              className="input-group__hint"
+              style={{ color: "var(--color-warning)" }}
+            >
+              <strong>Warning:</strong> Saving changes will update existing
+              documents.{" "}
+              {allowedValueChanges.deleted.length > 0 && (
+                <span>
+                  Deleted values:{" "}
+                  {allowedValueChanges.deleted.join(", ")}.
+                </span>
+              )}{" "}
+              {allowedValueChanges.renamed.length > 0 && (
+                <span>
+                  Renamed values:{" "}
+                  {allowedValueChanges.renamed
+                    .map((change) => `${change.from} → ${change.to}`)
+                    .join(", ")}
+                  .
+                </span>
+              )}
+            </div>
           )}
 
           <ModalFooter>
