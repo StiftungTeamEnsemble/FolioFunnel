@@ -6,7 +6,7 @@ import "@/styles/components/button.css";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "tag";
   isLoading?: boolean;
   isIcon?: boolean;
   fullWidth?: boolean;

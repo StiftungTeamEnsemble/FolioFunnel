@@ -39,7 +39,7 @@ export const CHAT_MODELS: ModelConfig[] = [
     tiktokenModel: "gpt-5",
     category: "chat",
     contextWindow: 400000,
-    maxCompletionTokens: 16384,
+    maxCompletionTokens: 128000,
     pricing: {
       inputPerMillion: 0.05,
       outputPerMillion: 0.4,
@@ -53,7 +53,7 @@ export const CHAT_MODELS: ModelConfig[] = [
     serviceTier: "flex",
     category: "chat",
     contextWindow: 400000,
-    maxCompletionTokens: 16384,
+    maxCompletionTokens: 128000,
     pricing: {
       inputPerMillion: 0.025,
       outputPerMillion: 0.2,

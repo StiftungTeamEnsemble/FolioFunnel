@@ -158,7 +158,9 @@ export function ProjectPromptClient({
       setFilterGroups([]);
       return;
     }
-    setFilterGroups((selectedPromptTemplate.filters as unknown as FilterGroup[]) || []);
+    setFilterGroups(
+      (selectedPromptTemplate.filters as unknown as FilterGroup[]) || [],
+    );
   }, [selectedPromptTemplate]);
 
   const previewDocuments = useMemo(
@@ -459,11 +461,7 @@ export function ProjectPromptClient({
       <div className="section">
         <div className="section__header">
           <div>
-            <h3 className="section__title">Prompt Templates</h3>
-            <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
-              {promptTemplates.length} saved template
-              {promptTemplates.length !== 1 ? "s" : ""}
-            </span>
+            <h3 className="section__title">Prompt</h3>
           </div>
           <div style={{ display: "flex", gap: "8px" }}>
             <Button
@@ -546,7 +544,8 @@ export function ProjectPromptClient({
                       selectedPromptTemplate.promptTemplate,
                     );
                     setBuilderFilters(
-                      (selectedPromptTemplate.filters as unknown as FilterGroup[]) || [],
+                      (selectedPromptTemplate.filters as unknown as FilterGroup[]) ||
+                        [],
                     );
                     setBuilderDocuments(initialDocuments);
                     setBuilderSelectedDocuments(initialDocuments);
@@ -580,40 +579,7 @@ export function ProjectPromptClient({
       </div>
 
       <div className="section">
-        <div className="section__header">
-          <h3 className="section__title">Prompt Run</h3>
-        </div>
         <div style={{ display: "grid", gap: "12px" }}>
-          <div className="card">
-            <div className="card__body">
-              <h4 style={{ marginBottom: "8px" }}>Cost estimate</h4>
-              {tokenError ? (
-                <MetaLine
-                  style={{ color: "var(--color-red-500)", marginTop: 0 }}
-                >
-                  {tokenError}
-                </MetaLine>
-              ) : (
-                <MetaLine style={{ marginTop: 0 }}>
-                  {isCountingTokens ? (
-                    <span>Counting tokens...</span>
-                  ) : (
-                    <>
-                      <span>Tokens (input): {tokenCount ?? 0}</span>
-                      <MetaSeparator />
-                      <span>
-                        Cost estimate (input):{" "}
-                        {costEstimate !== null
-                          ? `$${costEstimate.toFixed(4)}`
-                          : "N/A"}
-                      </span>
-                    </>
-                  )}
-                </MetaLine>
-              )}
-            </div>
-          </div>
-
           {sendError && (
             <p style={{ color: "var(--color-red-500)" }}>{sendError}</p>
           )}
@@ -622,18 +588,45 @@ export function ProjectPromptClient({
             <Button
               variant="secondary"
               onClick={() => setIsPreviewModalOpen(true)}
-              disabled={!selectedPromptTemplate || selectedDocuments.length === 0}
+              disabled={
+                !selectedPromptTemplate || selectedDocuments.length === 0
+              }
             >
               View prompt preview
             </Button>
             <Button
               onClick={handleSendPrompt}
-              disabled={!selectedPromptTemplate || selectedDocuments.length === 0}
+              disabled={
+                !selectedPromptTemplate || selectedDocuments.length === 0
+              }
               isLoading={isPending}
             >
               Send Prompt
             </Button>
           </div>
+
+          {tokenError ? (
+            <MetaLine style={{ color: "var(--color-red-500)", marginTop: 0 }}>
+              {tokenError}
+            </MetaLine>
+          ) : (
+            <MetaLine style={{ marginTop: 0 }}>
+              {isCountingTokens ? (
+                <span>Counting tokens...</span>
+              ) : (
+                <>
+                  <span>Tokens (input): {tokenCount ?? 0}</span>
+                  <MetaSeparator />
+                  <span>
+                    Cost estimate (input):{" "}
+                    {costEstimate !== null
+                      ? `$${costEstimate.toFixed(4)}`
+                      : "N/A"}
+                  </span>
+                </>
+              )}
+            </MetaLine>
+          )}
         </div>
       </div>
 
@@ -779,7 +772,7 @@ export function ProjectPromptClient({
                                     variant={
                                       isSelected ? "primary" : "secondary"
                                     }
-                                    size="sm"
+                                    size="tag"
                                     onClick={() =>
                                       handleToggleRunTag(run.id, tag)
                                     }

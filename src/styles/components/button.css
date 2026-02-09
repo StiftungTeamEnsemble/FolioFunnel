@@ -13,6 +13,7 @@
   transition: all 0.15s ease;
   text-decoration: none;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .button:disabled {
@@ -26,6 +27,11 @@
 }
 
 /* Sizes */
+.button--tag {
+  padding: 0.2em 0.5em;
+  font-size: 0.8em;
+}
+
 .button--sm {
   padding: 0.25em 0.7em;
   font-size: 0.875em;
