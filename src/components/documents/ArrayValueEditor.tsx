@@ -25,6 +25,30 @@ export function ArrayValueEditor({
   selectOptions,
   disableAdd,
 }: ArrayValueEditorProps) {
+  const selectedValues = new Set(values.filter((value) => value !== ""));
+
+  const handleChangeValue = (index: number, nextValue: string) => {
+    if (
+      nextValue !== "" &&
+      values.some((value, valueIndex) => valueIndex !== index && value === nextValue)
+    ) {
+      return;
+    }
+    onChangeValue(index, nextValue);
+  };
+
+  const handleAddValue = (nextValue: string) => {
+    if (nextValue === "" || selectedValues.has(nextValue)) {
+      return;
+    }
+    onAddValue(nextValue);
+  };
+
+  const getAvailableOptions = (currentValue: string) =>
+    selectOptions?.filter(
+      (option) => option === currentValue || !selectedValues.has(option),
+    ) ?? [];
+
   return (
     <div className="form">
       {values.length === 0 && (
@@ -35,9 +59,9 @@ export function ArrayValueEditor({
           {selectOptions ? (
             <Select
               value={value}
-              onValueChange={(nextValue) => onChangeValue(index, nextValue)}
+              onValueChange={(nextValue) => handleChangeValue(index, nextValue)}
             >
-              {selectOptions.map((option) => (
+              {getAvailableOptions(value).map((option) => (
                 <SelectItem key={option} value={option}>
                   {option}
                 </SelectItem>
@@ -47,7 +71,7 @@ export function ArrayValueEditor({
             <Input
               type={inputType}
               value={value}
-              onChange={(event) => onChangeValue(index, event.target.value)}
+              onChange={(event) => handleChangeValue(index, event.target.value)}
             />
           )}
           <Button
@@ -59,16 +83,28 @@ export function ArrayValueEditor({
           </Button>
         </div>
       ))}
-      <div className="form__row">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => onAddValue(selectOptions?.[0] ?? "")}
-          disabled={disableAdd}
-        >
-          {addLabel}
-        </Button>
-      </div>
+      {selectOptions ? (
+        <div className="form__row">
+          <Select value="" onValueChange={handleAddValue}>
+            {getAvailableOptions("").map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+      ) : (
+        <div className="form__row">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onAddValue("")}
+            disabled={disableAdd}
+          >
+            {addLabel}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
