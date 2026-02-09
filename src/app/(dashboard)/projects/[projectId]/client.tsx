@@ -29,6 +29,7 @@ import { renderPromptTemplate } from "@/lib/prompts";
 import {
   createPromptRunAction,
   estimatePromptCostAction,
+  updatePromptRunTagsAction,
 } from "@/app/actions/prompt-runs";
 import type { FilterGroup } from "@/lib/document-filters";
 import {
@@ -40,11 +41,12 @@ import { DeletePromptTemplateModal } from "@/components/prompts/DeletePromptTemp
 import { DeletePromptRunModal } from "@/components/runs/DeletePromptRunModal";
 
 interface PromptRunWithAuthor extends Run {
+  tags: string[];
   createdBy: { id: string; name: string | null; email: string | null } | null;
 }
 
 interface ProjectPromptClientProps {
-  project: Project;
+  project: Project & { resultTags: string[] };
   initialDocuments: Document[];
   columns: Column[];
   promptRuns: PromptRunWithAuthor[];
@@ -78,6 +80,7 @@ export function ProjectPromptClient({
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>(
     initialPromptTemplates,
   );
+  const [runs, setRuns] = useState<PromptRunWithAuthor[]>(promptRuns);
   const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState<
     string | null
   >(initialPromptTemplates[0]?.id ?? null);
@@ -120,12 +123,21 @@ export function ProjectPromptClient({
   const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [selectedTagFilters, setSelectedTagFilters] = useState<string[]>([]);
+  const [updatingRunIds, setUpdatingRunIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [tagError, setTagError] = useState<string | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const previewLimit = 3;
 
   useEffect(() => {
     setPromptTemplates(initialPromptTemplates);
   }, [initialPromptTemplates]);
+
+  useEffect(() => {
+    setRuns(promptRuns);
+  }, [promptRuns]);
 
   useEffect(() => {
     if (!promptTemplates.length) {
@@ -319,8 +331,7 @@ export function ProjectPromptClient({
       : null;
   };
 
-  const isRunExpanded = (runId: string, index: number) =>
-    index === 0 || expandedRunIds.has(runId);
+  const isRunExpanded = (runId: string) => expandedRunIds.has(runId);
 
   const toggleRunExpanded = (runId: string) => {
     setExpandedRunIds((prev) => {
@@ -330,6 +341,71 @@ export function ProjectPromptClient({
       } else {
         next.add(runId);
       }
+      return next;
+    });
+  };
+
+  const projectTags = useMemo(
+    () => (project.resultTags || []) as string[],
+    [project.resultTags],
+  );
+
+  const filteredRuns = useMemo(() => {
+    if (!selectedTagFilters.length) {
+      return runs;
+    }
+    return runs.filter((run) =>
+      (run.tags || []).some((tag) => selectedTagFilters.includes(tag)),
+    );
+  }, [runs, selectedTagFilters]);
+
+  const toggleTagFilter = (tag: string) => {
+    setSelectedTagFilters((prev) =>
+      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag],
+    );
+  };
+
+  const handleToggleRunTag = async (runId: string, tag: string) => {
+    const run = runs.find((item) => item.id === runId);
+    if (!run) return;
+    setTagError(null);
+
+    const currentTags = run.tags || [];
+    const nextTags = currentTags.includes(tag)
+      ? currentTags.filter((item) => item !== tag)
+      : [...currentTags, tag];
+
+    setRuns((prev) =>
+      prev.map((item) =>
+        item.id === runId ? { ...item, tags: nextTags } : item,
+      ),
+    );
+    setUpdatingRunIds((prev) => new Set(prev).add(runId));
+
+    const result = await updatePromptRunTagsAction({
+      projectId: project.id,
+      promptRunId: runId,
+      tags: nextTags,
+    });
+
+    if (result.error) {
+      setRuns((prev) =>
+        prev.map((item) =>
+          item.id === runId ? { ...item, tags: currentTags } : item,
+        ),
+      );
+      setTagError(result.error);
+    } else if (result.tags) {
+      setRuns((prev) =>
+        prev.map((item) =>
+          item.id === runId ? { ...item, tags: result.tags } : item,
+        ),
+      );
+    }
+
+    setUpdatingRunIds((prev) => {
+      const next = new Set(prev);
+      next.delete(runId);
       return next;
     });
   };
@@ -574,142 +650,227 @@ export function ProjectPromptClient({
             </p>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: "12px" }}>
-            {promptRuns.map((run, index) => {
-              const templateTitle = getPromptTemplateTitle(run);
-              const isExpanded = isRunExpanded(run.id, index);
-              return (
-                <div key={run.id} className="card card--clickable">
-                  <div className="card__body">
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        gap: "12px",
-                        flexWrap: "wrap",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <div style={{ display: "grid", gap: "4px" }}>
-                        <h4>{templateTitle || "Untitled template"}</h4>
-                        <MetaLine style={{ marginTop: 0 }}>
-                          <span>
-                            {run.createdBy?.name ||
-                              run.createdBy?.email ||
-                              "Unknown author"}
-                          </span>
-                          <MetaSeparator />
-                          <span>{formatDateTime(run.createdAt)}</span>
-                          <MetaSeparator />
-                          <span>{run.model || "Prompt Run"}</span>
-                        </MetaLine>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "8px",
-                          flexWrap: "wrap",
-                        }}
+          <>
+            {projectTags.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  marginBottom: "12px",
+                }}
+              >
+                <span style={{ fontWeight: 600 }}>Filter by tag:</span>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {projectTags.map((tag) => {
+                    const isActive = selectedTagFilters.includes(tag);
+                    return (
+                      <Button
+                        key={tag}
+                        variant={isActive ? "primary" : "secondary"}
+                        size="sm"
+                        onClick={() => toggleTagFilter(tag)}
                       >
-                        {run.result && index !== 0 && (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => toggleRunExpanded(run.id)}
-                          >
-                            {isExpanded ? "Collapse" : "Expand"}
-                          </Button>
-                        )}
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() =>
-                            router.push(
-                              `/projects/${project.id}/prompts/${run.id}`,
-                            )
-                          }
-                        >
-                          View details
-                        </Button>
-                      </div>
-                    </div>
-                    {run.result && isExpanded && (
-                      <div style={{ marginTop: "12px" }}>
+                        {tag}
+                      </Button>
+                    );
+                  })}
+                  {selectedTagFilters.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedTagFilters([])}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            {tagError && (
+              <p style={{ color: "var(--color-red-500)" }}>{tagError}</p>
+            )}
+            {filteredRuns.length === 0 ? (
+              <div className="empty-state empty-state--compact">
+                <h2 className="empty-state__title">No results found</h2>
+                <p className="empty-state__description">
+                  No results match the selected tags.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: "12px" }}>
+                {filteredRuns.map((run) => {
+                  const templateTitle = getPromptTemplateTitle(run);
+                  const isExpanded = isRunExpanded(run.id);
+                  const runTags = run.tags || [];
+                  const isUpdating = updatingRunIds.has(run.id);
+                  return (
+                    <div key={run.id} className="card card--clickable">
+                      <div className="card__body">
                         <div
                           style={{
                             display: "flex",
                             justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: "8px",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            alignItems: "flex-start",
                           }}
                         >
-                          <strong>Response</strong>
-                          <button
-                            type="button"
-                            className="table__cell__copy"
-                            onClick={() => handleCopy(run.result || "")}
-                            aria-label="Copy response"
+                          <div style={{ display: "grid", gap: "4px" }}>
+                            <h4>{templateTitle || "Untitled template"}</h4>
+                            <MetaLine style={{ marginTop: 0 }}>
+                              <span>
+                                {run.createdBy?.name ||
+                                  run.createdBy?.email ||
+                                  "Unknown author"}
+                              </span>
+                              <MetaSeparator />
+                              <span>{formatDateTime(run.createdAt)}</span>
+                              <MetaSeparator />
+                              <span>{run.model || "Prompt Run"}</span>
+                            </MetaLine>
+                          </div>
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "8px",
+                              flexWrap: "wrap",
+                            }}
                           >
-                            Copy
-                          </button>
+                            {run.result && (
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => toggleRunExpanded(run.id)}
+                              >
+                                {isExpanded ? "Collapse" : "Expand"}
+                              </Button>
+                            )}
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                router.push(
+                                  `/projects/${project.id}/prompts/${run.id}`,
+                                )
+                              }
+                            >
+                              View details
+                            </Button>
+                          </div>
                         </div>
+                        {projectTags.length > 0 && (
+                          <div style={{ marginTop: "12px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                flexWrap: "wrap",
+                              }}
+                            >
+                              <strong>Tags</strong>
+                              {projectTags.map((tag) => {
+                                const isSelected = runTags.includes(tag);
+                                return (
+                                  <Button
+                                    key={`${run.id}-${tag}`}
+                                    variant={
+                                      isSelected ? "primary" : "secondary"
+                                    }
+                                    size="sm"
+                                    onClick={() =>
+                                      handleToggleRunTag(run.id, tag)
+                                    }
+                                    disabled={isUpdating}
+                                  >
+                                    {tag}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {run.result && isExpanded && (
+                          <div style={{ marginTop: "12px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                gap: "8px",
+                              }}
+                            >
+                              <strong>Response</strong>
+                              <button
+                                type="button"
+                                className="table__cell__copy"
+                                onClick={() => handleCopy(run.result || "")}
+                                aria-label="Copy response"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                            <div
+                              style={{
+                                marginTop: "8px",
+                                whiteSpace: "pre-wrap",
+                                wordWrap: "normal",
+                                color: "var(--color-gray-700)",
+                                fontFamily: "inherit",
+                              }}
+                            >
+                              {run.result}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className="card__footer"
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          flexWrap: "wrap",
+                          alignItems: "center",
+                        }}
+                      >
+                        <RunStatusBadge status={run.status} />
                         <div
                           style={{
-                            marginTop: "8px",
-                            whiteSpace: "pre-wrap",
-                            wordWrap: "normal",
-                            color: "var(--color-gray-700)",
-                            fontFamily: "inherit",
+                            display: "flex",
+                            gap: "12px",
+                            flexWrap: "wrap",
+                            alignItems: "center",
                           }}
                         >
-                          {run.result}
+                          <MetaLine style={{ marginTop: 0 }}>
+                            <span>Tokens: {run.tokenCount ?? 0}</span>
+                            <MetaSeparator />
+                            <span>
+                              Cost:{" "}
+                              {run.costEstimate !== null &&
+                              run.costEstimate !== undefined
+                                ? `$${run.costEstimate.toFixed(4)}`
+                                : "N/A"}
+                            </span>
+                          </MetaLine>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePromptRun(run)}
+                          >
+                            Delete
+                          </Button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                  <div
-                    className="card__footer"
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: "12px",
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                    }}
-                  >
-                    <RunStatusBadge status={run.status} />
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "12px",
-                        flexWrap: "wrap",
-                        alignItems: "center",
-                      }}
-                    >
-                      <MetaLine style={{ marginTop: 0 }}>
-                        <span>Tokens: {run.tokenCount ?? 0}</span>
-                        <MetaSeparator />
-                        <span>
-                          Cost:{" "}
-                          {run.costEstimate !== null &&
-                          run.costEstimate !== undefined
-                            ? `$${run.costEstimate.toFixed(4)}`
-                            : "N/A"}
-                        </span>
-                      </MetaLine>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeletePromptRun(run)}
-                      >
-                        Delete
-                      </Button>
                     </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 

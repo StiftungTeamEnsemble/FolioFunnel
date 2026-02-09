@@ -45,6 +45,22 @@ export function ManualArrayEditorModal({
   onSave,
 }: ManualArrayEditorModalProps) {
   const isOpen = Boolean(state);
+  const duplicateValues = (() => {
+    if (!state) return [];
+    const seen = new Map<string, number>();
+    const duplicates = new Set<string>();
+    state.values.forEach((value) => {
+      const trimmed = value.trim();
+      if (!trimmed) return;
+      const count = seen.get(trimmed) ?? 0;
+      if (count >= 1) {
+        duplicates.add(trimmed);
+      }
+      seen.set(trimmed, count + 1);
+    });
+    return Array.from(duplicates);
+  })();
+  const hasDuplicateValues = duplicateValues.length > 0;
 
   return (
     <Modal
@@ -70,6 +86,12 @@ export function ManualArrayEditorModal({
                 {error && (
                   <div style={{ color: "var(--color-error)" }}>{error}</div>
                 )}
+                {hasDuplicateValues && (
+                  <div style={{ color: "var(--color-warning)" }}>
+                    Duplicate values found: {duplicateValues.join(", ")}. Remove
+                    duplicates before saving.
+                  </div>
+                )}
                 {isTextArray && isRestricted && allowedValues.length === 0 && (
                   <p className="input-group__hint">
                     Add allowed tag values in the column settings to enable
@@ -94,7 +116,12 @@ export function ManualArrayEditorModal({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="button" onClick={onSave} isLoading={isSaving}>
+            <Button
+              type="button"
+              onClick={onSave}
+              isLoading={isSaving}
+              disabled={hasDuplicateValues}
+            >
               Save
             </Button>
           </ModalFooter>

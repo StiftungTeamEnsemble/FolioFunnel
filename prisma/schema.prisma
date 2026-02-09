@@ -70,6 +70,7 @@ model Project {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
   description String?
+  resultTags  String[] @default([]) @map("result_tags")
   createdById String   @map("created_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -270,6 +271,7 @@ model Run {
   
   // Common output/metrics
   result           String? @db.Text  // Prompt result or can store processor output
+  tags             String[] @default([])
   inputTokenCount  Int?    @map("input_token_count")
   outputTokenCount Int?    @map("output_token_count")
   tokenCount       Int?    @map("token_count")
