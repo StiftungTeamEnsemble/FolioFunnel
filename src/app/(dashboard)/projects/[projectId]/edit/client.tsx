@@ -16,6 +16,7 @@ import {
   SelectItem,
   Textarea,
 } from "@/components/ui";
+import { ArrayValueEditor } from "@/components/documents/ArrayValueEditor";
 import {
   addProjectMember,
   removeMember,
@@ -59,6 +60,9 @@ export function ProjectEditClient({
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [resultTags, setResultTags] = useState<string[]>(
+    project.resultTags || [],
+  );
   const currentMemberRole =
     members.find((member) => member.user.id === currentUserId)?.role ??
     MemberRole.member;
@@ -179,15 +183,34 @@ export function ProjectEditClient({
                 />
               </InputGroup>
               <InputGroup label="Result Tags" htmlFor="resultTags">
-                <Textarea
+                <input
+                  type="hidden"
                   id="resultTags"
                   name="resultTags"
-                  rows={3}
-                  placeholder="e.g., Q1, follow-up, needs-review"
-                  defaultValue={(project.resultTags || []).join(", ")}
+                  value={resultTags.join(", ")}
+                />
+                <ArrayValueEditor
+                  values={resultTags}
+                  onChangeValue={(index, value) =>
+                    setResultTags((prev) =>
+                      prev.map((entry, currentIndex) =>
+                        currentIndex === index ? value : entry,
+                      ),
+                    )
+                  }
+                  onAddValue={() =>
+                    setResultTags((prev) => [...prev, ""])
+                  }
+                  onRemoveValue={(index) =>
+                    setResultTags((prev) =>
+                      prev.filter((_, currentIndex) => currentIndex !== index),
+                    )
+                  }
+                  addLabel="Add tag"
+                  emptyMessage="No tags yet."
                 />
                 <p style={{ marginTop: "6px", color: "var(--color-gray-600)" }}>
-                  Add comma or newline-separated tags to apply to results.
+                  Add tags to apply to results.
                 </p>
               </InputGroup>
               <div className="form__actions">
