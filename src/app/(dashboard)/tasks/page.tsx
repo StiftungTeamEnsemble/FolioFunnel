@@ -42,25 +42,32 @@ type UnifiedTask = {
   error?: string | null;
 };
 
-type TaskFilterType = "all" | "processor" | "prompt";
+type TaskFilterType = "all" | "queued" | "running" | "success" | "error";
 
 type TasksPageProps = {
   searchParams?: {
     page?: string;
-    type?: string;
+    status?: string;
   };
 };
 
 const taskFilters: { label: string; value: TaskFilterType }[] = [
   { label: "All tasks", value: "all" },
-  { label: "Processor runs", value: "processor" },
-  { label: "Prompt runs", value: "prompt" },
+  { label: "Queued", value: "queued" },
+  { label: "Running", value: "running" },
+  { label: "Success", value: "success" },
+  { label: "Error", value: "error" },
 ];
 
 const PAGE_SIZE = 50;
 
 function resolveFilterType(value?: string): TaskFilterType {
-  if (value === "processor" || value === "prompt") {
+  if (
+    value === "queued" ||
+    value === "running" ||
+    value === "success" ||
+    value === "error"
+  ) {
     return value;
   }
   return "all";
@@ -78,7 +85,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
     redirect("/auth/signin");
   }
 
-  const currentFilter = resolveFilterType(searchParams?.type);
+  const currentFilter = resolveFilterType(searchParams?.status);
   const requestedPage = resolvePageNumber(searchParams?.page);
 
   const baseWhere = {
@@ -92,7 +99,9 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   };
 
   const where =
-    currentFilter === "all" ? baseWhere : { ...baseWhere, type: currentFilter };
+    currentFilter === "all"
+      ? baseWhere
+      : { ...baseWhere, status: currentFilter };
 
   const totalTaskCount = await prisma.run.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalTaskCount / PAGE_SIZE));
@@ -105,7 +114,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
       params.set("page", String(page));
     }
     if (filter !== "all") {
-      params.set("type", filter);
+      params.set("status", filter);
     }
     const query = params.toString();
     return query ? `/tasks?${query}` : "/tasks";
