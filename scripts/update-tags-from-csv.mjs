@@ -9,7 +9,11 @@ Required environment variables:
   FF_BASE_URL=http://localhost:3000
   FF_PROJECT_ID=<project-id>
   FF_SESSION_COOKIE="next-auth.session-token=...; next-auth.csrf-token=..."
+
+Example:
+  npx dotenv-cli -e ./scripts/.env -- node scripts/update-tags-from-csv.mjs ./scripts/finder_tags_export.csv --has-header > __logs.txt
 `;
+
 
 const parseArgs = (argv) => {
   const args = argv.slice(2);
@@ -37,10 +41,10 @@ const parseCsv = (content) => {
     const nextChar = content[i + 1];
 
     if (inQuotes) {
-      if (char === "\"" && nextChar === "\"") {
-        field += "\"";
+      if (char === '"' && nextChar === '"') {
+        field += '"';
         i += 1;
-      } else if (char === "\"") {
+      } else if (char === '"') {
         inQuotes = false;
       } else {
         field += char;
@@ -48,12 +52,12 @@ const parseCsv = (content) => {
       continue;
     }
 
-    if (char === "\"") {
+    if (char === '"') {
       inQuotes = true;
       continue;
     }
 
-    if (char === ",") {
+    if (char === "\t") {
       row.push(field);
       field = "";
       continue;
@@ -139,7 +143,7 @@ const main = async () => {
     }
 
     const tags = tagsField
-      .split(",")
+      .split(";")
       .map((tag) => tag.trim())
       .filter(Boolean);
 
@@ -202,7 +206,9 @@ const main = async () => {
       continue;
     }
 
-    console.log(`Line ${lineNumber}: Updated "${filename}" with ${tags.length} tags`);
+    console.log(
+      `Line ${lineNumber}: Updated "${filename}" with ${tags.length} tags`,
+    );
   }
 
   if (errorCount > 0) {
