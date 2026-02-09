@@ -471,11 +471,6 @@ export function ProjectDocumentsClient({
         <div className="section__header">
           <div>
             <h3 className="section__title">Documents</h3>
-            <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
-              {filteredDocuments.length} document
-              {filteredDocuments.length !== 1 ? "s" : ""}, {columns.length}{" "}
-              column{columns.length !== 1 ? "s" : ""}
-            </span>
           </div>
         </div>
         <DocumentSelection
@@ -484,6 +479,13 @@ export function ProjectDocumentsClient({
           onFiltersChange={setFilters}
           serverFiltering
         />
+        <p className="section__info">
+          <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
+            {filteredDocuments.length} document
+            {filteredDocuments.length !== 1 ? "s" : ""}, {columns.length} column
+            {columns.length !== 1 ? "s" : ""}
+          </span>
+        </p>
 
         <KnowledgeTable
           projectId={project.id}
