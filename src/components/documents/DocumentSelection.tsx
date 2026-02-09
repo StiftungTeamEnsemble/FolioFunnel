@@ -35,6 +35,14 @@ const createGroup = (): FilterGroup => ({
   rules: [createRule()],
 });
 
+const isQuickSearchGroup = (groups: FilterGroup[] | undefined) => {
+  if (!groups || groups.length !== 1) return false;
+  const [group] = groups;
+  if (group.rules.length !== 1) return false;
+  const [rule] = group.rules;
+  return rule.field === "all" && rule.operator === "contains";
+};
+
 const normalizeString = (value: unknown) =>
   (value ?? "").toString().toLowerCase();
 
@@ -168,6 +176,27 @@ export function DocumentSelection<T extends Document>({
 
   const quickGroupId = useRef(createId());
   const quickRuleId = useRef(createId());
+
+  useEffect(() => {
+    if (!initialFilterGroups?.length) {
+      setIsExpertMode(false);
+      setQuickSearch("");
+      setFilterGroups([createGroup()]);
+      return;
+    }
+
+    if (isQuickSearchGroup(initialFilterGroups)) {
+      const quickValue = initialFilterGroups[0]?.rules[0]?.value ?? "";
+      setQuickSearch(quickValue);
+      setIsExpertMode(false);
+      setFilterGroups(initialFilterGroups);
+      return;
+    }
+
+    setIsExpertMode(true);
+    setQuickSearch("");
+    setFilterGroups(initialFilterGroups);
+  }, [initialFilterGroups]);
 
   const expertFilteredDocuments = useMemo(() => {
     if (serverFiltering) return documents;
