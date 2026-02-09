@@ -51,6 +51,7 @@ services:
     container_name: foliofunnel-app
     restart: unless-stopped
     environment:
+      TZ: Europe/Zurich
       NODE_ENV: development
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
@@ -97,6 +98,7 @@ services:
     container_name: foliofunnel-worker
     restart: unless-stopped
     environment:
+      TZ: Europe/Zurich
       NODE_ENV: development
       DATABASE_URL: postgresql://foliofunnel:foliofunnel_secret@postgres:5432/foliofunnel
       DOCUMENT_CONVERTER_API_URL: http://document-converter:8180
