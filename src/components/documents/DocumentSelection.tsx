@@ -160,6 +160,33 @@ const matchesQuickSearch = (doc: Document, searchTerm: string) => {
   );
 };
 
+const areFilterRulesEqual = (a: FilterRule | undefined, b: FilterRule | undefined) => {
+  if (!a || !b) return a === b;
+  return (
+    a.id === b.id &&
+    a.field === b.field &&
+    a.operator === b.operator &&
+    a.value === b.value
+  );
+};
+
+const areFilterGroupsEqual = (
+  a: FilterGroup[] | undefined,
+  b: FilterGroup[] | undefined,
+) => {
+  if (!a || !b) return a === b;
+  if (a.length !== b.length) return false;
+  return a.every((group, index) => {
+    const other = b[index];
+    if (!other) return false;
+    if (group.join !== other.join) return false;
+    if (group.rules.length !== other.rules.length) return false;
+    return group.rules.every((rule, ruleIndex) =>
+      areFilterRulesEqual(rule, other.rules[ruleIndex]),
+    );
+  });
+};
+
 export function DocumentSelection<T extends Document>({
   documents,
   columns,
@@ -176,8 +203,19 @@ export function DocumentSelection<T extends Document>({
 
   const quickGroupId = useRef(createId());
   const quickRuleId = useRef(createId());
+  const lastInitialFilterGroupsRef = useRef<FilterGroup[] | undefined>();
+  const lastActiveFiltersRef = useRef<FilterGroup[] | undefined>();
+  const shouldSkipNextFiltersChangeRef = useRef(false);
 
   useEffect(() => {
+    if (areFilterGroupsEqual(initialFilterGroups, lastInitialFilterGroupsRef.current)) {
+      return;
+    }
+
+    lastInitialFilterGroupsRef.current = initialFilterGroups;
+
+    shouldSkipNextFiltersChangeRef.current = true;
+
     if (!initialFilterGroups?.length) {
       setIsExpertMode(false);
       setQuickSearch("");
@@ -250,6 +288,18 @@ export function DocumentSelection<T extends Document>({
   }, [onSelectionChange, selectedDocuments]);
 
   useEffect(() => {
+    if (shouldSkipNextFiltersChangeRef.current) {
+      shouldSkipNextFiltersChangeRef.current = false;
+      lastActiveFiltersRef.current = activeFilters;
+      return;
+    }
+
+    if (areFilterGroupsEqual(activeFilters, lastActiveFiltersRef.current)) {
+      lastActiveFiltersRef.current = activeFilters;
+      return;
+    }
+
+    lastActiveFiltersRef.current = activeFilters;
     onFiltersChange?.(activeFilters as FilterGroup[]);
   }, [activeFilters, onFiltersChange]);
 
