@@ -42,25 +42,32 @@ type UnifiedTask = {
   error?: string | null;
 };
 
-type TaskFilterType = "all" | "processor" | "prompt";
+type TaskFilterType = "all" | "queued" | "running" | "success" | "error";
 
 type TasksPageProps = {
   searchParams?: {
     page?: string;
-    type?: string;
+    status?: string;
   };
 };
 
 const taskFilters: { label: string; value: TaskFilterType }[] = [
   { label: "All tasks", value: "all" },
-  { label: "Processor runs", value: "processor" },
-  { label: "Prompt runs", value: "prompt" },
+  { label: "Queued", value: "queued" },
+  { label: "Running", value: "running" },
+  { label: "Success", value: "success" },
+  { label: "Error", value: "error" },
 ];
 
 const PAGE_SIZE = 50;
 
 function resolveFilterType(value?: string): TaskFilterType {
-  if (value === "processor" || value === "prompt") {
+  if (
+    value === "queued" ||
+    value === "running" ||
+    value === "success" ||
+    value === "error"
+  ) {
     return value;
   }
   return "all";
@@ -78,7 +85,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
     redirect("/auth/signin");
   }
 
-  const currentFilter = resolveFilterType(searchParams?.type);
+  const currentFilter = resolveFilterType(searchParams?.status);
   const requestedPage = resolvePageNumber(searchParams?.page);
 
   const baseWhere = {
@@ -92,7 +99,9 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   };
 
   const where =
-    currentFilter === "all" ? baseWhere : { ...baseWhere, type: currentFilter };
+    currentFilter === "all"
+      ? baseWhere
+      : { ...baseWhere, status: currentFilter };
 
   const totalTaskCount = await prisma.run.count({ where });
   const totalPages = Math.max(1, Math.ceil(totalTaskCount / PAGE_SIZE));
@@ -105,7 +114,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
       params.set("page", String(page));
     }
     if (filter !== "all") {
-      params.set("type", filter);
+      params.set("status", filter);
     }
     const query = params.toString();
     return query ? `/tasks?${query}` : "/tasks";
@@ -211,75 +220,84 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         </div>
       </div>
 
-      {allTasks.length === 0 ? (
-        <div className="empty-state">
-          <svg className="empty-state__icon" viewBox="0 0 64 64" fill="none">
-            <rect
-              x="10"
-              y="14"
-              width="44"
-              height="36"
-              rx="6"
-              stroke="currentColor"
-              strokeWidth="3"
-            />
-            <path
-              d="M20 32h24"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-            />
-            <path
-              d="M20 24h16"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-            />
-          </svg>
-          <h2 className="empty-state__title">No tasks yet</h2>
-          <p className="empty-state__description">
-            Start running processors or prompts in a project to see task
-            activity here.
-          </p>
-          <Button asChild>
-            <Link href="/projects">Go to Projects</Link>
-          </Button>
-        </div>
-      ) : (
-        <div className="section">
-          <div className="card">
-            <div className="card__header">
-              <div>
-                <h2 className="card__title">Recent Activity</h2>
-                <p className="card__subtitle">
-                  Latest processor runs and prompts.
-                </p>
-                <p className="card__subtitle">
-                  Open tasks in queue: {openTaskCount}
-                </p>
-              </div>
-              <div className="tasks-filters">
-                <span className="tasks-filters__label">Filter:</span>
-                <div className="tasks-filters__options">
-                  {taskFilters.map((filter) => {
-                    const isActive = currentFilter === filter.value;
-                    return (
-                      <Link
-                        key={filter.value}
-                        href={buildTasksUrl(1, filter.value)}
-                        className={`tasks-filter ${
-                          isActive ? "tasks-filter--active" : ""
-                        }`}
-                        aria-current={isActive ? "page" : undefined}
-                      >
-                        {filter.label}
-                      </Link>
-                    );
-                  })}
-                </div>
+      <div className="section">
+        <div className="card">
+          <div className="card__header">
+            <div>
+              <h2 className="card__title">Recent Activity</h2>
+              <p className="card__subtitle">
+                Latest processor runs and prompts.
+              </p>
+              <p className="card__subtitle">
+                Open tasks in queue: {openTaskCount}
+              </p>
+            </div>
+            <div className="tasks-filters">
+              <span className="tasks-filters__label">Filter:</span>
+              <div className="tasks-filters__options">
+                {taskFilters.map((filter) => {
+                  const isActive = currentFilter === filter.value;
+                  return (
+                    <Link
+                      key={filter.value}
+                      href={buildTasksUrl(1, filter.value)}
+                      className={`tasks-filter ${
+                        isActive ? "tasks-filter--active" : ""
+                      }`}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      {filter.label}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-            <div className="card__body card__body--compact">
+          </div>
+          <div className="card__body card__body--compact">
+            {allTasks.length === 0 ? (
+              <div className="empty-state empty-state--compact">
+                <svg
+                  className="empty-state__icon"
+                  viewBox="0 0 64 64"
+                  fill="none"
+                >
+                  <rect
+                    x="10"
+                    y="14"
+                    width="44"
+                    height="36"
+                    rx="6"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  />
+                  <path
+                    d="M20 32h24"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M20 24h16"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <h2 className="empty-state__title">
+                  {currentFilter === "all"
+                    ? "No tasks yet"
+                    : "No tasks match this filter"}
+                </h2>
+                <p className="empty-state__description">
+                  {currentFilter === "all"
+                    ? "Start running processors or prompts in a project to see task activity here."
+                    : "Try a different status filter or clear the filter to see more activity."}
+                </p>
+                <Button asChild>
+                  <Link href={buildTasksUrl(1, "all")}>Clear filter</Link>
+                </Button>
+              </div>
+            ) : (
               <ul className="tasks-list">
                 {allTasks.map((task) => {
                   const status = task.status.toLowerCase();
@@ -341,41 +359,41 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
                   );
                 })}
               </ul>
-            </div>
-            <div className="card__footer">
-              <span className="tasks-pager__label">
-                Page {currentPage} of {totalPages}
-              </span>
-              <div className="tasks-pager__controls">
-                {currentPage > 1 ? (
-                  <Link
-                    href={buildTasksUrl(currentPage - 1, currentFilter)}
-                    className="tasks-pager__link"
-                  >
-                    Previous
-                  </Link>
-                ) : (
-                  <span className="tasks-pager__link tasks-pager__link--disabled">
-                    Previous
-                  </span>
-                )}
-                {currentPage < totalPages ? (
-                  <Link
-                    href={buildTasksUrl(currentPage + 1, currentFilter)}
-                    className="tasks-pager__link"
-                  >
-                    Next
-                  </Link>
-                ) : (
-                  <span className="tasks-pager__link tasks-pager__link--disabled">
-                    Next
-                  </span>
-                )}
-              </div>
+            )}
+          </div>
+          <div className="card__footer">
+            <span className="tasks-pager__label">
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="tasks-pager__controls">
+              {currentPage > 1 ? (
+                <Link
+                  href={buildTasksUrl(currentPage - 1, currentFilter)}
+                  className="tasks-pager__link"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span className="tasks-pager__link tasks-pager__link--disabled">
+                  Previous
+                </span>
+              )}
+              {currentPage < totalPages ? (
+                <Link
+                  href={buildTasksUrl(currentPage + 1, currentFilter)}
+                  className="tasks-pager__link"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span className="tasks-pager__link tasks-pager__link--disabled">
+                  Next
+                </span>
+              )}
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
