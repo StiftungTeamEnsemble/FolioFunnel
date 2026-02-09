@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Column, Document, RunStatus } from "@prisma/client";
 import { Button } from "@/components/ui";
 import { updateDocumentValue } from "@/app/actions/documents";
 import { updateColumnVisibility } from "@/app/actions/columns";
 import { triggerProcessorRun, redownloadUrl } from "@/app/actions/runs";
 import { DocumentDetailModal } from "@/components/documents/DocumentDetailModal";
+import { ManualArrayEditorModal } from "@/components/documents/ManualArrayEditorModal";
 import {
   getDocumentThumbnailUrl,
   PDF_THUMBNAIL_COLUMN_KEY,
@@ -68,6 +69,16 @@ export function KnowledgeTable({
   } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [runningCells, setRunningCells] = useState<Set<string>>(new Set());
+  const [savingCells, setSavingCells] = useState<Set<string>>(new Set());
+  const [optimisticValues, setOptimisticValues] = useState<
+    Record<string, unknown>
+  >({});
+  const [arrayEditState, setArrayEditState] = useState<{
+    docId: string;
+    column: Column;
+    values: string[];
+  } | null>(null);
+  const [arrayEditError, setArrayEditError] = useState<string | null>(null);
   const [detailDocument, setDetailDocument] = useState<DocumentWithRuns | null>(
     null,
   );
@@ -129,26 +140,32 @@ export function KnowledgeTable({
     }
   };
 
-  const handleEditStart = (doc: Document, columnKey: string) => {
+  const handleEditStart = (doc: Document, column: Column) => {
     const values = (doc.values as Record<string, unknown>) || {};
-    const value = values[columnKey];
-    setEditValue(
-      typeof value === "string" ? value : JSON.stringify(value ?? ""),
-    );
-    setEditingCell({ docId: doc.id, columnKey });
+    const value = values[column.key];
+    if (value === null || value === undefined) {
+      setEditValue("");
+    } else if (typeof value === "string") {
+      setEditValue(value);
+    } else if (typeof value === "number" || typeof value === "boolean") {
+      setEditValue(String(value));
+    } else {
+      setEditValue(JSON.stringify(value));
+    }
+    setEditingCell({
+      docId: doc.id,
+      columnKey: column.key,
+    });
   };
 
   const handleEditSave = async () => {
     if (!editingCell) return;
 
-    await updateDocumentValue(
-      projectId,
-      editingCell.docId,
-      editingCell.columnKey,
-      editValue,
-    );
+    const valueToSave = editValue;
+    const { docId, columnKey } = editingCell;
     setEditingCell(null);
-    onRefresh();
+    setEditValue("");
+    await handleSaveValue(docId, columnKey, valueToSave);
   };
 
   const handleEditCancel = () => {
@@ -191,11 +208,121 @@ export function KnowledgeTable({
 
   const getCellValue = (doc: Document, columnKey: string): string => {
     const values = (doc.values as Record<string, unknown>) || {};
-    const value = values[columnKey];
+    return formatCellValue(values[columnKey]);
+  };
+
+  const formatCellValue = (value: unknown): string => {
     if (value === undefined || value === null) return "";
     if (typeof value === "string") return value;
     if (Array.isArray(value)) return `[${value.length} items]`;
     return JSON.stringify(value);
+  };
+
+  const makeCellKey = (docId: string, columnKey: string) =>
+    `${docId}::${columnKey}`;
+
+  const handleSaveValue = async (
+    docId: string,
+    columnKey: string,
+    value: unknown,
+  ) => {
+    const cellKey = makeCellKey(docId, columnKey);
+    setOptimisticValues((prev) => ({ ...prev, [cellKey]: value }));
+    setSavingCells((prev) => new Set(prev).add(cellKey));
+
+    const result = await updateDocumentValue(
+      projectId,
+      docId,
+      columnKey,
+      value,
+    );
+
+    setSavingCells((prev) => {
+      const next = new Set(prev);
+      next.delete(cellKey);
+      return next;
+    });
+
+    if (result?.error) {
+      setOptimisticValues((prev) => {
+        const next = { ...prev };
+        delete next[cellKey];
+        return next;
+      });
+      return false;
+    }
+
+    onRefresh();
+    return true;
+  };
+
+  const handleArrayEditStart = (doc: Document, column: Column) => {
+    const values = (doc.values as Record<string, unknown>) || {};
+    const value = values[column.key];
+    const normalizedValues = Array.isArray(value)
+      ? value
+          .map((item) =>
+            column.type === "number_array" && typeof item === "number"
+              ? String(item)
+              : typeof item === "string"
+                ? item
+                : item === null || item === undefined
+                  ? ""
+                  : String(item),
+          )
+          .filter((item) => item.length > 0)
+      : [];
+    setArrayEditError(null);
+    setArrayEditState({
+      docId: doc.id,
+      column,
+      values: normalizedValues,
+    });
+  };
+
+  const handleArrayEditValueChange = (index: number, value: string) => {
+    setArrayEditState((prev) => {
+      if (!prev) return prev;
+      const nextValues = [...prev.values];
+      nextValues[index] = value;
+      return { ...prev, values: nextValues };
+    });
+  };
+
+  const handleArrayEditAddValue = (defaultValue: string) => {
+    setArrayEditState((prev) => {
+      if (!prev) return prev;
+      return { ...prev, values: [...prev.values, defaultValue] };
+    });
+  };
+
+  const handleArrayEditRemoveValue = (index: number) => {
+    setArrayEditState((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        values: prev.values.filter((_, currentIndex) => currentIndex !== index),
+      };
+    });
+  };
+
+  const handleArrayEditSave = async () => {
+    if (!arrayEditState) return;
+    const { docId, column, values } = arrayEditState;
+    const trimmedValues = values.map((value) => value.trim());
+    const preparedValue =
+      column.type === "number_array"
+        ? trimmedValues
+            .filter((value) => value.length > 0)
+            .map((value) => Number(value))
+            .filter((value) => !Number.isNaN(value))
+        : trimmedValues.filter((value) => value.length > 0);
+    const success = await handleSaveValue(docId, column.key, preparedValue);
+    if (success) {
+      setArrayEditState(null);
+    } else {
+      setArrayEditError("Failed to save array values. Please try again.");
+    }
   };
 
   const getRunStatus = (
@@ -249,6 +376,31 @@ export function KnowledgeTable({
 
     return getCellValue(doc, state.key);
   };
+
+  useEffect(() => {
+    if (Object.keys(optimisticValues).length === 0) return;
+
+    setOptimisticValues((prev) => {
+      const next = { ...prev };
+      let didChange = false;
+      Object.entries(prev).forEach(([cellKey, optimisticValue]) => {
+        const [docId, columnKey] = cellKey.split("::");
+        const doc = documents.find((item) => item.id === docId);
+        if (!doc) {
+          delete next[cellKey];
+          didChange = true;
+          return;
+        }
+        const values = (doc.values as Record<string, unknown>) || {};
+        const actualValue = values[columnKey];
+        if (JSON.stringify(actualValue) === JSON.stringify(optimisticValue)) {
+          delete next[cellKey];
+          didChange = true;
+        }
+      });
+      return didChange ? next : prev;
+    });
+  }, [documents, optimisticValues]);
 
   const sortedDocuments = useMemo(() => {
     const sorted = [...documents];
@@ -746,7 +898,24 @@ export function KnowledgeTable({
                 const cellKey = `${doc.id}-${column.id}`;
                 const isRunning = runningCells.has(cellKey);
                 const runInfo = getRunStatus(doc, column.key);
-                const cellValue = getCellValue(doc, column.key);
+                const manualCellKey = makeCellKey(doc.id, column.key);
+                const hasOptimisticValue = Object.prototype.hasOwnProperty.call(
+                  optimisticValues,
+                  manualCellKey,
+                );
+                const documentValues =
+                  (doc.values as Record<string, unknown>) || {};
+                const optimisticValue = hasOptimisticValue
+                  ? optimisticValues[manualCellKey]
+                  : undefined;
+                const resolvedValue = hasOptimisticValue
+                  ? optimisticValue
+                  : documentValues[column.key];
+                const cellValue = formatCellValue(resolvedValue);
+                const isSaving = savingCells.has(manualCellKey);
+                const isArrayType =
+                  column.type === "text_array" ||
+                  column.type === "number_array";
 
                 if (column.mode === "manual") {
                   return (
@@ -756,7 +925,10 @@ export function KnowledgeTable({
                         isEditing ? "table__cell--editing" : ""
                       }`}
                       onClick={() =>
-                        !isEditing && handleEditStart(doc, column.key)
+                        !isEditing &&
+                        (isArrayType
+                          ? handleArrayEditStart(doc, column)
+                          : handleEditStart(doc, column))
                       }
                     >
                       {isEditing ? (
@@ -784,17 +956,23 @@ export function KnowledgeTable({
                             </span>
                           </div>
                           <div className="table__cell__footer">
-                            <button
-                              type="button"
-                              className="table__cell__copy"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleCopy(cellValue);
-                              }}
-                              aria-label={`Copy ${column.name}`}
-                            >
-                              Copy
-                            </button>
+                            {isSaving ? (
+                              <span className="table__cell__status">
+                                Saving...
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="table__cell__copy"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleCopy(cellValue);
+                                }}
+                                aria-label={`Copy ${column.name}`}
+                              >
+                                Copy
+                              </button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -900,6 +1078,25 @@ export function KnowledgeTable({
           ))}
         </tbody>
       </table>
+      <ManualArrayEditorModal
+        state={arrayEditState}
+        error={arrayEditError}
+        isSaving={
+          arrayEditState
+            ? savingCells.has(
+                makeCellKey(arrayEditState.docId, arrayEditState.column.key),
+              )
+            : false
+        }
+        onClose={() => {
+          setArrayEditState(null);
+          setArrayEditError(null);
+        }}
+        onChangeValue={handleArrayEditValueChange}
+        onRemoveValue={handleArrayEditRemoveValue}
+        onAddValue={handleArrayEditAddValue}
+        onSave={handleArrayEditSave}
+      />
       <DocumentDetailModal
         document={detailDocument}
         columns={columns}
