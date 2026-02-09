@@ -222,6 +222,9 @@ export function ColumnModal({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (hasDuplicateAllowedValues) {
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -420,6 +423,25 @@ export function ColumnModal({
     manualTextArrayRestriction,
     mode,
   ]);
+
+  const duplicateAllowedValues = useMemo(() => {
+    if (mode !== "manual" || dataType !== "text_array") {
+      return [];
+    }
+    const seen = new Map<string, number>();
+    const duplicates = new Set<string>();
+    manualTextArrayAllowedValues.forEach((entry) => {
+      const trimmed = entry.value.trim();
+      if (!trimmed) return;
+      const count = seen.get(trimmed) ?? 0;
+      if (count >= 1) {
+        duplicates.add(trimmed);
+      }
+      seen.set(trimmed, count + 1);
+    });
+    return Array.from(duplicates);
+  }, [dataType, manualTextArrayAllowedValues, mode]);
+  const hasDuplicateAllowedValues = duplicateAllowedValues.length > 0;
 
   // Check if we need source column input
   const needsSourceColumn =
@@ -802,6 +824,16 @@ export function ColumnModal({
                 htmlFor="manualTextArrayAllowedValues"
                 hint="Add tag values to make them selectable."
               >
+                {hasDuplicateAllowedValues && (
+                  <div
+                    className="input-group__hint"
+                    style={{ color: "var(--color-warning)" }}
+                  >
+                    Duplicate tag values found:{" "}
+                    {duplicateAllowedValues.join(", ")}. Remove duplicates
+                    before saving.
+                  </div>
+                )}
                 <ArrayValueEditor
                   values={manualTextArrayAllowedValues.map(
                     (entry) => entry.value,
@@ -866,7 +898,11 @@ export function ColumnModal({
             >
               Cancel
             </Button>
-            <Button type="submit" isLoading={loading}>
+            <Button
+              type="submit"
+              isLoading={loading}
+              disabled={hasDuplicateAllowedValues}
+            >
               {isEditMode ? "Save Changes" : "Add Column"}
             </Button>
           </ModalFooter>

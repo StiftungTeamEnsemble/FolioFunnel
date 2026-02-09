@@ -25,29 +25,19 @@ export function ArrayValueEditor({
   selectOptions,
   disableAdd,
 }: ArrayValueEditorProps) {
-  const selectedValues = new Set(values.filter((value) => value !== ""));
-
   const handleChangeValue = (index: number, nextValue: string) => {
-    if (
-      nextValue !== "" &&
-      values.some((value, valueIndex) => valueIndex !== index && value === nextValue)
-    ) {
-      return;
-    }
     onChangeValue(index, nextValue);
   };
 
   const handleAddValue = (nextValue: string) => {
-    if (nextValue === "" || selectedValues.has(nextValue)) {
+    if (nextValue === "") {
       return;
     }
     onAddValue(nextValue);
   };
 
-  const getAvailableOptions = (currentValue: string) =>
-    selectOptions?.filter(
-      (option) => option === currentValue || !selectedValues.has(option),
-    ) ?? [];
+  const getAvailableOptions = (_currentValue: string) =>
+    selectOptions ?? [];
 
   return (
     <div className="form">
