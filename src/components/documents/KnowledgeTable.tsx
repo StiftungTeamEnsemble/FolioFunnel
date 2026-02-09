@@ -214,7 +214,15 @@ export function KnowledgeTable({
   const formatCellValue = (value: unknown): string => {
     if (value === undefined || value === null) return "";
     if (typeof value === "string") return value;
-    if (Array.isArray(value)) return `[${value.length} items]`;
+    if (Array.isArray(value)) {
+      const preview = value
+        .slice(0, 10)
+        .map((item) =>
+          typeof item === "string" ? item : JSON.stringify(item),
+        )
+        .join(", ");
+      return value.length > 10 ? `${preview}…` : preview;
+    }
     return JSON.stringify(value);
   };
 
