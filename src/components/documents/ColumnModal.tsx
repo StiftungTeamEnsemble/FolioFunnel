@@ -323,12 +323,6 @@ export function ColumnModal({
         config.manualTextArrayAllowedValues = allowedValues;
       }
       formData.set("processorConfig", JSON.stringify(config));
-      if (allowedValueChanges) {
-        formData.set(
-          "allowedValueChanges",
-          JSON.stringify(allowedValueChanges),
-        );
-      }
     }
 
     let result;

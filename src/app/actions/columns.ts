@@ -16,64 +16,6 @@ import {
   DEFAULT_EMBEDDING_MODEL,
 } from "@/lib/models";
 
-type AllowedValueChanges = {
-  renamed: { from: string; to: string }[];
-  deleted: string[];
-};
-
-const applyAllowedValueChanges = async (
-  projectId: string,
-  columnKey: string,
-  changes: AllowedValueChanges,
-) => {
-  if (changes.renamed.length === 0 && changes.deleted.length === 0) {
-    return;
-  }
-
-  const renameMap = new Map(
-    changes.renamed.map((change) => [change.from, change.to]),
-  );
-  const deleteSet = new Set(changes.deleted);
-
-  const documents = await prisma.document.findMany({
-    where: { projectId },
-    select: { id: true, values: true },
-  });
-
-  const updates = documents.flatMap((doc) => {
-    const values = (doc.values as Record<string, unknown>) || {};
-    const current = values[columnKey];
-    if (!Array.isArray(current)) return [];
-
-    let changed = false;
-    const next = current.flatMap((item) => {
-      if (typeof item !== "string") {
-        return [item];
-      }
-      if (deleteSet.has(item)) {
-        changed = true;
-        return [];
-      }
-      if (renameMap.has(item)) {
-        changed = true;
-        return [renameMap.get(item)];
-      }
-      return [item];
-    });
-
-    if (!changed) return [];
-
-    return prisma.document.update({
-      where: { id: doc.id },
-      data: { values: { ...values, [columnKey]: next } },
-    });
-  });
-
-  if (updates.length > 0) {
-    await prisma.$transaction(updates);
-  }
-};
-
 const createColumnSchema = z
   .object({
     key: z
@@ -123,6 +65,7 @@ export async function createColumn(projectId: string, formData: FormData) {
   const processorConfigStr = formData.get("processorConfig") as
     | string
     | undefined;
+
   let processorConfig: Record<string, unknown> | undefined;
   if (processorConfigStr) {
     try {
@@ -231,9 +174,6 @@ export async function updateColumn(
   const processorConfigStr = formData.get("processorConfig") as
     | string
     | undefined;
-  const allowedValueChangesStr = formData.get("allowedValueChanges") as
-    | string
-    | undefined;
 
   let processorConfig: Record<string, unknown> | undefined;
   if (processorConfigStr) {
@@ -241,34 +181,6 @@ export async function updateColumn(
       processorConfig = JSON.parse(processorConfigStr);
     } catch {
       return { error: "Invalid processor config JSON" };
-    }
-  }
-
-  let allowedValueChanges: AllowedValueChanges | null = null;
-  if (allowedValueChangesStr) {
-    try {
-      const parsed = JSON.parse(allowedValueChangesStr) as AllowedValueChanges;
-      if (
-        parsed &&
-        Array.isArray(parsed.renamed) &&
-        Array.isArray(parsed.deleted)
-      ) {
-        allowedValueChanges = {
-          renamed: parsed.renamed
-            .filter(
-              (entry) =>
-                entry &&
-                typeof entry.from === "string" &&
-                typeof entry.to === "string",
-            )
-            .map((entry) => ({ from: entry.from, to: entry.to })),
-          deleted: parsed.deleted.filter(
-            (entry) => typeof entry === "string",
-          ),
-        };
-      }
-    } catch {
-      allowedValueChanges = null;
     }
   }
 
@@ -294,15 +206,6 @@ export async function updateColumn(
       where: { id: columnId },
       data: updateData,
     });
-
-    if (
-      allowedValueChanges &&
-      column.mode === "manual" &&
-      column.type === "text_array" &&
-      processorConfig?.manualTextArrayRestrict === true
-    ) {
-      await applyAllowedValueChanges(projectId, column.key, allowedValueChanges);
-    }
 
     return { success: true, column: updated };
   } catch (error) {
