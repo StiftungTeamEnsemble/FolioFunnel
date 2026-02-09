@@ -82,7 +82,10 @@ export async function callOpenAI(
   const serviceTier = modelConfig?.serviceTier;
 
   const systemPrompt = config.systemPrompt || DEFAULT_SYSTEM_PROMPT;
-  const maxTokens = config.maxTokens || DEFAULT_MAX_TOKENS;
+  const requestedMaxTokens = config.maxTokens ?? DEFAULT_MAX_TOKENS;
+  const maxTokens = modelConfig?.maxCompletionTokens
+    ? Math.min(requestedMaxTokens, modelConfig.maxCompletionTokens)
+    : requestedMaxTokens;
 
   // Check for API key
   const openaiApiKey = process.env.OPENAI_API_KEY;
