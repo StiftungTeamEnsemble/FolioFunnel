@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MemberRole,
@@ -66,6 +66,10 @@ export function ProjectEditClient({
   const currentMemberRole =
     members.find((member) => member.user.id === currentUserId)?.role ??
     MemberRole.member;
+
+  useEffect(() => {
+    setResultTags(project.resultTags || []);
+  }, [project.resultTags]);
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -187,20 +191,19 @@ export function ProjectEditClient({
                   type="hidden"
                   id="resultTags"
                   name="resultTags"
+                  type="hidden"
                   value={resultTags.join(", ")}
                 />
                 <ArrayValueEditor
                   values={resultTags}
                   onChangeValue={(index, value) =>
                     setResultTags((prev) =>
-                      prev.map((entry, currentIndex) =>
-                        currentIndex === index ? value : entry,
+                      prev.map((tag, currentIndex) =>
+                        currentIndex === index ? value : tag,
                       ),
                     )
                   }
-                  onAddValue={() =>
-                    setResultTags((prev) => [...prev, ""])
-                  }
+                  onAddValue={() => setResultTags((prev) => [...prev, ""])}
                   onRemoveValue={(index) =>
                     setResultTags((prev) =>
                       prev.filter((_, currentIndex) => currentIndex !== index),
