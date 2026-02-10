@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MemberRole,
@@ -16,6 +16,7 @@ import {
   SelectItem,
   Textarea,
 } from "@/components/ui";
+import { ArrayValueEditor } from "@/components/documents/ArrayValueEditor";
 import {
   addProjectMember,
   removeMember,
@@ -59,9 +60,16 @@ export function ProjectEditClient({
   const [shareSuccess, setShareSuccess] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const [removingMemberId, setRemovingMemberId] = useState<string | null>(null);
+  const [resultTags, setResultTags] = useState<string[]>(
+    project.resultTags || [],
+  );
   const currentMemberRole =
     members.find((member) => member.user.id === currentUserId)?.role ??
     MemberRole.member;
+
+  useEffect(() => {
+    setResultTags(project.resultTags || []);
+  }, [project.resultTags]);
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -179,15 +187,32 @@ export function ProjectEditClient({
                 />
               </InputGroup>
               <InputGroup label="Result Tags" htmlFor="resultTags">
-                <Textarea
+                <input
                   id="resultTags"
                   name="resultTags"
-                  rows={3}
-                  placeholder="e.g., Q1, follow-up, needs-review"
-                  defaultValue={(project.resultTags || []).join(", ")}
+                  type="hidden"
+                  value={resultTags.join(", ")}
+                />
+                <ArrayValueEditor
+                  values={resultTags}
+                  onChangeValue={(index, value) =>
+                    setResultTags((prev) =>
+                      prev.map((tag, currentIndex) =>
+                        currentIndex === index ? value : tag,
+                      ),
+                    )
+                  }
+                  onAddValue={() => setResultTags((prev) => [...prev, ""])}
+                  onRemoveValue={(index) =>
+                    setResultTags((prev) =>
+                      prev.filter((_, currentIndex) => currentIndex !== index),
+                    )
+                  }
+                  addLabel="Add tag"
+                  emptyMessage="No tags yet."
                 />
                 <p style={{ marginTop: "6px", color: "var(--color-gray-600)" }}>
-                  Add comma or newline-separated tags to apply to results.
+                  Add tags to apply to results.
                 </p>
               </InputGroup>
               <div className="form__actions">
