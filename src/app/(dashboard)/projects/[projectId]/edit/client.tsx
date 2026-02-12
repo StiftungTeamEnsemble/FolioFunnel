@@ -191,7 +191,6 @@ export function ProjectEditClient({
                   type="hidden"
                   id="resultTags"
                   name="resultTags"
-                  type="hidden"
                   value={resultTags.join(", ")}
                 />
                 <ArrayValueEditor
