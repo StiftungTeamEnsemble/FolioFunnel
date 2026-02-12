@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import "@/styles/components/pagination.css";
 
 interface PaginationProps {
   currentPage: number;

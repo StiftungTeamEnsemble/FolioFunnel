@@ -1,0 +1,28 @@
+.tasks-pager__label {
+  font-size: 13px;
+  color: var(--color-gray-500);
+}
+
+.tasks-pager__controls {
+  display: flex;
+  gap: 8px;
+}
+
+.tasks-pager__link {
+  padding: 6px 12px;
+  border-radius: 0.3em;
+  border: 1px solid var(--color-gray-200);
+  font-size: 13px;
+  color: var(--color-gray-700);
+  background-color: white;
+}
+
+.tasks-pager__link:hover {
+  border-color: var(--color-gray-300);
+  color: var(--color-gray-900);
+}
+
+.tasks-pager__link--disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

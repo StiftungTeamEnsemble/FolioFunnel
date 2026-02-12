@@ -109,11 +109,9 @@
 /* Loading state */
 .button--loading {
   position: relative;
-  color: transparent;
 }
 
 .button__spinner {
-  position: absolute;
   width: 16px;
   height: 16px;
   border: 2px solid var(--color-gray-900);
