@@ -48,9 +48,23 @@
   font-size: 16px;
 }
 
+.sidebar__brand-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
 .sidebar__brand {
   font-size: 18px;
   font-weight: 600;
+}
+
+.sidebar__brand-version {
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-gray-500);
 }
 
 .sidebar__content {
