@@ -17,3 +17,4 @@ export {
 export { Dropzone, FileItem } from "./Dropzone";
 export { ToastProvider, useToast } from "./Toast";
 export { MetaLine, MetaSeparator } from "./MetaLine";
+export { Pagination } from "./Pagination";

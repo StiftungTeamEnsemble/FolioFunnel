@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Project, Document, Column } from "@prisma/client";
-import { Button, Select, SelectItem } from "@/components/ui";
+import { Button, Select, SelectItem, Pagination } from "@/components/ui";
 import { DocumentSelection } from "@/components/documents/DocumentSelection";
 import {
   KnowledgeTable,
@@ -31,6 +31,8 @@ interface ProjectDocumentsClientProps {
   initialDocuments: DocumentWithRuns[];
   initialColumns: Column[];
 }
+
+const DOCUMENTS_PAGE_SIZE = 25;
 
 export function ProjectDocumentsClient({
   project,
@@ -69,9 +71,16 @@ export function ProjectDocumentsClient({
     key: "created",
     direction: "desc",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDocuments, setTotalDocuments] = useState(initialDocuments.length);
+  const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
   useEffect(() => {
     setDocuments(initialDocuments);
+    setFilteredDocuments(initialDocuments);
+    setTotalDocuments(initialDocuments.length);
+    setTotalPages(Math.max(1, Math.ceil(initialDocuments.length / DOCUMENTS_PAGE_SIZE)));
   }, [initialDocuments]);
 
   useEffect(() => {
@@ -250,8 +259,14 @@ export function ProjectDocumentsClient({
   }, [copyableColumns, selectedCopyColumn]);
 
   useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, sortState]);
+
+  useEffect(() => {
     let isActive = true;
     const controller = new AbortController();
+    setIsLoadingDocuments(true);
+
     const timer = setTimeout(async () => {
       try {
         const response = await fetch(
@@ -263,6 +278,8 @@ export function ProjectDocumentsClient({
               filters,
               includeRuns: true,
               sort: sortState,
+              page: currentPage,
+              pageSize: DOCUMENTS_PAGE_SIZE,
             }),
             signal: controller.signal,
           },
@@ -271,12 +288,24 @@ export function ProjectDocumentsClient({
         if (!response.ok) return;
         const data = (await response.json()) as {
           documents: DocumentWithRuns[];
+          totalCount: number;
+          totalPages: number;
+          currentPage: number;
         };
         if (!isActive) return;
         setDocuments(data.documents);
+        setTotalDocuments(data.totalCount ?? 0);
+        setTotalPages(data.totalPages ?? 1);
+        if (data.currentPage && data.currentPage !== currentPage) {
+          setCurrentPage(data.currentPage);
+        }
       } catch (error) {
         if ((error as DOMException).name === "AbortError") return;
         console.error("Failed to fetch filtered documents", error);
+      } finally {
+        if (isActive) {
+          setIsLoadingDocuments(false);
+        }
       }
     }, 350);
 
@@ -285,7 +314,7 @@ export function ProjectDocumentsClient({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [filters, project.id, sortState]);
+  }, [currentPage, filters, project.id, sortState]);
 
   const handleSort = (type: SortState["type"], key: string) => {
     setSortState((prev) => {
@@ -481,12 +510,27 @@ export function ProjectDocumentsClient({
         />
         <p className="section__info">
           <span style={{ fontSize: "14px", color: "var(--color-gray-500)" }}>
-            {filteredDocuments.length} document
-            {filteredDocuments.length !== 1 ? "s" : ""}, {columns.length} column
+            {totalDocuments} document
+            {totalDocuments !== 1 ? "s" : ""}, {columns.length} column
             {columns.length !== 1 ? "s" : ""}
           </span>
         </p>
 
+
+        {isLoadingDocuments && (
+          <div style={{ marginBottom: "12px", color: "var(--color-gray-500)", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span className="button__spinner" />
+            Loading documents...
+          </div>
+        )}
+
+        <div style={{ marginBottom: "12px" }}>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
         <KnowledgeTable
           projectId={project.id}
           documents={filteredDocuments as any}

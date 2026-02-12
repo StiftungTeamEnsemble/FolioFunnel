@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { Button, MetaLine, MetaSeparator } from "@/components/ui";
+import { Button, MetaLine, MetaSeparator, Pagination } from "@/components/ui";
 import { ClearPendingTasksButton } from "@/components/tasks/ClearPendingTasksButton";
 import "@/styles/components/tasks.css";
 
@@ -362,35 +362,12 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
             )}
           </div>
           <div className="card__footer">
-            <span className="tasks-pager__label">
-              Page {currentPage} of {totalPages}
-            </span>
-            <div className="tasks-pager__controls">
-              {currentPage > 1 ? (
-                <Link
-                  href={buildTasksUrl(currentPage - 1, currentFilter)}
-                  className="tasks-pager__link"
-                >
-                  Previous
-                </Link>
-              ) : (
-                <span className="tasks-pager__link tasks-pager__link--disabled">
-                  Previous
-                </span>
-              )}
-              {currentPage < totalPages ? (
-                <Link
-                  href={buildTasksUrl(currentPage + 1, currentFilter)}
-                  className="tasks-pager__link"
-                >
-                  Next
-                </Link>
-              ) : (
-                <span className="tasks-pager__link tasks-pager__link--disabled">
-                  Next
-                </span>
-              )}
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              previousHref={buildTasksUrl(currentPage - 1, currentFilter)}
+              nextHref={buildTasksUrl(currentPage + 1, currentFilter)}
+            />
           </div>
         </div>
       </div>

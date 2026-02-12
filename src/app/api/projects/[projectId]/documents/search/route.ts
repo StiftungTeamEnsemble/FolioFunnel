@@ -26,16 +26,30 @@ export async function POST(
       filters?: FilterGroup[];
       includeRuns?: boolean;
       sort?: SortState;
+      page?: number;
+      pageSize?: number;
     };
 
     const filters = Array.isArray(body.filters) ? body.filters : [];
     const includeRuns = Boolean(body.includeRuns);
     const sort = body.sort;
+    const pageSize =
+      typeof body.pageSize === "number" && body.pageSize > 0
+        ? Math.min(body.pageSize, 100)
+        : 25;
+    const requestedPage =
+      typeof body.page === "number" && body.page > 0 ? Math.floor(body.page) : 1;
 
     const documentIds = await getFilteredDocumentIds(params.projectId, filters);
+    const totalCount = documentIds.length;
 
-    if (!documentIds.length) {
-      return NextResponse.json({ documents: [] });
+    if (!totalCount) {
+      return NextResponse.json({
+        documents: [],
+        totalCount: 0,
+        totalPages: 1,
+        currentPage: 1,
+      });
     }
 
     const orderBy: Prisma.DocumentOrderByWithRelationInput[] = [];
@@ -78,12 +92,18 @@ export async function POST(
       orderBy.push({ createdAt: "desc" });
     }
 
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+    const currentPage = Math.min(requestedPage, totalPages);
+    const skip = (currentPage - 1) * pageSize;
+
     const documents = await prisma.document.findMany({
       where: {
         projectId: params.projectId,
         id: { in: documentIds },
       },
       orderBy,
+      take: pageSize,
+      skip,
       include: includeRuns
         ? {
             uploadedBy: {
@@ -94,11 +114,27 @@ export async function POST(
     });
 
     if (!includeRuns) {
-      return NextResponse.json({ documents });
+      return NextResponse.json({
+        documents,
+        totalCount,
+        totalPages,
+        currentPage,
+      });
+    }
+
+    const pagedDocumentIds = documents.map((doc) => doc.id);
+
+    if (!pagedDocumentIds.length) {
+      return NextResponse.json({
+        documents: [],
+        totalCount,
+        totalPages,
+        currentPage,
+      });
     }
 
     const documentIdList = Prisma.join(
-      documentIds.map((id) => Prisma.sql`${id}::uuid`),
+      pagedDocumentIds.map((id) => Prisma.sql`${id}::uuid`),
     );
 
     const latestRuns = await prisma.$queryRaw<
@@ -135,7 +171,12 @@ export async function POST(
         ),
     }));
 
-    return NextResponse.json({ documents: documentsWithRuns });
+    return NextResponse.json({
+      documents: documentsWithRuns,
+      totalCount,
+      totalPages,
+      currentPage,
+    });
   } catch (error) {
     console.error("Document search error:", error);
     return NextResponse.json(
