@@ -140,6 +140,36 @@ export function KnowledgeTable({
     }
   };
 
+  const isPdfDocument = (doc: Document): boolean => {
+    if (doc.mimeType === "application/pdf") {
+      return true;
+    }
+
+    return (
+      doc.sourceType === "url" &&
+      typeof doc.sourceUrl === "string" &&
+      doc.sourceUrl.toLowerCase().endsWith(".pdf")
+    );
+  };
+
+  const getDocumentOpenUrl = (doc: Document): string | null => {
+    if (!isPdfDocument(doc)) {
+      return null;
+    }
+
+    if (doc.sourceType === "url") {
+      return doc.sourceUrl;
+    }
+
+    return `/api/projects/${projectId}/documents/${doc.id}/source`;
+  };
+
+  const handleOpenDocument = (doc: Document) => {
+    const url = getDocumentOpenUrl(doc);
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   const handleEditStart = (doc: Document, column: Column) => {
     const values = (doc.values as Record<string, unknown>) || {};
     const value = values[column.key];
@@ -257,8 +287,6 @@ export function KnowledgeTable({
       });
       return false;
     }
-
-    onRefresh();
     return true;
   };
 
@@ -742,14 +770,26 @@ export function KnowledgeTable({
                       {(() => {
                         if (doc.sourceType !== "url") {
                           return (
-                            <button
-                              type="button"
-                              className="table__cell__copy"
-                              onClick={() => handleCopy(doc.title)}
-                              aria-label="Copy title"
-                            >
-                              Copy
-                            </button>
+                            <div className="table__cell__footer-actions">
+                              {getDocumentOpenUrl(doc) && (
+                                <button
+                                  type="button"
+                                  className="table__cell__copy"
+                                  onClick={() => handleOpenDocument(doc)}
+                                  aria-label="Open PDF"
+                                >
+                                  Open
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                className="table__cell__copy"
+                                onClick={() => handleCopy(doc.title)}
+                                aria-label="Copy title"
+                              >
+                                Copy
+                              </button>
+                            </div>
                           );
                         }
 
@@ -790,6 +830,16 @@ export function KnowledgeTable({
                                       ? "🔄"
                                       : "▶️"}
                               </Button>
+                              {getDocumentOpenUrl(doc) && (
+                                <button
+                                  type="button"
+                                  className="table__cell__copy"
+                                  onClick={() => handleOpenDocument(doc)}
+                                  aria-label="Open PDF"
+                                >
+                                  Open
+                                </button>
+                              )}
                               <button
                                 type="button"
                                 className="table__cell__copy"
