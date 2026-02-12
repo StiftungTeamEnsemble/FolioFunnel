@@ -20,7 +20,7 @@ RUN npm ci
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl git
 # Ensure OpenSSL 3 libs are in /lib for prisma generate
 RUN [ ! -e /lib/libssl.so.3 ] && ln -s /usr/lib/libssl.so.3 /lib/libssl.so.3 || true
 RUN [ ! -e /lib/libcrypto.so.3 ] && ln -s /usr/lib/libcrypto.so.3 /lib/libcrypto.so.3 || true

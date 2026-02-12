@@ -23,6 +23,7 @@ interface SidebarProps {
 export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return "?";
@@ -39,7 +40,10 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
       <div className="sidebar__header">
         <Link href="/" className="sidebar__brand-link" aria-label="Go to home">
           <div className="sidebar__logo">FF</div>
-          <div className="sidebar__brand">FolioFunnel</div>
+          <div className="sidebar__brand-wrap">
+            <div className="sidebar__brand">FolioFunnel</div>
+            <small className="sidebar__brand-version">{appVersion}</small>
+          </div>
         </Link>
       </div>
 
