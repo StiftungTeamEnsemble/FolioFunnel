@@ -77,6 +77,10 @@ export function ProjectDocumentsClient({
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
 
   useEffect(() => {
+    if (initialDocuments.length === 0) {
+      return;
+    }
+
     setDocuments(initialDocuments);
     setFilteredDocuments(initialDocuments);
     setTotalDocuments(initialDocuments.length);
