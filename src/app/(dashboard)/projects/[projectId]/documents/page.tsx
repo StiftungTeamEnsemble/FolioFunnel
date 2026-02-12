@@ -22,21 +22,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  const [project, documents, columns] = await Promise.all([
+  const [project, columns] = await Promise.all([
     prisma.project.findUnique({
       where: { id: params.projectId },
-    }),
-    prisma.document.findMany({
-      where: { projectId: params.projectId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        uploadedBy: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-      },
     }),
     prisma.column.findMany({
       where: { projectId: params.projectId },
@@ -48,45 +36,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  // Get latest processor runs for each document/column combination
-  const latestRuns = await prisma.$queryRaw<
-    Array<{
-      documentId: string;
-      columnKey: string;
-      status: string;
-      error: string | null;
-    }>
-  >`
-    SELECT DISTINCT ON (r.document_id, c.key)
-      r.document_id as "documentId",
-      c.key as "columnKey",
-      r.status::text as status,
-      r.error
-    FROM runs r
-    JOIN columns c ON c.id = r.column_id
-    WHERE r.project_id = ${params.projectId}::uuid
-      AND r.type = 'processor'
-    ORDER BY r.document_id, c.key, r.created_at DESC
-  `;
-
-  // Attach runs to documents
-  const documentsWithRuns = documents.map((doc) => ({
-    ...doc,
-    latestRuns: latestRuns
-      .filter((r) => r.documentId === doc.id)
-      .reduce(
-        (acc, r) => ({
-          ...acc,
-          [r.columnKey]: { status: r.status, error: r.error },
-        }),
-        {} as Record<string, { status: string; error: string | null }>,
-      ),
-  }));
-
   return (
     <ProjectDocumentsClient
       project={project}
-      initialDocuments={documentsWithRuns}
+      initialDocuments={[]}
       initialColumns={columns}
     />
   );
