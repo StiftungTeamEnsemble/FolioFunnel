@@ -234,6 +234,11 @@ export function ProjectPromptClient({
     };
   }, [model, project.id, selectedPromptTemplate]);
 
+  const hasActiveFilters = (groups: FilterGroup[]) =>
+    groups.some((group) =>
+      group.rules.some((rule) => Boolean(rule.value.trim())),
+    );
+
   const fetchDocuments = async (
     filters: FilterGroup[],
     signal: AbortSignal,
@@ -257,6 +262,11 @@ export function ProjectPromptClient({
   };
 
   useEffect(() => {
+    if (!hasActiveFilters(filterGroups)) {
+      setSelectedDocuments(initialDocuments);
+      return;
+    }
+
     let isActive = true;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -275,9 +285,15 @@ export function ProjectPromptClient({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [filterGroups, project.id]);
+  }, [filterGroups, initialDocuments, project.id]);
 
   useEffect(() => {
+    if (!hasActiveFilters(builderFilters)) {
+      setBuilderDocuments(initialDocuments);
+      setBuilderSelectedDocuments(initialDocuments);
+      return;
+    }
+
     let isActive = true;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -297,7 +313,7 @@ export function ProjectPromptClient({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [builderFilters, project.id]);
+  }, [builderFilters, initialDocuments, project.id]);
 
   const handleSendPrompt = () => {
     setSendError(null);
