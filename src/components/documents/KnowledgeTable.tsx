@@ -257,8 +257,6 @@ export function KnowledgeTable({
       });
       return false;
     }
-
-    onRefresh();
     return true;
   };
 
