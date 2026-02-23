@@ -1,4 +1,6 @@
-const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
+const rawVersion = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
+// Truncate long hashes to short git hash format (7 chars)
+const appVersion = rawVersion.length > 8 ? rawVersion.substring(0, 7) : rawVersion;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

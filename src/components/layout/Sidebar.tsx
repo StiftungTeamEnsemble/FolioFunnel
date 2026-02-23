@@ -42,7 +42,7 @@ export function Sidebar({ projects, currentProjectId, user }: SidebarProps) {
           <div className="sidebar__logo">FF</div>
           <div className="sidebar__brand-wrap">
             <div className="sidebar__brand">FolioFunnel</div>
-            <small className="sidebar__brand-version">{appVersion}</small>
+            <small className="sidebar__brand-version">Version {appVersion}</small>
           </div>
         </Link>
       </div>
