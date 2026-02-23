@@ -25,13 +25,24 @@ RUN [ ! -e /lib/libcrypto.so.3 ] && ln -s /usr/lib/libcrypto.so.3 /lib/libcrypto
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Version detection: .git is included in build context (not excluded by .dockerignore)
+# Override via build arg if desired (e.g. from Coolify build settings)
+ARG NEXT_PUBLIC_APP_VERSION=
+ENV NEXT_PUBLIC_APP_VERSION=${NEXT_PUBLIC_APP_VERSION}
+RUN echo "[docker] .git present: $([ -d .git ] && echo yes || echo no)" && \
+    echo "[docker] NEXT_PUBLIC_APP_VERSION build arg: '${NEXT_PUBLIC_APP_VERSION}'" && \
+    if [ -d .git ]; then \
+      echo "[docker] git tags: $(git tag -l 2>/dev/null | head -5)"; \
+      echo "[docker] git HEAD: $(git rev-parse --short HEAD 2>/dev/null)"; \
+    fi
+
 # Ensure public directory exists
 RUN mkdir -p ./public
 
 # Generate Prisma client
 RUN npx prisma generate
 
-# Build application
+# Build application — next.config.js handles version detection via git or env var
 RUN npm run build
 
 # Production image, copy all the files and run next

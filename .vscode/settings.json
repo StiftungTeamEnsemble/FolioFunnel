@@ -5,6 +5,7 @@
         "docker exec": true,
         "docker inspect": true,
         "docker volume": true,
-        "true": true
+        "true": true,
+        "docker build": true
     }
 }
