@@ -47,7 +47,6 @@ interface PromptRunWithAuthor extends Run {
 
 interface ProjectPromptClientProps {
   project: Project & { resultTags: string[] };
-  initialDocuments: Document[];
   columns: Column[];
   promptRuns: PromptRunWithAuthor[];
   promptTemplates: PromptTemplate[];
@@ -71,7 +70,6 @@ const buildDocumentContext = (doc: Document) => {
 
 export function ProjectPromptClient({
   project,
-  initialDocuments,
   columns,
   promptRuns,
   promptTemplates: initialPromptTemplates,
@@ -94,8 +92,9 @@ export function ProjectPromptClient({
   const [filterGroups, setFilterGroups] = useState<FilterGroup[]>(
     (selectedPromptTemplate?.filters as unknown as FilterGroup[]) || [],
   );
-  const [selectedDocuments, setSelectedDocuments] =
-    useState<Document[]>(initialDocuments);
+  const [selectedDocuments, setSelectedDocuments] = useState<Document[]>([]);
+  const [isLoadingSelectedDocuments, setIsLoadingSelectedDocuments] =
+    useState(true);
   const [model, setModel] = useState(DEFAULT_CHAT_MODEL);
   const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [costEstimate, setCostEstimate] = useState<number | null>(null);
@@ -115,10 +114,12 @@ export function ProjectPromptClient({
   const [builderTitle, setBuilderTitle] = useState("");
   const [builderPromptTemplate, setBuilderPromptTemplate] = useState("");
   const [builderFilters, setBuilderFilters] = useState<FilterGroup[]>([]);
-  const [builderDocuments, setBuilderDocuments] =
-    useState<Document[]>(initialDocuments);
-  const [builderSelectedDocuments, setBuilderSelectedDocuments] =
-    useState<Document[]>(initialDocuments);
+  const [builderDocuments, setBuilderDocuments] = useState<Document[]>([]);
+  const [builderSelectedDocuments, setBuilderSelectedDocuments] = useState<
+    Document[]
+  >([]);
+  const [isLoadingBuilderDocuments, setIsLoadingBuilderDocuments] =
+    useState(false);
   const [builderError, setBuilderError] = useState<string | null>(null);
   const [expandedRunIds, setExpandedRunIds] = useState<Set<string>>(
     () => new Set(),
@@ -234,41 +235,48 @@ export function ProjectPromptClient({
     };
   }, [model, project.id, selectedPromptTemplate]);
 
-  const hasActiveFilters = (groups: FilterGroup[]) =>
-    groups.some((group) =>
-      group.rules.some((rule) => Boolean(rule.value.trim())),
-    );
-
   const fetchDocuments = async (
     filters: FilterGroup[],
     signal: AbortSignal,
   ) => {
-    const response = await fetch(
-      `/api/projects/${project.id}/documents/search`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filters, includeRuns: false }),
-        signal,
-      },
-    );
+    const documents: Document[] = [];
+    const pageSize = 100;
+    let page = 1;
+    let totalPages = 1;
 
-    if (!response.ok) {
-      return [];
+    while (page <= totalPages) {
+      const response = await fetch(
+        `/api/projects/${project.id}/documents/search`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filters, includeRuns: false, page, pageSize }),
+          signal,
+        },
+      );
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const data = (await response.json()) as {
+        documents: Document[];
+        totalPages?: number;
+      };
+
+      documents.push(...data.documents);
+      totalPages = data.totalPages ?? 1;
+      page += 1;
     }
 
-    const data = (await response.json()) as { documents: Document[] };
-    return data.documents;
+    return documents;
   };
 
   useEffect(() => {
-    if (!hasActiveFilters(filterGroups)) {
-      setSelectedDocuments(initialDocuments);
-      return;
-    }
-
     let isActive = true;
     const controller = new AbortController();
+    setIsLoadingSelectedDocuments(true);
+
     const timer = setTimeout(async () => {
       try {
         const data = await fetchDocuments(filterGroups, controller.signal);
@@ -277,6 +285,10 @@ export function ProjectPromptClient({
       } catch (error) {
         if ((error as DOMException).name === "AbortError") return;
         console.error("Failed to fetch filtered documents", error);
+      } finally {
+        if (isActive) {
+          setIsLoadingSelectedDocuments(false);
+        }
       }
     }, 350);
 
@@ -285,17 +297,17 @@ export function ProjectPromptClient({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [filterGroups, initialDocuments, project.id]);
+  }, [filterGroups, project.id]);
 
   useEffect(() => {
-    if (!hasActiveFilters(builderFilters)) {
-      setBuilderDocuments(initialDocuments);
-      setBuilderSelectedDocuments(initialDocuments);
+    if (!isModalOpen) {
       return;
     }
 
     let isActive = true;
     const controller = new AbortController();
+    setIsLoadingBuilderDocuments(true);
+
     const timer = setTimeout(async () => {
       try {
         const data = await fetchDocuments(builderFilters, controller.signal);
@@ -305,6 +317,10 @@ export function ProjectPromptClient({
       } catch (error) {
         if ((error as DOMException).name === "AbortError") return;
         console.error("Failed to fetch builder documents", error);
+      } finally {
+        if (isActive) {
+          setIsLoadingBuilderDocuments(false);
+        }
       }
     }, 350);
 
@@ -313,7 +329,7 @@ export function ProjectPromptClient({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [builderFilters, initialDocuments, project.id]);
+  }, [builderFilters, isModalOpen, project.id]);
 
   const handleSendPrompt = () => {
     setSendError(null);
@@ -490,8 +506,8 @@ export function ProjectPromptClient({
                   `{{#each documents}}\nTitle: {{title}}\n{{/each}}`,
                 );
                 setBuilderFilters([]);
-                setBuilderDocuments(initialDocuments);
-                setBuilderSelectedDocuments(initialDocuments);
+                setBuilderDocuments([]);
+                setBuilderSelectedDocuments([]);
                 setBuilderError(null);
                 setIsModalOpen(true);
               }}
@@ -563,8 +579,8 @@ export function ProjectPromptClient({
                       (selectedPromptTemplate.filters as unknown as FilterGroup[]) ||
                         [],
                     );
-                    setBuilderDocuments(initialDocuments);
-                    setBuilderSelectedDocuments(initialDocuments);
+                    setBuilderDocuments([]);
+                    setBuilderSelectedDocuments([]);
                     setBuilderError(null);
                     setIsModalOpen(true);
                   }}
@@ -590,6 +606,9 @@ export function ProjectPromptClient({
               documents={selectedDocuments}
               projectId={project.id}
             />
+            {isLoadingSelectedDocuments && (
+              <MetaLine style={{ marginTop: 0 }}>Loading documents...</MetaLine>
+            )}
           </div>
         )}
       </div>
@@ -605,7 +624,9 @@ export function ProjectPromptClient({
               variant="secondary"
               onClick={() => setIsPreviewModalOpen(true)}
               disabled={
-                !selectedPromptTemplate || selectedDocuments.length === 0
+                !selectedPromptTemplate ||
+                isLoadingSelectedDocuments ||
+                selectedDocuments.length === 0
               }
             >
               View prompt preview
@@ -613,7 +634,9 @@ export function ProjectPromptClient({
             <Button
               onClick={handleSendPrompt}
               disabled={
-                !selectedPromptTemplate || selectedDocuments.length === 0
+                !selectedPromptTemplate ||
+                isLoadingSelectedDocuments ||
+                selectedDocuments.length === 0
               }
               isLoading={isPending}
             >
@@ -918,6 +941,11 @@ export function ProjectPromptClient({
                 initialFilterGroups={builderFilters}
                 serverFiltering
               />
+              {isLoadingBuilderDocuments && (
+                <MetaLine style={{ marginTop: "10px" }}>
+                  Loading documents...
+                </MetaLine>
+              )}
               <div style={{ marginTop: "10px" }}>
                 <DocumentPreviewList
                   documents={builderSelectedDocuments}
