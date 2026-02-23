@@ -13,8 +13,6 @@ RUN [ ! -e /lib/libcrypto.so.3 ] && ln -s /usr/lib/libcrypto.so.3 /lib/libcrypto
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production
-RUN cp -R node_modules prod_modules
 RUN npm ci
 
 # Rebuild the source code only when needed
@@ -60,13 +58,14 @@ RUN mkdir -p /data && chown -R nextjs:nodejs /data
 RUN mkdir -p ./public
 # Copy public directory from builder (now guaranteed to exist)
 COPY --from=builder /app/public ./public
-# Copy standalone app
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Copy build output
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/next.config.js ./next.config.js
 
-# Copy full node_modules for worker (standalone only has partial)
-COPY --from=deps /app/prod_modules ./node_modules
+# Copy full node_modules (needed since we're not using standalone mode)
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
 # Copy worker source files
