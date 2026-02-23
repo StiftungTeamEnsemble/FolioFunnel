@@ -239,22 +239,37 @@ export function ProjectPromptClient({
     filters: FilterGroup[],
     signal: AbortSignal,
   ) => {
-    const response = await fetch(
-      `/api/projects/${project.id}/documents/search`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filters, includeRuns: false }),
-        signal,
-      },
-    );
+    const documents: Document[] = [];
+    const pageSize = 100;
+    let page = 1;
+    let totalPages = 1;
 
-    if (!response.ok) {
-      return [];
+    while (page <= totalPages) {
+      const response = await fetch(
+        `/api/projects/${project.id}/documents/search`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ filters, includeRuns: false, page, pageSize }),
+          signal,
+        },
+      );
+
+      if (!response.ok) {
+        return [];
+      }
+
+      const data = (await response.json()) as {
+        documents: Document[];
+        totalPages?: number;
+      };
+
+      documents.push(...data.documents);
+      totalPages = data.totalPages ?? 1;
+      page += 1;
     }
 
-    const data = (await response.json()) as { documents: Document[] };
-    return data.documents;
+    return documents;
   };
 
   useEffect(() => {
