@@ -28,14 +28,9 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
     notFound();
   }
 
-  const [project, documents, columns, promptRuns, promptTemplates] =
-    await Promise.all([
+  const [project, columns, promptRuns, promptTemplates] = await Promise.all([
       prisma.project.findUnique({
         where: { id: projectId },
-      }),
-      prisma.document.findMany({
-        where: { projectId: projectId },
-        orderBy: { createdAt: "desc" },
       }),
       prisma.column.findMany({
         where: { projectId: projectId },
@@ -66,7 +61,6 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
   return (
     <ProjectPromptClient
       project={project}
-      initialDocuments={documents}
       columns={columns}
       promptRuns={promptRuns.filter((run) => !isPromptRunHidden(run.meta))}
       promptTemplates={promptTemplates}
