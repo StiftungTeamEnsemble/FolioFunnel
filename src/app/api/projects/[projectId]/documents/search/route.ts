@@ -97,6 +97,16 @@ export async function POST(
     const currentPage = Math.min(requestedPage, totalPages);
     const skip = (currentPage - 1) * pageSize;
 
+    // Fetch columns to know which ones are hidden
+    const columns = await prisma.column.findMany({
+      where: { projectId },
+      select: { key: true, hidden: true },
+    });
+
+    const visibleColumnKeys = new Set(
+      columns.filter((col) => !col.hidden).map((col) => col.key),
+    );
+
     const documents = await prisma.document.findMany({
       where: {
         projectId: projectId,
@@ -114,16 +124,30 @@ export async function POST(
         : undefined,
     });
 
+    // Filter document values to exclude hidden columns
+    const documentsFiltered = documents.map((doc) => ({
+      ...doc,
+      values:
+        typeof doc.values === "object" && doc.values !== null
+          ? Object.entries(doc.values as Record<string, unknown>)
+              .filter(([key]) => visibleColumnKeys.has(key))
+              .reduce(
+                (acc, [key, value]) => ({ ...acc, [key]: value }),
+                {} as Record<string, unknown>,
+              )
+          : doc.values,
+    }));
+
     if (!includeRuns) {
       return NextResponse.json({
-        documents,
+        documents: documentsFiltered,
         totalCount,
         totalPages,
         currentPage,
       });
     }
 
-    const pagedDocumentIds = documents.map((doc) => doc.id);
+    const pagedDocumentIds = documentsFiltered.map((doc) => doc.id);
 
     if (!pagedDocumentIds.length) {
       return NextResponse.json({
@@ -159,7 +183,7 @@ export async function POST(
       ORDER BY r.document_id, c.key, r.created_at DESC
     `;
 
-    const documentsWithRuns = documents.map((doc) => ({
+    const documentsWithRuns = documentsFiltered.map((doc) => ({
       ...doc,
       latestRuns: latestRuns
         .filter((r) => r.documentId === doc.id)
