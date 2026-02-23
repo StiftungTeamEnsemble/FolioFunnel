@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui";
 import { acceptInvite } from "@/app/actions/projects";
 
 interface InvitePageProps {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }
 
-export default function InvitePage({ params }: InvitePageProps) {
+export default function InvitePage(props: InvitePageProps) {
+  const params = use(props.params);
   const router = useRouter();
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);

@@ -6,10 +6,11 @@ import prisma from "@/lib/db";
 import { ProjectDocumentsClient } from "./client";
 
 interface ProjectPageProps {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
+  const { projectId } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -17,17 +18,17 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   try {
-    await requireProjectAccess(params.projectId);
+    await requireProjectAccess(projectId);
   } catch {
     notFound();
   }
 
   const [project, columns] = await Promise.all([
     prisma.project.findUnique({
-      where: { id: params.projectId },
+      where: { id: projectId },
     }),
     prisma.column.findMany({
-      where: { projectId: params.projectId },
+      where: { projectId: projectId },
       orderBy: { position: "asc" },
     }),
   ]);

@@ -6,7 +6,7 @@ import prisma from "@/lib/db";
 import { ProjectPromptClient } from "./client";
 
 interface ProjectPageProps {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 }
 
 const isPromptRunHidden = (meta: unknown) => {
@@ -15,6 +15,7 @@ const isPromptRunHidden = (meta: unknown) => {
 };
 
 export default async function ProjectPromptPage({ params }: ProjectPageProps) {
+  const { projectId } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -22,7 +23,7 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
   }
 
   try {
-    await requireProjectAccess(params.projectId);
+    await requireProjectAccess(projectId);
   } catch {
     notFound();
   }
@@ -30,19 +31,19 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
   const [project, documents, columns, promptRuns, promptTemplates] =
     await Promise.all([
       prisma.project.findUnique({
-        where: { id: params.projectId },
+        where: { id: projectId },
       }),
       prisma.document.findMany({
-        where: { projectId: params.projectId },
+        where: { projectId: projectId },
         orderBy: { createdAt: "desc" },
       }),
       prisma.column.findMany({
-        where: { projectId: params.projectId },
+        where: { projectId: projectId },
         orderBy: { position: "asc" },
       }),
       prisma.run.findMany({
         where: {
-          projectId: params.projectId,
+          projectId: projectId,
           type: "prompt",
         },
         include: {
@@ -53,7 +54,7 @@ export default async function ProjectPromptPage({ params }: ProjectPageProps) {
         orderBy: { createdAt: "desc" },
       }),
       prisma.promptTemplate.findMany({
-        where: { projectId: params.projectId },
+        where: { projectId: projectId },
         orderBy: { updatedAt: "desc" },
       }),
     ]);

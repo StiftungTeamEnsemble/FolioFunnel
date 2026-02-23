@@ -45,10 +45,10 @@ type UnifiedTask = {
 type TaskFilterType = "all" | "queued" | "running" | "success" | "error";
 
 type TasksPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     page?: string;
     status?: string;
-  };
+  }>;
 };
 
 const taskFilters: { label: string; value: TaskFilterType }[] = [
@@ -78,7 +78,8 @@ function resolvePageNumber(value?: string) {
   return Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
 }
 
-export default async function TasksPage({ searchParams }: TasksPageProps) {
+export default async function TasksPage(props: TasksPageProps) {
+  const searchParams = await props.searchParams;
   const session = await getServerSession(authOptions);
 
   if (!session) {

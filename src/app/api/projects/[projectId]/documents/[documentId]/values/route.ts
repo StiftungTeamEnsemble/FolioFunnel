@@ -10,10 +10,11 @@ const updateValueSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { projectId: string; documentId: string } },
+  { params }: { params: Promise<{ projectId: string; documentId: string }> },
 ) {
+  const { projectId, documentId } = await params;
   try {
-    await requireProjectAccess(params.projectId);
+    await requireProjectAccess(projectId);
     const payload = updateValueSchema.safeParse(
       await request.json().catch(() => null),
     );
@@ -25,7 +26,7 @@ export async function PATCH(
     const { columnKey, value } = payload.data;
 
     const document = await prisma.document.findFirst({
-      where: { id: params.documentId, projectId: params.projectId },
+      where: { id: documentId, projectId: projectId },
     });
 
     if (!document) {
@@ -36,7 +37,7 @@ export async function PATCH(
     }
 
     const column = await prisma.column.findFirst({
-      where: { projectId: params.projectId, key: columnKey },
+      where: { projectId: projectId, key: columnKey },
     });
 
     if (!column) {
@@ -54,7 +55,7 @@ export async function PATCH(
     values[columnKey] = value;
 
     await prisma.document.update({
-      where: { id: params.documentId },
+      where: { id: documentId },
       data: { values: values as any },
     });
 

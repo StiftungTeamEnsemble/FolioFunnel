@@ -7,12 +7,13 @@ import prisma from "@/lib/db";
 import { ProjectEditClient } from "./client";
 
 interface ProjectEditPageProps {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 }
 
 export default async function ProjectEditPage({
   params,
 }: ProjectEditPageProps) {
+  const { projectId } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -21,7 +22,7 @@ export default async function ProjectEditPage({
 
   let access;
   try {
-    access = await requireProjectAccess(params.projectId, [
+    access = await requireProjectAccess(projectId, [
       MemberRole.owner,
       MemberRole.admin,
     ]);
@@ -31,10 +32,10 @@ export default async function ProjectEditPage({
 
   const [project, members, pendingInvites] = await Promise.all([
     prisma.project.findUnique({
-      where: { id: params.projectId },
+      where: { id: projectId },
     }),
     prisma.projectMembership.findMany({
-      where: { projectId: params.projectId },
+      where: { projectId: projectId },
       include: {
         user: {
           select: {
@@ -48,7 +49,7 @@ export default async function ProjectEditPage({
     }),
     prisma.projectInvite.findMany({
       where: {
-        projectId: params.projectId,
+        projectId: projectId,
         acceptedAt: null,
         expiresAt: { gt: new Date() },
       },

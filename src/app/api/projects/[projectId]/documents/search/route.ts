@@ -18,10 +18,11 @@ type SortState =
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const { projectId } = await params;
   try {
-    await requireProjectAccess(params.projectId);
+    await requireProjectAccess(projectId);
     const body = (await request.json().catch(() => ({}))) as {
       filters?: FilterGroup[];
       includeRuns?: boolean;
@@ -40,7 +41,7 @@ export async function POST(
     const requestedPage =
       typeof body.page === "number" && body.page > 0 ? Math.floor(body.page) : 1;
 
-    const documentIds = await getFilteredDocumentIds(params.projectId, filters);
+    const documentIds = await getFilteredDocumentIds(projectId, filters);
     const totalCount = documentIds.length;
 
     if (!totalCount) {
@@ -98,7 +99,7 @@ export async function POST(
 
     const documents = await prisma.document.findMany({
       where: {
-        projectId: params.projectId,
+        projectId: projectId,
         id: { in: documentIds },
       },
       orderBy,
@@ -152,7 +153,7 @@ export async function POST(
         r.error
       FROM runs r
       JOIN columns c ON c.id = r.column_id
-      WHERE r.project_id = ${params.projectId}::uuid
+      WHERE r.project_id = ${projectId}::uuid
         AND r.type = 'processor'
         AND r.document_id IN (${documentIdList})
       ORDER BY r.document_id, c.key, r.created_at DESC

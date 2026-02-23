@@ -5,15 +5,16 @@ import { fileExists, getDocumentThumbnailPath, readFile } from "@/lib/storage";
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { projectId: string; documentId: string } },
+  { params }: { params: Promise<{ projectId: string; documentId: string }> },
 ) {
+  const { projectId, documentId } = await params;
   try {
-    await requireProjectAccess(params.projectId);
+    await requireProjectAccess(projectId);
 
     const document = await prisma.document.findFirst({
       where: {
-        id: params.documentId,
-        projectId: params.projectId,
+        id: documentId,
+        projectId: projectId,
       },
     });
 
@@ -25,8 +26,8 @@ export async function GET(
     }
 
     const thumbnailPath = getDocumentThumbnailPath(
-      params.projectId,
-      params.documentId,
+      projectId,
+      documentId,
     );
 
     const exists = await fileExists(thumbnailPath);

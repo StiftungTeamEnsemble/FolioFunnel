@@ -10,6 +10,8 @@ import "../styles/components/card.css";
 import "../styles/components/toast.css";
 import { Providers } from "./providers";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: "FolioFunnel - Document Processing",
   description: "A document processing web app with knowledge table interface",

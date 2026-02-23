@@ -7,10 +7,11 @@ import { SourceType } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } },
+  { params }: { params: Promise<{ projectId: string }> },
 ) {
+  const { projectId } = await params;
   try {
-    const { user } = await requireProjectAccess(params.projectId);
+    const { user } = await requireProjectAccess(projectId);
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -23,7 +24,7 @@ export async function POST(
     // Create document record
     const document = await prisma.document.create({
       data: {
-        projectId: params.projectId,
+        projectId: projectId,
         uploadedById: user.id,
         title: title || file.name,
         sourceType: SourceType.upload,
@@ -35,7 +36,7 @@ export async function POST(
     // Determine file extension
     const extension = file.name.split(".").pop() || "bin";
     const filePath = getDocumentSourcePath(
-      params.projectId,
+      projectId,
       document.id,
       extension,
     );
@@ -54,7 +55,7 @@ export async function POST(
       file.type === "application/pdf" || extension.toLowerCase() === "pdf";
     if (isPdf) {
       try {
-        await enqueuePdfThumbnailRun(params.projectId, document.id);
+        await enqueuePdfThumbnailRun(projectId, document.id);
       } catch (error) {
         console.error("Thumbnail enqueue error:", error);
       }

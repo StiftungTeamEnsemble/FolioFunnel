@@ -7,10 +7,11 @@ import prisma from "@/lib/db";
 import { Button } from "@/components/ui";
 
 interface PromptRunPageProps {
-  params: { projectId: string; promptId: string };
+  params: Promise<{ projectId: string; promptId: string }>;
 }
 
 export default async function PromptRunPage({ params }: PromptRunPageProps) {
+  const { projectId, promptId } = await params;
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -18,15 +19,15 @@ export default async function PromptRunPage({ params }: PromptRunPageProps) {
   }
 
   try {
-    await requireProjectAccess(params.projectId);
+    await requireProjectAccess(projectId);
   } catch {
     notFound();
   }
 
   const promptRun = await prisma.run.findFirst({
     where: {
-      id: params.promptId,
-      projectId: params.projectId,
+      id: promptId,
+      projectId: projectId,
       type: "prompt",
     },
     include: {
