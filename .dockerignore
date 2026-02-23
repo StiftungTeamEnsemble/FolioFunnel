@@ -12,7 +12,7 @@ out/
 data/
 
 # Git
-# NOTE: .git is intentionally NOT excluded — needed for version detection during build
+.git
 .gitignore
 
 # IDE
