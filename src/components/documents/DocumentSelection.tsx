@@ -206,8 +206,8 @@ export function DocumentSelection<T extends Document>({
 
   const quickGroupId = useRef(createId());
   const quickRuleId = useRef(createId());
-  const lastInitialFilterGroupsRef = useRef<FilterGroup[] | undefined>();
-  const lastActiveFiltersRef = useRef<FilterGroup[] | undefined>();
+  const lastInitialFilterGroupsRef = useRef<FilterGroup[] | undefined>(undefined);
+  const lastActiveFiltersRef = useRef<FilterGroup[] | undefined>(undefined);
   const shouldSkipNextFiltersChangeRef = useRef(false);
 
   useEffect(() => {

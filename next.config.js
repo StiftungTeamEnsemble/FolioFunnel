@@ -12,14 +12,10 @@ const nextConfig = {
       bodySizeLimit: "250mb",
     },
   },
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-      };
-    }
-    return config;
+  turbopack: {
+    resolveAlias: {
+      fs: { browser: "./empty.ts" },
+    },
   },
   // Disable static optimization to avoid context issues during build
   generateBuildId: async () => {
