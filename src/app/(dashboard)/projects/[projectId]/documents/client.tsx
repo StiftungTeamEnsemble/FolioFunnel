@@ -75,6 +75,7 @@ export function ProjectDocumentsClient({
   const [totalPages, setTotalPages] = useState(1);
   const [totalDocuments, setTotalDocuments] = useState(initialDocuments.length);
   const [isLoadingDocuments, setIsLoadingDocuments] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (initialDocuments.length === 0) {
@@ -84,7 +85,9 @@ export function ProjectDocumentsClient({
     setDocuments(initialDocuments);
     setFilteredDocuments(initialDocuments);
     setTotalDocuments(initialDocuments.length);
-    setTotalPages(Math.max(1, Math.ceil(initialDocuments.length / DOCUMENTS_PAGE_SIZE)));
+    setTotalPages(
+      Math.max(1, Math.ceil(initialDocuments.length / DOCUMENTS_PAGE_SIZE)),
+    );
   }, [initialDocuments]);
 
   useEffect(() => {
@@ -97,6 +100,7 @@ export function ProjectDocumentsClient({
 
   const handleRefresh = useCallback(() => {
     router.refresh();
+    setRefreshKey((k) => k + 1);
   }, [router]);
 
   const handleBulkRun = async (columnId: string) => {
@@ -318,7 +322,7 @@ export function ProjectDocumentsClient({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [currentPage, filters, project.id, sortState]);
+  }, [currentPage, filters, project.id, sortState, refreshKey]);
 
   const handleSort = (type: SortState["type"], key: string) => {
     setSortState((prev) => {
@@ -520,9 +524,16 @@ export function ProjectDocumentsClient({
           </span>
         </p>
 
-
         {isLoadingDocuments && (
-          <div style={{ marginBottom: "12px", color: "var(--color-gray-500)", display: "flex", alignItems: "center", gap: "8px" }}>
+          <div
+            style={{
+              marginBottom: "12px",
+              color: "var(--color-gray-500)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
             <span className="button__spinner" />
             Loading documents...
           </div>
