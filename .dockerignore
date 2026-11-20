@@ -28,4 +28,7 @@ Thumbs.db
 # Misc
 *.log
 .env*.local
+.env
+.env.*
+!.env.example
 __*
